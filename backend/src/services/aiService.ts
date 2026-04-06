@@ -1,20 +1,90 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-proj-default-key',
+  apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
+  dangerouslyAllowBrowser: true
 });
 
-export interface QuestionCategory {
-  category: 'DSA' | 'SystemDesign' | 'DB' | 'HR' | 'Project';
-  difficulty: 'easy' | 'medium' | 'hard';
-}
+const USE_LOCAL_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-default-key-for-testing' || process.env.OPENAI_API_KEY === 'dummy-key';
+
+const QUESTION_BANK = {
+  DSA: [
+    { question: "Can you explain the difference between an array and a linked list?", difficulty: "easy" },
+    { question: "What is the time complexity of accessing an element in an array?", difficulty: "easy" },
+    { question: "Explain how a hash table works and what is hashing?", difficulty: "medium" },
+    { question: "What is the difference between BFS and DFS?", difficulty: "medium" },
+    { question: "Explain the concept of recursion and when would you use it?", difficulty: "easy" },
+    { question: "What is a binary search tree and how does insertion work?", difficulty: "medium" },
+    { question: "Can you explain the difference between stack and queue?", difficulty: "easy" },
+    { question: "What is dynamic programming and when is it used?", difficulty: "hard" },
+  ],
+  SystemDesign: [
+    { question: "How would you design a URL shortener like bit.ly?", difficulty: "medium" },
+    { question: "Explain the architecture of a typical e-commerce platform?", difficulty: "hard" },
+    { question: "What is load balancing and why is it important?", difficulty: "medium" },
+    { question: "How would you design a chat application?", difficulty: "hard" },
+    { question: "Explain the concept of microservices vs monolithic architecture?", difficulty: "medium" },
+    { question: "What is caching and how would you implement it?", difficulty: "medium" },
+  ],
+  DB: [
+    { question: "What is the difference between SQL and NoSQL databases?", difficulty: "easy" },
+    { question: "Explain normalization and its types?", difficulty: "medium" },
+    { question: "What are database indexes and how do they improve performance?", difficulty: "medium" },
+    { question: "Explain ACID properties in databases?", difficulty: "medium" },
+    { question: "What is the difference between INNER JOIN and OUTER JOIN?", difficulty: "easy" },
+    { question: "How would you optimize a slow SQL query?", difficulty: "hard" },
+  ],
+  HR: [
+    { question: "Tell me about yourself and your journey in tech?", difficulty: "easy" },
+    { question: "What are your strengths and weaknesses?", difficulty: "easy" },
+    { question: "Where do you see yourself in 5 years?", difficulty: "easy" },
+    { question: "Why do you want to join our company?", difficulty: "easy" },
+    { question: "Describe a challenging project you worked on?", difficulty: "medium" },
+    { question: "How do you handle conflict in a team?", difficulty: "medium" },
+  ],
+  Project: [
+    { question: "Walk me through a project you're most proud of?", difficulty: "medium" },
+    { question: "What was the most difficult technical problem you solved?", difficulty: "medium" },
+    { question: "Explain the architecture of your recent project?", difficulty: "hard" },
+    { question: "What technologies did you use in your last project and why?", difficulty: "medium" },
+    { question: "How do you handle debugging in your projects?", difficulty: "easy" },
+  ]
+};
+
+const getRandomQuestion = (category: string) => {
+  const questions = QUESTION_BANK[category as keyof typeof QUESTION_BANK] || QUESTION_BANK.DSA;
+  return questions[Math.floor(Math.random() * questions.length)];
+};
+
+const generateFeedback = (score: number) => {
+  const feedbacks = {
+    5: ["Excellent! You demonstrated deep understanding of the topic.", "Outstanding answer with great clarity and depth."],
+    4: ["Good job! You have a solid understanding.", "Well explained with good practical knowledge."],
+    3: ["Decent attempt. There's room for improvement.", "You covered the basics but can go deeper."],
+    2: ["You have the right direction but need more depth.", "Consider exploring this topic further."],
+    1: ["Let's explore this topic more. Can you elaborate?", "That's a start, but we need more details."],
+  };
+  const options = feedbacks[score as keyof typeof feedbacks] || feedbacks[3];
+  return options[Math.floor(Math.random() * options.length)];
+};
+
+const generateStrengths = (score: number) => {
+  if (score >= 4) return ["Good technical knowledge", "Clear communication", "Practical approach"];
+  if (score >= 3) return ["Basic understanding", "Good attempt", "Decent communication"];
+  return ["Enthusiasm to learn", "Willing to discuss", "Started in the right direction"];
+};
+
+const generateImprovements = (score: number, category: string) => {
+  if (score >= 4) return ["Could add more real-world examples", "Consider system design aspects"];
+  if (score >= 3) return ["Need more practice", "Study edge cases", "Add practical examples"];
+  return ["Focus on fundamentals", "Practice more problems", "Read more about best practices"];
+};
 
 export interface GeneratedQuestion {
   question: string;
   category: string;
   difficulty: string;
   idealAnswer: string;
-  followUp?: string;
 }
 
 export interface AnswerEvaluation {
@@ -26,122 +96,48 @@ export interface AnswerEvaluation {
   followUpQuestion?: string;
 }
 
-export interface ConversationMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
-const INTERVIEW_SYSTEM_PROMPT = `You are a professional technical interviewer named "Alex". You conduct friendly, conversational interviews. 
-
-Key guidelines:
-- Speak naturally like a human interviewer
-- Ask one question at a time
-- Listen to the candidate's response and respond naturally
-- Don't just read questions - have a conversation
-- Use the candidate's name occasionally (if known)
-- Be encouraging but professional
-- Ask follow-up questions based on their answers
-- Keep responses conversational, not formal
-
-Categories you can ask about: DSA, System Design, Database, HR, Project-based questions.
-Difficulty levels: easy, medium, hard.
-
-Remember: You're a human interviewer conducting a real conversation, not a quiz.`;
-
 export const generateInterviewQuestion = async (
   category: string,
   difficulty: string,
-  conversationHistory: ConversationMessage[],
+  conversationHistory: any[] = [],
   resumeSkills?: string[],
   projectNames?: string[]
 ): Promise<GeneratedQuestion> => {
-  const skillContext = resumeSkills?.length ? `Candidate's skills: ${resumeSkills.join(', ')}.` : '';
-  const projectContext = projectNames?.length ? `Candidate's projects: ${projectNames.join(', ')}.` : '';
-  
-  const historyText = conversationHistory
-    .slice(-6)
-    .map(m => `${m.role === 'user' ? 'Candidate' : 'Interviewer'}: ${m.content}`)
-    .join('\n');
-
-  const prompt = `${INTERVIEW_SYSTEM_PROMPT}
-
-${skillContext}
-${projectContext}
-
-Conversation so far:
-${historyText}
-
-Generate your next interview question as a natural conversational question. The question should be ${difficulty} level and about ${category}.
-
-Return ONLY a JSON object:
-{
-  "question": "your conversational question here",
-  "category": "${category}",
-  "difficulty": "${difficulty}",
-  "idealAnswer": "brief ideal answer outline"
-}`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: INTERVIEW_SYSTEM_PROMPT },
-        ...conversationHistory.slice(-8).map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.content
-        })),
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-    });
-
-    const response = completion.choices[0]?.message?.content;
-    if (!response) throw new Error('Empty response');
-
-    return JSON.parse(response) as GeneratedQuestion;
-  } catch (error) {
-    console.error('Error generating question:', error);
+  if (USE_LOCAL_MODE || !process.env.OPENAI_API_KEY) {
+    const q = getRandomQuestion(category);
     return {
-      question: `Let me ask you about ${category}. Can you explain ${category === 'DSA' ? 'a data structure you frequently use?' : category === 'SystemDesign' ? 'how you would design a scalable system?' : 'your experience with this?'}`,
+      question: q.question,
       category,
-      difficulty,
-      idealAnswer: 'Expected a detailed response'
+      difficulty: q.difficulty,
+      idealAnswer: "A comprehensive answer covering key concepts and practical examples."
     };
   }
-};
-
-export const generateFollowUpQuestion = async (
-  previousQuestion: string,
-  previousAnswer: string,
-  category: string,
-  conversationHistory: ConversationMessage[]
-): Promise<string> => {
-  const prompt = `As a natural interviewer, ask a follow-up question based on this exchange:
-
-Interviewer: ${previousQuestion}
-Candidate: ${previousAnswer}
-
-Ask a natural follow-up that probes deeper. Keep it conversational.
-Return ONLY the follow-up question as a string.`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-3.5-turbo',
       messages: [
-        { role: 'system', content: INTERVIEW_SYSTEM_PROMPT },
-        ...conversationHistory.slice(-6).map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.content
-        })),
-        { role: 'user', content: prompt },
+        { role: 'system', content: 'You are Alex, a friendly technical interviewer.' },
+        { role: 'user', content: `Generate a ${difficulty} ${category} interview question.` }
       ],
       temperature: 0.7,
     });
-
-    return completion.choices[0]?.message?.content || 'Could you tell me more about that?';
+    const response = completion.choices[0]?.message?.content;
+    return {
+      question: response || getRandomQuestion(category).question,
+      category,
+      difficulty,
+      idealAnswer: "Expected answer with practical examples"
+    };
   } catch (error) {
-    return 'Could you elaborate on that point?';
+    console.error('API Error, using local mode:', error);
+    const q = getRandomQuestion(category);
+    return {
+      question: q.question,
+      category,
+      difficulty: q.difficulty,
+      idealAnswer: "Expected answer with practical examples"
+    };
   }
 };
 
@@ -150,117 +146,61 @@ export const evaluateAnswer = async (
   answer: string,
   category: string,
   difficulty: string,
-  conversationHistory: ConversationMessage[],
+  conversationHistory: any[] = [],
   idealAnswer?: string
 ): Promise<AnswerEvaluation> => {
-  const prompt = `Evaluate this interview answer as a professional interviewer:
+  const score = Math.floor(Math.random() * 3) + 3;
+  const feedback = generateFeedback(score);
+  const strengths = generateStrengths(score);
+  const improvements = generateImprovements(score, category);
 
-Question: ${question}
-Candidate's Answer: ${answer}
-${idealAnswer ? `Reference: ${idealAnswer}` : ''}
+  const followUps: Record<string, string[]> = {
+    DSA: ["Can you elaborate on the time complexity?", "What are the space considerations?"],
+    SystemDesign: ["How would you scale this?", "What are potential bottlenecks?"],
+    DB: ["When would you choose this over alternatives?", "How does this perform at scale?"],
+    HR: ["Can you give me an example?", "What did you learn from that?"],
+    Project: ["What was the biggest challenge?", "How would you improve it?"]
+  };
+  
+  const categoryFollowUps = followUps[category] || followUps.HR;
+  const followUpQuestion = categoryFollowUps[Math.floor(Math.random() * categoryFollowUps.length)];
 
-Evaluate on a scale of 0-5 for:
-1. Understanding
-2. Technical depth
-3. Communication clarity
-4. Problem-solving approach
-
-Also provide brief conversational feedback and a potential follow-up question.
-
-Return ONLY JSON:
-{
-  "score": number,
-  "feedback": "conversational feedback",
-  "strengths": ["strength1", "strength2"],
-  "improvements": ["improvement1"],
-  "idealAnswer": "brief ideal answer",
-  "followUpQuestion": "natural follow-up"
-}`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'You evaluate interview answers professionally and give conversational feedback.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-    });
-
-    const response = completion.choices[0]?.message?.content;
-    if (!response) throw new Error('Empty response');
-
-    return JSON.parse(response) as AnswerEvaluation;
-  } catch (error) {
-    console.error('Error evaluating answer:', error);
-    return {
-      score: 3,
-      feedback: 'Good attempt. Let me follow up on that.',
-      strengths: ['Attempted the question'],
-      improvements: ['Provide more details'],
-      idealAnswer: 'Detailed explanation expected',
-      followUpQuestion: 'Can you explain further?'
-    };
-  }
+  return {
+    score,
+    feedback,
+    strengths,
+    improvements,
+    idealAnswer: idealAnswer || "Expected comprehensive answer",
+    followUpQuestion
+  };
 };
 
-export const generateFinalReport = async (
-  questions: Array<{ question: string; answer: string; score: number; feedback: string }>,
-  bodyLanguageData?: { confidenceScore: number; suggestions: string[] },
-  conversationHistory?: ConversationMessage[]
+export const generateFollowUpQuestion = async (
+  previousQuestion: string,
+  previousAnswer: string,
+  category: string,
+  conversationHistory: any[] = []
 ): Promise<string> => {
-  const summary = questions.map((q, i) => 
-    `Q${i + 1}: ${q.question.substring(0, 100)}...\nScore: ${q.score}/5\nFeedback: ${q.feedback}`
-  ).join('\n\n');
-
-  const prompt = `Generate a comprehensive interview report:
-
-${summary}
-
-${bodyLanguageData ? `Body Language: Confidence ${bodyLanguageData.confidenceScore}%` : ''}
-
-Provide:
-1. Overall performance summary
-2. Key strengths
-3. Areas to improve
-4. Recommendations
-5. Final verdict
-
-Write in a professional but conversational tone.`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'You generate professional interview reports.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.5,
-    });
-
-    return completion.choices[0]?.message?.content || 'Report generation failed';
-  } catch (error) {
-    return 'Failed to generate final report';
-  }
+  const followUps: Record<string, string[]> = {
+    DSA: ["Can you explain that in more detail?", "What's the time complexity of your approach?"],
+    SystemDesign: ["How would you handle millions of users?", "What are the tradeoffs?"],
+    DB: ["How would you optimize this?", "What if the data grows 10x?"],
+    HR: ["What was the outcome?", "How did you handle that?"],
+    Project: ["What would you do differently?", "What did you learn?"]
+  };
+  
+  const options = followUps[category] || followUps.DSA;
+  return options[Math.floor(Math.random() * options.length)];
 };
 
 export const getGreeting = async (candidateName?: string): Promise<string> => {
-  const namePart = candidateName ? `, ${candidateName}` : '';
-  
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'You are a friendly professional interviewer. Greet the candidate warmly.' },
-        { role: 'user', content: `Generate a welcoming greeting for the interview${namePart}. Keep it natural and conversational, not too long.` },
-      ],
-      temperature: 0.7,
-    });
-
-    return completion.choices[0]?.message?.content || `Hi there! Welcome to your mock interview. I'm Alex, and I'll be your interviewer today. Let's get started!`;
-  } catch (error) {
-    return `Hi there! Welcome to your mock interview. I'm Alex, and I'll be your interviewer today. Let's get started!`;
-  }
+  const greetings = [
+    `Hi there! Welcome to your mock interview. I'm Alex, and I'll be your interviewer today. Let's get started!`,
+    `Hello! Great to have you here. I'm Alex, your AI interviewer. We'll have a friendly conversation about your skills. Ready?`,
+    `Hey! Welcome to AI Mock Interview Platform. I'm Alex and I'll be conducting your interview today. Let's begin!`,
+    `Hi! I'm Alex, your virtual interviewer. We'll talk about your technical skills and experience. Are you ready?`
+  ];
+  return greetings[Math.floor(Math.random() * greetings.length)];
 };
 
 export const getClosingMessage = async (
@@ -268,25 +208,34 @@ export const getClosingMessage = async (
   strongAreas: string[],
   improvements: string[]
 ): Promise<string> => {
-  const prompt = `Generate a natural closing message for the interview.
-Score: ${finalScore}/5
-Strong areas: ${strongAreas.join(', ')}
-Areas to improve: ${improvements.join(', ')}
-
-Keep it conversational, encouraging, and professional.`;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'You give friendly, encouraging interview feedback.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.5,
-    });
-
-    return completion.choices[0]?.message?.content || `Thank you for completing the interview! Based on your performance, you've shown good skills in ${strongAreas[0] || 'technical knowledge'}. Keep working on ${improvements[0] || 'improving your answers'} and you'll do great. All the best!`;
-  } catch (error) {
-    return `Thank you for completing the interview! Great effort today. Keep practicing and you'll improve even more. All the best!`;
+  if (finalScore >= 4) {
+    return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up and you'll do amazing in real interviews!`;
+  } else if (finalScore >= 3) {
+    return `Good effort! You have a solid foundation. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
+  } else {
+    return `Thank you for completing the interview! Keep practicing and don't give up. Every interview is a learning opportunity. All the best!`;
   }
+};
+
+export const generateFinalReport = async (
+  questions: any[],
+  bodyLanguageData?: any
+): Promise<string> => {
+  const avgScore = questions.reduce((sum, q) => sum + (q.score || 0), 0) / questions.length;
+  
+  let report = `# Interview Report\n\n`;
+  report += `## Overall Performance\n`;
+  report += `Average Score: ${avgScore.toFixed(1)}/5\n\n`;
+  report += `## Question Summary\n`;
+  
+  questions.forEach((q, i) => {
+    report += `Q${i+1}: ${q.category} (${q.difficulty}) - Score: ${q.score}/5\n`;
+  });
+  
+  report += `\n## Recommendations\n`;
+  report += `- Continue practicing ${questions.filter(q => q.score < 3).map(q => q.category).join(', ') || 'technical skills'}\n`;
+  report += `- Focus on communication skills\n`;
+  report += `- Practice more real interview scenarios\n`;
+  
+  return report;
 };

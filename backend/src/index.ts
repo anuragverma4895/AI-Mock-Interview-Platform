@@ -32,7 +32,7 @@ app.use('/api/video', videoRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AI Interview Bot API is running' });
+  res.json({ status: 'ok', message: 'AI Mock Interview Platform API is running' });
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

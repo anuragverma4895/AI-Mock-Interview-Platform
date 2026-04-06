@@ -1,4 +1,4 @@
-# AI Interview Bot - Complete Full Stack Application
+# AI Mock Interview Platform - Complete Full Stack Application
 
 A professional AI-powered interview platform with real-time video recording, live coding environment, and intelligent question generation.
 

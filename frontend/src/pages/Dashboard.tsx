@@ -51,7 +51,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold">AI Interview Bot</h1>
+              <h1 className="text-xl font-bold">AI Mock Interview Platform</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/resume" className="text-gray-700 hover:text-blue-600">Upload Resume</Link>

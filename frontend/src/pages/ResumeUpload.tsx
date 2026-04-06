@@ -40,7 +40,7 @@ export default function ResumeUpload() {
       <nav className="bg-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold">AI Interview Bot - Upload Resume</h1>
+            <h1 className="text-xl font-bold">AI Mock Interview Platform - Upload Resume</h1>
             <button
               onClick={() => navigate('/')}
               className="text-gray-700 hover:text-blue-600"
