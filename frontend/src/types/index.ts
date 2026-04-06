@@ -55,6 +55,7 @@ export interface AnswerEvaluation {
   strengths: string[];
   improvements: string[];
   idealAnswer: string;
+  followUpQuestion?: string;
 }
 
 export interface Analytics {

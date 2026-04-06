@@ -43,6 +43,8 @@ export const interviewAPI = {
     api.get(`/interview/next-question/${interviewId}`),
   submitAnswer: (interviewId: string, answer: string) =>
     api.post(`/interview/submit-answer/${interviewId}`, { answer }),
+  askFollowUp: (interviewId: string, answer: string) =>
+    api.post(`/interview/follow-up/${interviewId}`, { answer }),
   endInterview: (interviewId: string, videoPath?: string, bodyLanguageData?: any) =>
     api.post(`/interview/end/${interviewId}`, { videoPath, bodyLanguageData }),
   getInterview: (id: string) => api.get(`/interview/${id}`),

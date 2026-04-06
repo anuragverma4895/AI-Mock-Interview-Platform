@@ -1,12 +1,18 @@
 import { Request, Response } from 'express';
 import Interview from '../models/Interview';
 import Resume from '../models/Resume';
-import { generateQuestion, evaluateAnswer, generateFinalReport } from '../services/aiService';
+import { 
+  generateInterviewQuestion, 
+  evaluateAnswer, 
+  generateFinalReport,
+  getGreeting,
+  getClosingMessage,
+  generateFollowUpQuestion
+} from '../services/aiService';
 import { AuthRequest } from '../middleware/auth';
 
 const QUESTION_CATEGORIES = ['DSA', 'SystemDesign', 'DB', 'HR', 'Project'];
-const MAX_QUESTIONS = 15;
-const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard'];
+const MAX_QUESTIONS = 10;
 
 export const startInterview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -21,11 +27,10 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     }
 
     const firstCategory = QUESTION_CATEGORIES[0];
-    const firstDifficulty = DIFFICULTY_LEVELS[1];
-
-    const generatedQuestion = await generateQuestion(
+    const firstQuestion = await generateInterviewQuestion(
       firstCategory,
-      firstDifficulty,
+      'easy',
+      [],
       resumeData?.skills,
       resumeData?.projects?.map(p => p.name)
     );
@@ -35,20 +40,28 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       resumeId: resumeId || undefined,
       status: 'in_progress',
       questions: [{
-        question: generatedQuestion.question,
-        category: generatedQuestion.category as any,
-        difficulty: generatedQuestion.difficulty as any,
-        idealAnswer: generatedQuestion.idealAnswer,
+        question: firstQuestion.question,
+        category: firstQuestion.category as any,
+        difficulty: firstQuestion.difficulty as any,
+        idealAnswer: firstQuestion.idealAnswer,
       }],
       currentQuestionIndex: 0,
+      transcript: [{
+        question: firstQuestion.question,
+        answer: '',
+        timestamp: new Date(),
+      }],
       duration: duration || 45,
       startedAt: new Date(),
     });
 
     await interview.save();
 
+    const greeting = await getGreeting(req.user?.name);
+
     res.status(201).json({
       message: 'Interview started',
+      greeting,
       interview: {
         id: interview._id,
         status: interview.status,
@@ -79,9 +92,7 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    const currentIdx = interview.currentQuestionIndex;
-    
-    if (currentIdx >= MAX_QUESTIONS - 1) {
+    if (interview.currentQuestionIndex >= MAX_QUESTIONS - 1) {
       res.status(400).json({ message: 'Maximum questions reached' });
       return;
     }
@@ -89,26 +100,37 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     let resumeData = null;
     if (interview.resumeId) {
       const resume = await Resume.findById(interview.resumeId);
-      if (resume) {
-        resumeData = resume.parsedData;
-      }
+      if (resume) resumeData = resume.parsedData;
     }
 
-    const category = QUESTION_CATEGORIES[(currentIdx + 1) % QUESTION_CATEGORIES.length];
-    const difficulty = DIFFICULTY_LEVELS[Math.floor(Math.random() * 3)];
+    const conversationHistory = interview.transcript.map(t => ({
+      role: t.answer ? 'user' : 'assistant',
+      content: t.answer || t.question,
+      timestamp: new Date(t.timestamp)
+    }));
 
-    const generatedQuestion = await generateQuestion(
+    const category = QUESTION_CATEGORIES[(interview.currentQuestionIndex + 1) % QUESTION_CATEGORIES.length];
+    const difficulty = ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
+
+    const newQuestion = await generateInterviewQuestion(
       category,
       difficulty,
+      conversationHistory,
       resumeData?.skills,
       resumeData?.projects?.map(p => p.name)
     );
 
     interview.questions.push({
-      question: generatedQuestion.question,
-      category: generatedQuestion.category as any,
-      difficulty: generatedQuestion.difficulty as any,
-      idealAnswer: generatedQuestion.idealAnswer,
+      question: newQuestion.question,
+      category: newQuestion.category as any,
+      difficulty: newQuestion.difficulty as any,
+      idealAnswer: newQuestion.idealAnswer,
+    });
+
+    interview.transcript.push({
+      question: newQuestion.question,
+      answer: '',
+      timestamp: new Date(),
     });
 
     interview.currentQuestionIndex += 1;
@@ -143,11 +165,18 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
 
     const currentQuestion = interview.questions[interview.currentQuestionIndex];
     
+    const conversationHistory = interview.transcript.map(t => ({
+      role: t.answer ? 'user' : 'assistant',
+      content: t.answer || t.question,
+      timestamp: new Date(t.timestamp)
+    }));
+
     const evaluation = await evaluateAnswer(
       currentQuestion.question,
       answer,
       currentQuestion.category,
       currentQuestion.difficulty,
+      conversationHistory,
       currentQuestion.idealAnswer
     );
 
@@ -155,11 +184,12 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
     interview.questions[interview.currentQuestionIndex].score = evaluation.score;
     interview.questions[interview.currentQuestionIndex].feedback = evaluation.feedback;
 
-    interview.transcript.push({
-      question: currentQuestion.question,
-      answer,
-      timestamp: new Date(),
-    });
+    const transcriptIdx = interview.transcript.findIndex((_, i) => 
+      interview.questions[interview.currentQuestionIndex].question === interview.transcript[i].question
+    );
+    if (transcriptIdx >= 0) {
+      interview.transcript[transcriptIdx].answer = answer;
+    }
 
     await interview.save();
 
@@ -170,13 +200,48 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
         strengths: evaluation.strengths,
         improvements: evaluation.improvements,
         idealAnswer: evaluation.idealAnswer,
+        followUpQuestion: evaluation.followUpQuestion,
       },
       currentIndex: interview.currentQuestionIndex,
       totalQuestions: MAX_QUESTIONS,
+      isLastQuestion: interview.currentQuestionIndex >= MAX_QUESTIONS - 1,
     });
   } catch (error) {
     console.error('Error submitting answer:', error);
     res.status(500).json({ message: 'Error submitting answer', error: String(error) });
+  }
+};
+
+export const askFollowUp = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { interviewId } = req.params;
+    const { answer } = req.body;
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      res.status(404).json({ message: 'Interview not found' });
+      return;
+    }
+
+    const currentQuestion = interview.questions[interview.currentQuestionIndex];
+    
+    const conversationHistory = interview.transcript.map(t => ({
+      role: t.answer ? 'user' : 'assistant',
+      content: t.answer || t.question,
+      timestamp: new Date(t.timestamp)
+    }));
+
+    const followUp = await generateFollowUpQuestion(
+      currentQuestion.question,
+      answer || currentQuestion.answer || '',
+      currentQuestion.category,
+      conversationHistory
+    );
+
+    res.json({ followUpQuestion: followUp });
+  } catch (error) {
+    console.error('Error generating follow-up:', error);
+    res.status(500).json({ message: 'Error generating follow-up', error: String(error) });
   }
 };
 
@@ -194,31 +259,31 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
     interview.status = 'completed';
     interview.completedAt = new Date();
 
-    if (videoPath) {
-      interview.videoPath = videoPath;
-    }
-
-    if (bodyLanguageData) {
-      interview.bodyLanguageData = bodyLanguageData;
-    }
+    if (videoPath) interview.videoPath = videoPath;
+    if (bodyLanguageData) interview.bodyLanguageData = bodyLanguageData;
 
     const totalScore = interview.questions.reduce((sum, q) => sum + (q.score || 0), 0);
     interview.finalScore = totalScore / interview.questions.length;
 
-    const finalReport = await generateFinalReport(
-      interview.questions.map(q => ({
-        question: q.question,
-        answer: q.answer || '',
-        score: q.score || 0,
-        feedback: q.feedback || '',
-      })),
-      bodyLanguageData
+    const strongAreas = interview.questions
+      .filter(q => (q.score || 0) >= 4)
+      .map(q => q.category);
+    
+    const improvements = interview.questions
+      .filter(q => (q.score || 0) < 3)
+      .map(q => q.category);
+
+    const closingMessage = await getClosingMessage(
+      interview.finalScore,
+      [...new Set(strongAreas)],
+      [...new Set(improvements)]
     );
 
     await interview.save();
 
     res.json({
       message: 'Interview completed',
+      closingMessage,
       interview: {
         id: interview._id,
         status: interview.status,
@@ -226,7 +291,6 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
         questionsCount: interview.questions.length,
         completedAt: interview.completedAt,
       },
-      finalReport,
     });
   } catch (error) {
     console.error('Error ending interview:', error);
@@ -241,7 +305,6 @@ export const getInterview = async (req: AuthRequest, res: Response): Promise<voi
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
-
     res.json(interview);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching interview', error: String(error) });
@@ -266,7 +329,6 @@ export const getTranscript = async (req: AuthRequest, res: Response): Promise<vo
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
-
     res.json({
       transcript: interview.transcript,
       questions: interview.questions,

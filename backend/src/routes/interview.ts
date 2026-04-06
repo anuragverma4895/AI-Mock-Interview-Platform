@@ -7,6 +7,7 @@ import {
   getInterview,
   getUserInterviews,
   getTranscript,
+  askFollowUp,
 } from '../controllers/interviewController';
 import { auth } from '../middleware/auth';
 
@@ -15,6 +16,7 @@ const router = Router();
 router.post('/start', auth, startInterview);
 router.get('/next-question/:interviewId', auth, getNextQuestion);
 router.post('/submit-answer/:interviewId', auth, submitAnswer);
+router.post('/follow-up/:interviewId', auth, askFollowUp);
 router.post('/end/:interviewId', auth, endInterview);
 router.get('/:id', auth, getInterview);
 router.get('/user/:userId', auth, getUserInterviews);
