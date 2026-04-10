@@ -3,6 +3,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+<<<<<<< HEAD
   darkMode: 'class',
   theme: {
     extend: {
@@ -130,6 +131,16 @@ export default {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+=======
+  theme: {
+    extend: {
+      colors: {
+        primary: '#2563eb',
+        secondary: '#64748b',
+        success: '#10b981',
+        danger: '#ef4444',
+        warning: '#f59e0b',
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       },
     },
   },

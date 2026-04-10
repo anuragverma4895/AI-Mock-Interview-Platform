@@ -8,11 +8,17 @@ export default function InterviewResult() {
   const navigate = useNavigate();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadInterview();
     loadVideo();
+=======
+
+  useEffect(() => {
+    loadInterview();
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   }, []);
 
   const loadInterview = async () => {
@@ -26,6 +32,7 @@ export default function InterviewResult() {
     }
   };
 
+<<<<<<< HEAD
   const loadVideo = async () => {
     try {
       const response = await videoAPI.downloadVideo(id!);
@@ -36,6 +43,8 @@ export default function InterviewResult() {
     }
   };
 
+=======
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   const downloadVideo = async () => {
     try {
       const response = await videoAPI.downloadVideo(id!);
@@ -53,6 +62,7 @@ export default function InterviewResult() {
 
   if (loading) {
     return (
+<<<<<<< HEAD
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative mb-6">
@@ -62,11 +72,16 @@ export default function InterviewResult() {
           <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading results...</div>
           <div className="text-slate-600 mt-2">Analyzing your interview performance</div>
         </div>
+=======
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl">Loading results...</div>
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       </div>
     );
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <nav className="bg-white/80 backdrop-blur-md shadow-xl border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6">
@@ -77,12 +92,25 @@ export default function InterviewResult() {
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-all duration-300"
             >
               ← Back to Dashboard
+=======
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            <h1 className="text-xl font-bold">AI Mock Interview Platform - Results</h1>
+            <button
+              onClick={() => navigate('/')}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              Back to Dashboard
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
             </button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto p-8">
+<<<<<<< HEAD
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20 mb-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Interview Results</h2>
@@ -92,10 +120,22 @@ export default function InterviewResult() {
                 className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
               >
                 📥 Download Video
+=======
+        <div className="bg-white p-6 rounded-lg shadow mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Interview Results</h2>
+            {interview?.videoPath && (
+              <button
+                onClick={downloadVideo}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Download Video
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
               </button>
             )}
           </div>
 
+<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl text-center shadow-lg border border-blue-200/50 transform hover:scale-105 transition-all duration-300">
               <div className="text-5xl font-black bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
@@ -135,6 +175,8 @@ export default function InterviewResult() {
             </div>
           )}
 
+=======
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded text-center">
               <div className="text-3xl font-bold text-blue-600">
@@ -157,6 +199,7 @@ export default function InterviewResult() {
           </div>
 
           {interview?.bodyLanguageData && (
+<<<<<<< HEAD
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-8 rounded-2xl mb-8 border border-amber-200/50 shadow-lg">
               <h3 className="text-2xl font-bold mb-6 text-amber-800 flex items-center gap-3">
                 <span className="text-3xl">👁️</span> Body Language Analysis
@@ -195,6 +238,30 @@ export default function InterviewResult() {
                         <span className="text-amber-500 text-lg mt-1">•</span>
                         <span>{s}</span>
                       </li>
+=======
+            <div className="bg-yellow-50 p-4 rounded mb-6">
+              <h3 className="font-semibold mb-2">Body Language Analysis</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-2xl font-bold">{interview.bodyLanguageData.eyeContact}%</div>
+                  <div className="text-sm text-gray-600">Eye Contact</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{interview.bodyLanguageData.faceOrientation}%</div>
+                  <div className="text-sm text-gray-600">Face Orientation</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{interview.bodyLanguageData.confidenceScore}%</div>
+                  <div className="text-sm text-gray-600">Confidence</div>
+                </div>
+              </div>
+              {interview.bodyLanguageData.suggestions.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium">Suggestions:</h4>
+                  <ul className="list-disc list-inside text-sm">
+                    {interview.bodyLanguageData.suggestions.map((s, i) => (
+                      <li key={i}>{s}</li>
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
                     ))}
                   </ul>
                 </div>
@@ -203,6 +270,7 @@ export default function InterviewResult() {
           )}
         </div>
 
+<<<<<<< HEAD
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20">
           <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
             <span className="text-3xl">📋</span> Question-wise Breakdown
@@ -243,6 +311,40 @@ export default function InterviewResult() {
                       <span>✨</span> Feedback:
                     </strong>
                     <p className="text-emerald-700 mt-2 leading-relaxed">{q.feedback}</p>
+=======
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-xl font-bold mb-4">Question-wise Breakdown</h3>
+          <div className="space-y-4">
+            {interview?.questions.map((q, i) => (
+              <div key={i} className="border rounded p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="text-sm text-gray-500">Q{i + 1}</span>
+                    <span className={`ml-2 px-2 py-0.5 text-xs rounded ${
+                      q.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                      q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {q.difficulty}
+                    </span>
+                    <span className="ml-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">
+                      {q.category}
+                    </span>
+                  </div>
+                  <div className="text-lg font-semibold">
+                    {q.score !== undefined ? `${q.score}/5` : 'Pending'}
+                  </div>
+                </div>
+                <p className="text-gray-700 mb-2">{q.question}</p>
+                {q.answer && (
+                  <div className="bg-gray-50 p-2 rounded text-sm">
+                    <strong>Your Answer:</strong> {q.answer.substring(0, 200)}...
+                  </div>
+                )}
+                {q.feedback && (
+                  <div className="mt-2 text-sm text-green-700">
+                    <strong>Feedback:</strong> {q.feedback}
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
                   </div>
                 )}
               </div>

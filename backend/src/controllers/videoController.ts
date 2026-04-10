@@ -3,7 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import { AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
+<<<<<<< HEAD
 import { saveVideoChunk, combineVideoChunks, getVideoPath, videoExists, deleteVideoChunks } from '../services/videoService';
+=======
+import { saveVideoChunk, combineVideoChunks, getVideoPath, videoExists } from '../services/videoService';
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 
 export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -52,10 +56,15 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+<<<<<<< HEAD
     const exists = await videoExists(id);
 
     res.json({
       exists,
+=======
+    res.json({
+      exists: fs.existsSync(interview.videoPath),
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       path: interview.videoPath,
     });
   } catch (error) {
@@ -73,6 +82,7 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+<<<<<<< HEAD
     const exists = await videoExists(id);
     if (!exists) {
       res.status(404).json({ message: 'Video file not found' });
@@ -81,6 +91,16 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
 
     res.download(interview.videoPath);
   } catch (error) {
+=======
+    if (!fs.existsSync(interview.videoPath)) {
+      res.status(404).json({ message: 'Video file not found on server' });
+      return;
+    }
+
+    res.download(interview.videoPath, `interview-${id}.webm`);
+  } catch (error) {
+    console.error('Error downloading video:', error);
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     res.status(500).json({ message: 'Error downloading video', error: String(error) });
   }
 };

@@ -152,8 +152,11 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
     const { interviewId } = req.params;
     const { answer } = req.body;
 
+<<<<<<< HEAD
     const sanitizedAnswer = answer.trim();
 
+=======
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     const interview = await Interview.findById(interviewId);
     if (!interview) {
       res.status(404).json({ message: 'Interview not found' });
@@ -175,7 +178,11 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
 
     const evaluation = await evaluateAnswer(
       currentQuestion.question,
+<<<<<<< HEAD
       sanitizedAnswer,
+=======
+      answer,
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       currentQuestion.category,
       currentQuestion.difficulty,
       conversationHistory,
@@ -190,7 +197,11 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
       interview.questions[interview.currentQuestionIndex].question === interview.transcript[i].question
     );
     if (transcriptIdx >= 0) {
+<<<<<<< HEAD
       interview.transcript[transcriptIdx].answer = sanitizedAnswer;
+=======
+      interview.transcript[transcriptIdx].answer = answer;
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     }
 
     await interview.save();

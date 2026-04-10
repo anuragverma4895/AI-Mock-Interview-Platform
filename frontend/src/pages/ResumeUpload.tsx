@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { resumeAPI } from '../services/api';
 
 export default function ResumeUpload() {
+=======
+import { useAuthStore } from '../store/authStore';
+import { resumeAPI } from '../services/api';
+
+export default function ResumeUpload() {
+  const { user } = useAuthStore();
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);

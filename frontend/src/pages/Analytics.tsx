@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { analyticsAPI } from '../services/api';
+<<<<<<< HEAD
 import { Analytics as AnalyticsData } from '../types';
+=======
+import { Analytics } from '../types';
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 
 export default function Analytics() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+=======
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

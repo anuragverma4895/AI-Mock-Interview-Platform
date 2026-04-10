@@ -1,11 +1,18 @@
 import { Router, Response } from 'express';
 import Interview from '../models/Interview';
 import { auth, AuthRequest } from '../middleware/auth';
+<<<<<<< HEAD
 import { validateAnalyticsUserId, validateInterviewAnalyticsId } from '../middleware/validation';
 
 const router = Router();
 
 router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, res: Response): Promise<void> => {
+=======
+
+const router = Router();
+
+router.get('/:userId', auth, async (req: AuthRequest, res: Response): Promise<void> => {
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   try {
     const interviews = await Interview.find({ userId: req.params.userId, status: 'completed' })
       .sort({ createdAt: -1 });
@@ -82,7 +89,11 @@ router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, r
   }
 });
 
+<<<<<<< HEAD
 router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: AuthRequest, res: Response): Promise<void> => {
+=======
+router.get('/interview/:id', auth, async (req: AuthRequest, res: Response): Promise<void> => {
+>>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   try {
     const interview = await Interview.findById(req.params.id);
     if (!interview) {
