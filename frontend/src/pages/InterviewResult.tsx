@@ -8,17 +8,11 @@ export default function InterviewResult() {
   const navigate = useNavigate();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadInterview();
     loadVideo();
-=======
-
-  useEffect(() => {
-    loadInterview();
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   }, []);
 
   const loadInterview = async () => {
@@ -32,7 +26,6 @@ export default function InterviewResult() {
     }
   };
 
-<<<<<<< HEAD
   const loadVideo = async () => {
     try {
       const response = await videoAPI.downloadVideo(id!);
@@ -43,8 +36,6 @@ export default function InterviewResult() {
     }
   };
 
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   const downloadVideo = async () => {
     try {
       const response = await videoAPI.downloadVideo(id!);
@@ -62,7 +53,6 @@ export default function InterviewResult() {
 
   if (loading) {
     return (
-<<<<<<< HEAD
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative mb-6">
@@ -72,279 +62,104 @@ export default function InterviewResult() {
           <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Loading results...</div>
           <div className="text-slate-600 mt-2">Analyzing your interview performance</div>
         </div>
-=======
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading results...</div>
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       </div>
     );
   }
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <nav className="bg-white/80 backdrop-blur-md shadow-xl border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center h-20">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">AI Mock Interview Platform - Results</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Interview Results</h1>
             <button
-              onClick={() => navigate('/')}
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-all duration-300"
+              onClick={() => navigate('/dashboard')}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 shadow-lg"
             >
               ← Back to Dashboard
-=======
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold">AI Mock Interview Platform - Results</h1>
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-700 hover:text-blue-600"
-            >
-              Back to Dashboard
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
             </button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto p-8">
-<<<<<<< HEAD
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20 mb-8">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Interview Results</h2>
+            <h2 className="text-3xl font-bold text-slate-800">Performance Summary</h2>
             {interview?.videoPath && (
               <button
                 onClick={downloadVideo}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
+                className="bg-emerald-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-600"
               >
-                📥 Download Video
-=======
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Interview Results</h2>
-            {interview?.videoPath && (
-              <button
-                onClick={downloadVideo}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Download Video
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
+                📥 Download Recording
               </button>
             )}
           </div>
 
-<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl text-center shadow-lg border border-blue-200/50 transform hover:scale-105 transition-all duration-300">
-              <div className="text-5xl font-black bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
+            <div className="bg-blue-50 p-8 rounded-2xl text-center border border-blue-200">
+              <div className="text-5xl font-black text-blue-600 mb-2">
                 {interview?.finalScore?.toFixed(1) || '-'}
               </div>
-              <div className="text-blue-700 font-semibold text-lg">Final Score</div>
-              <div className="text-blue-500 text-sm mt-1">Out of 5.0</div>
+              <div className="text-blue-700 font-semibold">Final Score</div>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-8 rounded-2xl text-center shadow-lg border border-emerald-200/50 transform hover:scale-105 transition-all duration-300">
-              <div className="text-5xl font-black bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
+            <div className="bg-emerald-50 p-8 rounded-2xl text-center border border-emerald-200">
+              <div className="text-5xl font-black text-emerald-600 mb-2">
                 {interview?.questions.length || 0}
               </div>
-              <div className="text-emerald-700 font-semibold text-lg">Questions Answered</div>
-              <div className="text-emerald-500 text-sm mt-1">Total Questions</div>
+              <div className="text-emerald-700 font-semibold">Questions</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl text-center shadow-lg border border-purple-200/50 transform hover:scale-105 transition-all duration-300">
-              <div className="text-5xl font-black bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent mb-2">
+            <div className="bg-purple-50 p-8 rounded-2xl text-center border border-purple-200">
+              <div className="text-5xl font-black text-purple-600 mb-2">
                 {interview?.duration || 0}
               </div>
-              <div className="text-purple-700 font-semibold text-lg">Minutes</div>
-              <div className="text-purple-500 text-sm mt-1">Interview Duration</div>
+              <div className="text-purple-700 font-semibold">Minutes</div>
             </div>
           </div>
 
           {videoUrl && (
             <div className="mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-                <span className="text-3xl">🎥</span> Review Your Interview
-              </h3>
-              <div className="bg-white/60 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
-                <video controls className="w-full max-w-4xl mx-auto rounded-2xl shadow-2xl border border-white/30">
-                  <source src={videoUrl} type="video/webm" />
-                  Your browser does not support the video tag.
-                </video>
-                <p className="text-slate-600 mt-4 text-center font-medium">📝 Watch your responses to identify areas for improvement</p>
-              </div>
+              <h3 className="text-2xl font-bold mb-4">Review Session</h3>
+              <video controls className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl border border-white/30">
+                <source src={videoUrl} type="video/webm" />
+              </video>
             </div>
           )}
 
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded text-center">
-              <div className="text-3xl font-bold text-blue-600">
-                {interview?.finalScore?.toFixed(1) || '-'}
-              </div>
-              <div className="text-gray-600">Final Score</div>
-            </div>
-            <div className="bg-green-50 p-4 rounded text-center">
-              <div className="text-3xl font-bold text-green-600">
-                {interview?.questions.length || 0}
-              </div>
-              <div className="text-gray-600">Questions Answered</div>
-            </div>
-            <div className="bg-purple-50 p-4 rounded text-center">
-              <div className="text-3xl font-bold text-purple-600">
-                {interview?.duration || 0} min
-              </div>
-              <div className="text-gray-600">Duration</div>
-            </div>
-          </div>
-
           {interview?.bodyLanguageData && (
-<<<<<<< HEAD
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-8 rounded-2xl mb-8 border border-amber-200/50 shadow-lg">
-              <h3 className="text-2xl font-bold mb-6 text-amber-800 flex items-center gap-3">
-                <span className="text-3xl">👁️</span> Body Language Analysis
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-white/60 p-6 rounded-xl text-center shadow-md border border-amber-200/30">
-                  <div className="text-4xl font-black text-amber-600 mb-2">{interview.bodyLanguageData.eyeContact}%</div>
-                  <div className="text-amber-700 font-semibold">Eye Contact</div>
-                  <div className="w-full bg-amber-200 rounded-full h-2 mt-2">
-                    <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{width: `${interview.bodyLanguageData.eyeContact}%`}}></div>
-                  </div>
+            <div className="bg-amber-50 p-8 rounded-2xl mb-8 border border-amber-200">
+              <h3 className="text-2xl font-bold mb-6 text-amber-800">Body Language Analysis</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <div className="text-2xl font-bold text-amber-600">{interview.bodyLanguageData.eyeContact}%</div>
+                  <div className="text-sm text-amber-700">Eye Contact</div>
                 </div>
-                <div className="bg-white/60 p-6 rounded-xl text-center shadow-md border border-amber-200/30">
-                  <div className="text-4xl font-black text-amber-600 mb-2">{interview.bodyLanguageData.faceOrientation}%</div>
-                  <div className="text-amber-700 font-semibold">Face Orientation</div>
-                  <div className="w-full bg-amber-200 rounded-full h-2 mt-2">
-                    <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{width: `${interview.bodyLanguageData.faceOrientation}%`}}></div>
-                  </div>
+                <div>
+                  <div className="text-2xl font-bold text-amber-600">{interview.bodyLanguageData.faceOrientation}%</div>
+                  <div className="text-sm text-amber-700">Face Orientation</div>
                 </div>
-                <div className="bg-white/60 p-6 rounded-xl text-center shadow-md border border-amber-200/30">
-                  <div className="text-4xl font-black text-amber-600 mb-2">{interview.bodyLanguageData.confidenceScore}%</div>
-                  <div className="text-amber-700 font-semibold">Confidence</div>
-                  <div className="w-full bg-amber-200 rounded-full h-2 mt-2">
-                    <div className="bg-amber-500 h-2 rounded-full transition-all duration-1000" style={{width: `${interview.bodyLanguageData.confidenceScore}%`}}></div>
-                  </div>
+                <div>
+                  <div className="text-2xl font-bold text-amber-600">{interview.bodyLanguageData.confidenceScore}%</div>
+                  <div className="text-sm text-amber-700">Confidence</div>
                 </div>
               </div>
-              {interview.bodyLanguageData.suggestions.length > 0 && (
-                <div className="bg-white/40 p-6 rounded-xl border border-amber-200/30">
-                  <h4 className="font-bold text-amber-800 mb-4 flex items-center gap-2">
-                    <span className="text-xl">💡</span> Suggestions for Improvement:
-                  </h4>
-                  <ul className="space-y-2">
-                    {interview.bodyLanguageData.suggestions.map((s, i) => (
-                      <li key={i} className="flex items-start gap-3 text-amber-700">
-                        <span className="text-amber-500 text-lg mt-1">•</span>
-                        <span>{s}</span>
-                      </li>
-=======
-            <div className="bg-yellow-50 p-4 rounded mb-6">
-              <h3 className="font-semibold mb-2">Body Language Analysis</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-2xl font-bold">{interview.bodyLanguageData.eyeContact}%</div>
-                  <div className="text-sm text-gray-600">Eye Contact</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">{interview.bodyLanguageData.faceOrientation}%</div>
-                  <div className="text-sm text-gray-600">Face Orientation</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">{interview.bodyLanguageData.confidenceScore}%</div>
-                  <div className="text-sm text-gray-600">Confidence</div>
-                </div>
-              </div>
-              {interview.bodyLanguageData.suggestions.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-medium">Suggestions:</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {interview.bodyLanguageData.suggestions.map((s, i) => (
-                      <li key={i}>{s}</li>
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           )}
         </div>
 
-<<<<<<< HEAD
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20">
-          <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-            <span className="text-3xl">📋</span> Question-wise Breakdown
-          </h3>
+          <h3 className="text-2xl font-bold mb-6">Detailed Feedback</h3>
           <div className="space-y-6">
             {interview?.questions.map((q, i) => (
-              <div key={i} className="bg-gradient-to-r from-white to-slate-50 p-6 rounded-2xl border border-slate-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <div key={i} className="border border-slate-200 p-6 rounded-2xl">
                 <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-slate-600">Q{i + 1}</span>
-                    <span className={`px-4 py-2 text-sm font-semibold rounded-full shadow-md ${
-                      q.difficulty === 'easy' ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white' :
-                      q.difficulty === 'medium' ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white' :
-                      'bg-gradient-to-r from-red-500 to-rose-600 text-white'
-                    }`}>
-                      {q.difficulty}
-                    </span>
-                    <span className="px-4 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md">
-                      {q.category}
-                    </span>
-                  </div>
-                  <div className="text-2xl font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-                    {q.score !== undefined ? `${q.score}/5` : '⏳'}
-                  </div>
+                  <span className="font-bold text-slate-600">Question {i + 1}</span>
+                  <div className="text-xl font-bold">{q.score}/5</div>
                 </div>
-                <p className="text-slate-800 mb-4 text-lg leading-relaxed font-medium">{q.question}</p>
-                {q.answer && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200/30 mb-4">
-                    <strong className="text-blue-800 font-semibold flex items-center gap-2">
-                      <span>💬</span> Your Answer:
-                    </strong>
-                    <p className="text-blue-700 mt-2 leading-relaxed">{q.answer.substring(0, 300)}{q.answer.length > 300 ? '...' : ''}</p>
-                  </div>
-                )}
+                <p className="font-medium text-lg mb-4">{q.question}</p>
                 {q.feedback && (
-                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200/30">
-                    <strong className="text-emerald-800 font-semibold flex items-center gap-2">
-                      <span>✨</span> Feedback:
-                    </strong>
-                    <p className="text-emerald-700 mt-2 leading-relaxed">{q.feedback}</p>
-=======
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-xl font-bold mb-4">Question-wise Breakdown</h3>
-          <div className="space-y-4">
-            {interview?.questions.map((q, i) => (
-              <div key={i} className="border rounded p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <span className="text-sm text-gray-500">Q{i + 1}</span>
-                    <span className={`ml-2 px-2 py-0.5 text-xs rounded ${
-                      q.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                      q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {q.difficulty}
-                    </span>
-                    <span className="ml-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">
-                      {q.category}
-                    </span>
-                  </div>
-                  <div className="text-lg font-semibold">
-                    {q.score !== undefined ? `${q.score}/5` : 'Pending'}
-                  </div>
-                </div>
-                <p className="text-gray-700 mb-2">{q.question}</p>
-                {q.answer && (
-                  <div className="bg-gray-50 p-2 rounded text-sm">
-                    <strong>Your Answer:</strong> {q.answer.substring(0, 200)}...
-                  </div>
-                )}
-                {q.feedback && (
-                  <div className="mt-2 text-sm text-green-700">
+                  <div className="bg-emerald-50 p-4 rounded-xl text-emerald-700 text-sm">
                     <strong>Feedback:</strong> {q.feedback}
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
                   </div>
                 )}
               </div>

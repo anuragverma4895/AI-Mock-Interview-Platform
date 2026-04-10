@@ -33,10 +33,12 @@ import {
   Clock,
   Star
 } from "lucide-react"
+import { interviewAPI } from "../services/api"
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   // Mock data - in real app this would come from API
   const stats = {
@@ -44,6 +46,20 @@ export default function Dashboard() {
     averageScore: 4.2,
     completionRate: 85,
     studyStreak: 12
+  }
+
+  const handleStartInterview = async () => {
+    try {
+      setLoading(true)
+      const response = await interviewAPI.start()
+      const interviewId = response.data.interview._id
+      navigate(`/interview/${interviewId}`)
+    } catch (error) {
+      console.error('Failed to start interview:', error)
+      alert('Failed to start interview. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const recentInterviews = [
@@ -105,7 +121,7 @@ export default function Dashboard() {
           <SidebarItem icon={<Home />} isActive={true}>
             {!sidebarCollapsed && "Dashboard"}
           </SidebarItem>
-          <SidebarItem icon={<Play />} onClick={() => navigate('/interview')}>
+          <SidebarItem icon={<Play />} onClick={handleStartInterview}>
             {!sidebarCollapsed && "Start Interview"}
           </SidebarItem>
           <SidebarItem icon={<FileText />} onClick={() => navigate('/resume')}>
@@ -140,11 +156,18 @@ export default function Dashboard() {
                 </p>
               </div>
               <Button
-                onClick={() => navigate('/interview')}
+                onClick={handleStartInterview}
+                disabled={loading}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Start New Interview
+                {loading ? (
+                  "Initializing..."
+                ) : (
+                  <>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Start New Interview
+                  </>
+                )}
               </Button>
             </div>
           </motion.header>
