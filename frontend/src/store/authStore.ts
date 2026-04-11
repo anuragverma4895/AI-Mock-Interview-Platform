@@ -56,8 +56,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       // If token expires in less than 1 hour, try to refresh user data
       if (expiry - now < 3600000) {
         const response = await authAPI.getMe();
-        set({ user: response });
-        localStorage.setItem('user', JSON.stringify(response));
+        set({ user: response.data });
+        localStorage.setItem('user', JSON.stringify(response.data));
       }
 
       return true;

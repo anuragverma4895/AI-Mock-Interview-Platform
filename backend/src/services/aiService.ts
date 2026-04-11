@@ -124,9 +124,9 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         const result = completion.choices[0]?.message?.content;
         if (!result) throw new Error('Empty response from OpenAI');
         return result;
-      } catch (error) {
+      } catch (error: any) {
         console.error('OpenAI API Error:', error);
-        if (error.message.includes('rate limit') || error.message.includes('timeout')) {
+        if (error?.message?.includes('rate limit') || error?.message?.includes('timeout')) {
           throw error; 
         }
         bail(error);

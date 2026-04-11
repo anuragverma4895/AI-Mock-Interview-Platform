@@ -1,3 +1,4 @@
+/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -53,12 +54,16 @@ export default {
         },
         // Semantic Colors
         success: {
+          DEFAULT: '#22c55e',
+          foreground: '#ffffff',
           50: '#f0fdf4',
           500: '#22c55e',
           600: '#16a34a',
           700: '#15803d',
         },
         warning: {
+          DEFAULT: '#f59e0b',
+          foreground: '#ffffff',
           50: '#fffbeb',
           500: '#f59e0b',
           600: '#d97706',
@@ -82,11 +87,35 @@ export default {
           900: '#0f172a',
           950: '#020617',
         },
-        // Gradients
-        gradient: {
-          primary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          secondary: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          accent: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        // CSS variable based colors for shadcn-like components
+        border: 'hsl(214.3 31.8% 91.4%)',
+        input: 'hsl(214.3 31.8% 91.4%)',
+        ring: 'hsl(222.2 84% 4.9%)',
+        background: 'hsl(0 0% 100%)',
+        foreground: 'hsl(222.2 84% 4.9%)',
+        primary: {
+          DEFAULT: '#4f46e5',
+          foreground: '#ffffff',
+        },
+        secondary: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#0f172a',
+        },
+        destructive: {
+          DEFAULT: '#ef4444',
+          foreground: '#ffffff',
+        },
+        muted: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#64748b',
+        },
+        accent: {
+          DEFAULT: '#f1f5f9',
+          foreground: '#0f172a',
+        },
+        card: {
+          DEFAULT: 'hsl(0 0% 100%)',
+          foreground: 'hsl(222.2 84% 4.9%)',
         },
       },
       backgroundImage: {
@@ -130,14 +159,6 @@ export default {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
-  theme: {
-    extend: {
-      colors: {
-        primary: '#2563eb',
-        secondary: '#64748b',
-        success: '#10b981',
-        danger: '#ef4444',
-        warning: '#f59e0b',
       },
     },
   },

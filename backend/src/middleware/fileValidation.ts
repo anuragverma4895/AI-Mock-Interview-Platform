@@ -1,57 +1,47 @@
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileTypeFromBuffer } from 'file-type';
 
 const validateDocumentContent = async (filePath: string, buffer: Buffer): Promise<boolean> => {
-  const fileType = await fileTypeFromBuffer(buffer);
-
-  const allowedDocTypes = [
-    { mime: 'application/pdf', ext: 'pdf' },
-    { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx' }
-  ];
-
-  const isValidDocType = allowedDocTypes.some(type =>
-    fileType?.mime === type.mime && fileType?.ext === type.ext
-  );
-
-  if (!isValidDocType) {
-    return false;
-  }
-
-  // Additional validation for DOCX (check if it's a valid zip)
-  if (fileType?.ext === 'docx') {
-    if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4B || buffer[2] !== 0x03 || buffer[3] !== 0x04) {
-      return false;
-    }
-  }
-
-  // Additional validation for PDF (check %PDF- header)
-  if (fileType?.ext === 'pdf') {
+  // Check PDF magic bytes: %PDF-
+  if (buffer.length >= 5) {
     const header = buffer.subarray(0, 5).toString();
-    if (!header.startsWith('%PDF-')) {
-      return false;
+    if (header.startsWith('%PDF-')) {
+      return true;
     }
   }
 
-  return true;
+  // Check DOCX magic bytes (ZIP format): PK\x03\x04
+  if (buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04) {
+    return true;
+  }
+
+  return false;
 };
 
 const validateVideoContent = async (filePath: string, buffer: Buffer): Promise<boolean> => {
-  const fileType = await fileTypeFromBuffer(buffer);
+  // WebM magic bytes: 0x1A 0x45 0xDF 0xA3
+  if (buffer.length >= 4 && buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3) {
+    return true;
+  }
 
-  const allowedVideoTypes = [
-    { mime: 'video/webm', ext: 'webm' },
-    { mime: 'video/mp4', ext: 'mp4' },
-    { mime: 'video/avi', ext: 'avi' },
-    { mime: 'video/quicktime', ext: 'mov' }
-  ];
+  // MP4/MOV: check for 'ftyp' at offset 4
+  if (buffer.length >= 8) {
+    const ftyp = buffer.subarray(4, 8).toString();
+    if (ftyp === 'ftyp') {
+      return true;
+    }
+  }
 
-  const isValidVideoType = allowedVideoTypes.some(type =>
-    fileType?.mime === type.mime && fileType?.ext === type.ext
-  );
+  // AVI: RIFF header
+  if (buffer.length >= 4) {
+    const riff = buffer.subarray(0, 4).toString();
+    if (riff === 'RIFF') {
+      return true;
+    }
+  }
 
-  return isValidVideoType;
+  return false;
 };
 
 export const validateFileContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -64,7 +54,7 @@ export const validateFileContent = async (req: Request, res: Response, next: Nex
     const buffer = await fs.readFile(filePath);
 
     // Determine if it's a document or video based on destination
-    const isVideo = filePath.includes('/videos/');
+    const isVideo = filePath.includes('videos');
     let isValid = false;
 
     if (isVideo) {

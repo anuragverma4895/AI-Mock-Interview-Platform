@@ -30,6 +30,7 @@ export interface InterviewQuestion {
 
 export interface Interview {
   _id: string;
+  id?: string;
   userId: string;
   resumeId?: string;
   status: 'pending' | 'in_progress' | 'completed';
@@ -47,6 +48,8 @@ export interface Interview {
   duration: number;
   startedAt?: string;
   completedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AnswerEvaluation {
