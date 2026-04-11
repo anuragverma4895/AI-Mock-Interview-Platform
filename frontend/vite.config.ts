@@ -9,15 +9,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-
-export default defineConfig({
-  plugins: [react()],
   server: {
     port: 3000,
     proxy: {
       '/api': {
         target: 'http://localhost:5005',
-        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },
