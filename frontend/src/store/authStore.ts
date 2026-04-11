@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
-<<<<<<< HEAD
 import { authAPI } from '../services/api';
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 
 interface AuthState {
   token: string | null;
@@ -11,10 +8,7 @@ interface AuthState {
   setToken: (token: string | null) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
-<<<<<<< HEAD
   checkToken: () => Promise<boolean>;
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -41,7 +35,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('user');
     set({ token: null, user: null });
   },
-<<<<<<< HEAD
   checkToken: async () => {
     const token = localStorage.getItem('token');
     if (!token) return false;
@@ -73,6 +66,4 @@ export const useAuthStore = create<AuthState>((set) => ({
       return false;
     }
   },
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 }));

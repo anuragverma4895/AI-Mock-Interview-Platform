@@ -21,11 +21,8 @@ export default function Register() {
       const res = await authAPI.register(email, password, name);
       setToken(res.data.token);
       setUser(res.data.user);
-<<<<<<< HEAD
       navigate('/dashboard');
-=======
       navigate('/');
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
