@@ -18,10 +18,7 @@ const resumeSchema = new Schema<IResume>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-<<<<<<< HEAD
       index: true,
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     },
     fileName: {
       type: String,

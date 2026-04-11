@@ -24,6 +24,8 @@ export const authAPI = {
   register: (email: string, password: string, name: string, role?: string) =>
     api.post('/auth/register', { email, password, name, role }),
   getMe: () => api.get('/auth/me'),
+  updateProfile: (data: any) => api.put('/auth/profile', data),
+  updateSettings: (data: any) => api.put('/auth/settings', data),
 };
 
 export const resumeAPI = {

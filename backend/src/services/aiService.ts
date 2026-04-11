@@ -1,5 +1,4 @@
 import OpenAI from 'openai';
-<<<<<<< HEAD
 import retry from 'async-retry';
 
 // Initialize AI clients
@@ -9,15 +8,6 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 }) : null;
 
 const USE_AI = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
-=======
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'dummy-key',
-  dangerouslyAllowBrowser: true
-});
-
-const USE_LOCAL_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-default-key-for-testing' || process.env.OPENAI_API_KEY === 'dummy-key';
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 
 const QUESTION_BANK = {
   DSA: [
@@ -68,33 +58,6 @@ const getRandomQuestion = (category: string) => {
   return questions[Math.floor(Math.random() * questions.length)];
 };
 
-<<<<<<< HEAD
-=======
-const generateFeedback = (score: number) => {
-  const feedbacks = {
-    5: ["Excellent! You demonstrated deep understanding of the topic.", "Outstanding answer with great clarity and depth."],
-    4: ["Good job! You have a solid understanding.", "Well explained with good practical knowledge."],
-    3: ["Decent attempt. There's room for improvement.", "You covered the basics but can go deeper."],
-    2: ["You have the right direction but need more depth.", "Consider exploring this topic further."],
-    1: ["Let's explore this topic more. Can you elaborate?", "That's a start, but we need more details."],
-  };
-  const options = feedbacks[score as keyof typeof feedbacks] || feedbacks[3];
-  return options[Math.floor(Math.random() * options.length)];
-};
-
-const generateStrengths = (score: number) => {
-  if (score >= 4) return ["Good technical knowledge", "Clear communication", "Practical approach"];
-  if (score >= 3) return ["Basic understanding", "Good attempt", "Decent communication"];
-  return ["Enthusiasm to learn", "Willing to discuss", "Started in the right direction"];
-};
-
-const generateImprovements = (score: number, category: string) => {
-  if (score >= 4) return ["Could add more real-world examples", "Consider system design aspects"];
-  if (score >= 3) return ["Need more practice", "Study edge cases", "Add practical examples"];
-  return ["Focus on fundamentals", "Practice more problems", "Read more about best practices"];
-};
-
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 export interface GeneratedQuestion {
   question: string;
   category: string;
@@ -111,14 +74,11 @@ export interface AnswerEvaluation {
   followUpQuestion?: string;
 }
 
-<<<<<<< HEAD
 /**
- * Generic AI completion helper using native fetch for Gemini with retry logic
+ * Generic AI completion helper using native fetch for Gemini with OpenAI fallback and retry logic
  */
 async function getAICompletion(prompt: string, systemPrompt: string = "You are Alex, a friendly technical interviewer."): Promise<string> {
   const callAI = async (bail: (error: Error) => void, attempt: number) => {
-    console.log(`AI attempt ${attempt}`);
-
     // Try Gemini First using native fetch (no dependency needed)
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -132,8 +92,8 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
 
         if (!response.ok) {
           const error = new Error(`Gemini API error: ${response.status}`);
-          if (response.status >= 500) throw error; // Retry on server errors
-          bail(error); // Don't retry on client errors
+          if (response.status >= 500) throw error; 
+          bail(error); 
         }
 
         const data: any = await response.json();
@@ -142,8 +102,11 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         return result;
       } catch (error) {
         console.error('Gemini API Error:', error);
-        if (error.message.includes('API error')) throw error; // Retry
-        // If network error, try OpenAI
+        // If it's the first attempt and we have OpenAI, fall through.
+        // Otherwise throw to trigger retry or fail.
+        if (attempt > 1 || !openai) {
+           throw error;
+        }
       }
     }
 
@@ -164,9 +127,9 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
       } catch (error) {
         console.error('OpenAI API Error:', error);
         if (error.message.includes('rate limit') || error.message.includes('timeout')) {
-          throw error; // Retry
+          throw error; 
         }
-        bail(error); // Don't retry other errors
+        bail(error);
       }
     }
 
@@ -175,12 +138,9 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
 
   try {
     return await retry(callAI, {
-      retries: 3,
+      retries: 2,
       minTimeout: 1000,
-      maxTimeout: 5000,
-      onRetry: (error, attempt) => {
-        console.log(`Retrying AI call, attempt ${attempt}:`, error.message);
-      }
+      maxTimeout: 3000
     });
   } catch (error) {
     console.error('All AI attempts failed:', error);
@@ -188,8 +148,6 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
   }
 }
 
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 export const generateInterviewQuestion = async (
   category: string,
   difficulty: string,
@@ -197,11 +155,7 @@ export const generateInterviewQuestion = async (
   resumeSkills?: string[],
   projectNames?: string[]
 ): Promise<GeneratedQuestion> => {
-<<<<<<< HEAD
   if (!USE_AI) {
-=======
-  if (USE_LOCAL_MODE || !process.env.OPENAI_API_KEY) {
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     const q = getRandomQuestion(category);
     return {
       question: q.question,
@@ -212,7 +166,6 @@ export const generateInterviewQuestion = async (
   }
 
   try {
-<<<<<<< HEAD
     const prompt = `Generate a ${difficulty} level interview question for the category: ${category}. 
     ${resumeSkills ? `Base it on these skills: ${resumeSkills.join(', ')}.` : ''}
     ${projectNames ? `Base it on these projects: ${projectNames.join(', ')}.` : ''}
@@ -220,17 +173,6 @@ export const generateInterviewQuestion = async (
 
     const response = await getAICompletion(prompt);
     
-=======
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are Alex, a friendly technical interviewer.' },
-        { role: 'user', content: `Generate a ${difficulty} ${category} interview question.` }
-      ],
-      temperature: 0.7,
-    });
-    const response = completion.choices[0]?.message?.content;
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     return {
       question: response || getRandomQuestion(category).question,
       category,
@@ -238,10 +180,6 @@ export const generateInterviewQuestion = async (
       idealAnswer: "Expected answer with practical examples"
     };
   } catch (error) {
-<<<<<<< HEAD
-=======
-    console.error('API Error, using local mode:', error);
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     const q = getRandomQuestion(category);
     return {
       question: q.question,
@@ -260,9 +198,7 @@ export const evaluateAnswer = async (
   conversationHistory: any[] = [],
   idealAnswer?: string
 ): Promise<AnswerEvaluation> => {
-<<<<<<< HEAD
   if (!USE_AI) {
-    // Fallback logic
     return {
       score: 3,
       feedback: "Good attempt. Practice more to refine your answer.",
@@ -298,7 +234,6 @@ export const evaluateAnswer = async (
 
     const responseText = await getAICompletion(prompt, "You are a professional technical interviewer AI. Output ONLY valid JSON.");
     
-    // Parse JSON safely
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     const data = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
 
@@ -311,7 +246,6 @@ export const evaluateAnswer = async (
       followUpQuestion: data.followUpQuestion || "Tell me more."
     };
   } catch (error) {
-    console.error('Evaluation Error:', error);
     return {
       score: 3,
       feedback: "The AI evaluator is briefly unavailable, but you're doing great! Keep going.",
@@ -321,32 +255,6 @@ export const evaluateAnswer = async (
       followUpQuestion: "Next question coming up..."
     };
   }
-=======
-  const score = Math.floor(Math.random() * 3) + 3;
-  const feedback = generateFeedback(score);
-  const strengths = generateStrengths(score);
-  const improvements = generateImprovements(score, category);
-
-  const followUps: Record<string, string[]> = {
-    DSA: ["Can you elaborate on the time complexity?", "What are the space considerations?"],
-    SystemDesign: ["How would you scale this?", "What are potential bottlenecks?"],
-    DB: ["When would you choose this over alternatives?", "How does this perform at scale?"],
-    HR: ["Can you give me an example?", "What did you learn from that?"],
-    Project: ["What was the biggest challenge?", "How would you improve it?"]
-  };
-  
-  const categoryFollowUps = followUps[category] || followUps.HR;
-  const followUpQuestion = categoryFollowUps[Math.floor(Math.random() * categoryFollowUps.length)];
-
-  return {
-    score,
-    feedback,
-    strengths,
-    improvements,
-    idealAnswer: idealAnswer || "Expected comprehensive answer",
-    followUpQuestion
-  };
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 };
 
 export const generateFollowUpQuestion = async (
@@ -355,7 +263,6 @@ export const generateFollowUpQuestion = async (
   category: string,
   conversationHistory: any[] = []
 ): Promise<string> => {
-<<<<<<< HEAD
   if (!USE_AI) return "Can you explain that in more detail?";
 
   try {
@@ -367,18 +274,6 @@ export const generateFollowUpQuestion = async (
   } catch (error) {
     return "Can you explain your thought process behind that?";
   }
-=======
-  const followUps: Record<string, string[]> = {
-    DSA: ["Can you explain that in more detail?", "What's the time complexity of your approach?"],
-    SystemDesign: ["How would you handle millions of users?", "What are the tradeoffs?"],
-    DB: ["How would you optimize this?", "What if the data grows 10x?"],
-    HR: ["What was the outcome?", "How did you handle that?"],
-    Project: ["What would you do differently?", "What did you learn?"]
-  };
-  
-  const options = followUps[category] || followUps.DSA;
-  return options[Math.floor(Math.random() * options.length)];
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 };
 
 export const getGreeting = async (candidateName?: string): Promise<string> => {
@@ -399,7 +294,7 @@ export const getClosingMessage = async (
   if (finalScore >= 4) {
     return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up and you'll do amazing in real interviews!`;
   } else if (finalScore >= 3) {
-    return `Good effort! You have a solid foundation. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
+    return `Good effort! You have a solid foundation in ${strongAreas[0] || 'several areas'}. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
   } else {
     return `Thank you for completing the interview! Keep practicing and don't give up. Every interview is a learning opportunity. All the best!`;
   }
@@ -409,35 +304,23 @@ export const generateFinalReport = async (
   questions: any[],
   bodyLanguageData?: any
 ): Promise<string> => {
-<<<<<<< HEAD
   const validScores = questions.filter(q => q.score !== undefined);
   const avgScore = validScores.length > 0 
     ? validScores.reduce((sum, q) => sum + q.score, 0) / validScores.length 
     : 0;
-=======
-  const avgScore = questions.reduce((sum, q) => sum + (q.score || 0), 0) / questions.length;
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
-  
+
   let report = `# Interview Report\n\n`;
   report += `## Overall Performance\n`;
   report += `Average Score: ${avgScore.toFixed(1)}/5\n\n`;
   report += `## Question Summary\n`;
   
   questions.forEach((q, i) => {
-<<<<<<< HEAD
     report += `Q${i+1}: ${q.category} (${q.difficulty}) - Score: ${q.score || 'N/A'}/5\n`;
   });
   
   report += `\n## Recommendations\n`;
   const weakCategories = Array.from(new Set(questions.filter(q => (q.score || 0) < 3).map(q => q.category)));
   report += `- Continue practicing ${weakCategories.join(', ') || 'technical skills'}\n`;
-=======
-    report += `Q${i+1}: ${q.category} (${q.difficulty}) - Score: ${q.score}/5\n`;
-  });
-  
-  report += `\n## Recommendations\n`;
-  report += `- Continue practicing ${questions.filter(q => q.score < 3).map(q => q.category).join(', ') || 'technical skills'}\n`;
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
   report += `- Focus on communication skills\n`;
   report += `- Practice more real interview scenarios\n`;
   

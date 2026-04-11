@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-<<<<<<< HEAD
 import config from '../config';
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 
 export interface AuthRequest extends Request {
   user?: {
@@ -23,11 +20,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-<<<<<<< HEAD
     const decoded = jwt.verify(token, config.jwtSecret) as {
-=======
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
       id: string;
       email: string;
       name: string;
@@ -55,11 +48,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 export const generateToken = (userId: string): string => {
   return jwt.sign(
     { id: userId },
-<<<<<<< HEAD
     config.jwtSecret,
-=======
-    process.env.JWT_SECRET || 'your-secret-key',
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     { expiresIn: '7d' }
   );
 };

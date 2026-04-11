@@ -41,10 +41,7 @@ const interviewSchema = new Schema<IInterview>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-<<<<<<< HEAD
       index: true,
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     },
     resumeId: {
       type: Schema.Types.ObjectId,
@@ -54,10 +51,7 @@ const interviewSchema = new Schema<IInterview>(
       type: String,
       enum: ['pending', 'in_progress', 'completed'],
       default: 'pending',
-<<<<<<< HEAD
       index: true,
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
     },
     questions: [
       {
@@ -107,10 +101,7 @@ const interviewSchema = new Schema<IInterview>(
   }
 );
 
-<<<<<<< HEAD
 // Add compound index for userId and status
 interviewSchema.index({ userId: 1, status: 1 });
 
-=======
->>>>>>> 8e4c4577256d606d315d53def20a09a124bdb3ec
 export default mongoose.model<IInterview>('Interview', interviewSchema);
