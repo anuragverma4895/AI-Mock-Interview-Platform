@@ -61,7 +61,7 @@ export default function InterviewSetup() {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('resume', file);
       const res = await resumeAPI.upload(formData);
       setResumeId(res.data.resume._id);
       setStep('jobRole');

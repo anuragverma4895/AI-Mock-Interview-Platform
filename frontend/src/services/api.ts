@@ -32,6 +32,7 @@ export const resumeAPI = {
   upload: (formData: FormData) =>
     api.post('/resume/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      transformRequest: [(data) => data], // Don't transform FormData
     }),
   getResume: (id: string) => api.get(`/resume/${id}`),
   getUserResumes: (userId: string) => api.get(`/resume/user/${userId}`),
