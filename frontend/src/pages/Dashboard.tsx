@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
+import { AnimatedCard3D } from "@/components/AnimatedCard3D"
 import {
   XAxis,
   YAxis,
@@ -34,7 +35,8 @@ import {
   Award,
   Clock,
   Star,
-  LogOut
+  LogOut,
+  Zap
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -96,8 +98,28 @@ export default function Dashboard() {
     { name: "In Progress", value: interviews.length - completedInterviews.length, color: "#f59e0b" },
   ]
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8 },
+    },
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="flex">
         {/* Sidebar */}
         <Sidebar

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
 import { useEffect } from "react"
 import { useAuthStore } from "../store/authStore"
+import { AnimatedCard3D } from "@/components/AnimatedCard3D"
 import {
   ArrowRight,
   Brain,
@@ -13,7 +14,9 @@ import {
   Users,
   TrendingUp,
   Shield,
-  Star
+  Star,
+  Zap,
+  CheckCircle
 } from "lucide-react"
 
 export default function LandingPage() {
@@ -30,32 +33,38 @@ export default function LandingPage() {
     {
       icon: <Brain className="h-8 w-8" />,
       title: "AI-Powered Interviews",
-      description: "Experience realistic mock interviews with advanced AI that adapts to your responses and provides personalized feedback."
+      description: "Experience realistic mock interviews with advanced AI that adapts to your responses and provides personalized feedback.",
+      gradient: "from-blue-500 to-cyan-500"
     },
     {
       icon: <Code className="h-8 w-8" />,
       title: "Live Coding Challenges",
-      description: "Practice coding interviews with our integrated code editor and real-time syntax highlighting."
+      description: "Practice coding interviews with our integrated code editor and real-time syntax highlighting.",
+      gradient: "from-purple-500 to-pink-500"
     },
     {
       icon: <FileText className="h-8 w-8" />,
       title: "Resume Analysis",
-      description: "Upload your resume and get AI-powered insights on how to improve it for better job prospects."
+      description: "Upload your resume and get AI-powered insights on how to improve it for better job prospects.",
+      gradient: "from-green-500 to-teal-500"
     },
     {
       icon: <TrendingUp className="h-8 w-8" />,
       title: "Performance Analytics",
-      description: "Track your progress with detailed analytics, identify weak areas, and see your improvement over time."
+      description: "Track your progress with detailed analytics, identify weak areas, and see your improvement over time.",
+      gradient: "from-yellow-500 to-orange-500"
     },
     {
       icon: <Users className="h-8 w-8" />,
       title: "Multiple Interview Types",
-      description: "Prepare for technical, behavioral, system design, and HR interviews with our comprehensive question bank."
+      description: "Prepare for technical, behavioral, system design, and HR interviews with our comprehensive question bank.",
+      gradient: "from-indigo-500 to-blue-500"
     },
     {
       icon: <Shield className="h-8 w-8" />,
       title: "Privacy First",
-      description: "Your data is secure. We use enterprise-grade encryption and never share your personal information."
+      description: "Your data is secure. We use enterprise-grade encryption and never share your personal information.",
+      gradient: "from-red-500 to-pink-500"
     }
   ]
 
@@ -80,43 +89,77 @@ export default function LandingPage() {
     }
   ]
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8 },
+    },
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Navigation */}
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50"
+        transition={{ duration: 0.6 }}
+        className="fixed top-0 w-full z-50 glass-effect-dark"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <motion.div
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 cursor-pointer"
               whileHover={{ scale: 1.05 }}
+              onClick={() => navigate('/')}
             >
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 animate-pulse-glow" />
+              <span className="text-xl font-bold gradient-text">
                 InterviewAI
               </span>
             </motion.div>
 
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
+              <motion.a 
+                href="#features" 
+                className="text-slate-300 hover:text-indigo-400 transition-colors"
+                whileHover={{ y: -2 }}
+              >
                 Features
-              </a>
-              <a href="#testimonials" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
+              </motion.a>
+              <motion.a 
+                href="#testimonials" 
+                className="text-slate-300 hover:text-indigo-400 transition-colors"
+                whileHover={{ y: -2 }}
+              >
                 Testimonials
-              </a>
-              <a href="#pricing" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
+              </motion.a>
+              <motion.a 
+                href="#pricing" 
+                className="text-slate-300 hover:text-indigo-400 transition-colors"
+                whileHover={{ y: -2 }}
+              >
                 Pricing
-              </a>
+              </motion.a>
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => navigate('/login')}>
+              <Button variant="ghost" onClick={() => navigate('/login')} className="hover:bg-slate-700">
                 Sign In
               </Button>
-              <Button onClick={() => navigate('/register')}>
+              <Button onClick={() => navigate('/register')} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg hover:shadow-indigo-500/50">
                 Get Started
               </Button>
             </div>
@@ -133,24 +176,42 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <Badge variant="indigo" className="mb-6">
-              🚀 Now in Beta - Join 10,000+ users
-            </Badge>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="mb-6 inline-block"
+            >
+              <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 border-0 px-4 py-2 text-white">
+                🚀 Now in Beta - Join 10,000+ users
+              </Badge>
+            </motion.div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
-              <span className="bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 dark:from-white dark:via-blue-100 dark:to-indigo-100 bg-clip-text text-transparent">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight"
+            >
+              <span className="gradient-text">
                 Master Your
               </span>
               <br />
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                 Interview Skills
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed"
+            >
               Practice with AI-powered interviewers, get real-time feedback, and boost your confidence.
+              <br />
               Join thousands of developers who landed their dream jobs with InterviewAI.
-            </p>
+            </motion.p>
 
             <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
