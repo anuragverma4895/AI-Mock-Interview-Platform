@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
 import { AnimatedCard3D } from "@/components/AnimatedCard3D"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   XAxis,
   YAxis,
@@ -44,7 +45,6 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [startingInterview, setStartingInterview] = useState(false)
   
   const [interviews, setInterviews] = useState<Interview[]>([])
   const [resumes, setResumes] = useState<Resume[]>([])
@@ -70,17 +70,8 @@ export default function Dashboard() {
     }
   }
 
-  const handleStartInterview = async (resumeId?: string) => {
-    try {
-      setStartingInterview(true)
-      const response = await interviewAPI.start(resumeId)
-      const interviewId = response.data.interview._id || response.data.interview.id
-      navigate(`/interview/${interviewId}`)
-    } catch (error) {
-      console.error('Failed to start interview:', error)
-      alert('Failed to start interview. Please try again.')
-      setStartingInterview(false)
-    }
+  const handleStartInterview = () => {
+    navigate('/interview-setup')
   }
 
   const completedInterviews = interviews.filter(i => i.status === 'completed')
@@ -162,26 +153,22 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Welcome back, {user?.name || 'Developer'}! 👋
+                  Welcome back, {user?.name || 'Developer'}
                 </h1>
                 <p className="text-slate-600 dark:text-slate-300 mt-1">
                   Ready to ace your next interview?
                 </p>
               </div>
-              <Button
-                onClick={() => handleStartInterview()}
-                disabled={startingInterview}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
-              >
-                {startingInterview ? (
-                  "Initializing..."
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Start New Interview
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+                <Button
+                  onClick={() => handleStartInterview()}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Start New Interview
+                </Button>
+              </div>
             </div>
           </motion.header>
 

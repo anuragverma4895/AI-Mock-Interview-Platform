@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IInterviewQuestion {
-  _id: mongoose.Types.ObjectId;
+  _id?: mongoose.Types.ObjectId;
   question: string;
   category: 'DSA' | 'SystemDesign' | 'DB' | 'HR' | 'Project';
   difficulty: 'easy' | 'medium' | 'hard';
@@ -15,6 +15,8 @@ export interface IInterview extends Document {
   userId: mongoose.Types.ObjectId;
   resumeId?: mongoose.Types.ObjectId;
   status: 'pending' | 'in_progress' | 'completed';
+  role: 'technical' | 'hr' | 'combine';
+  difficulty: 'easy' | 'medium' | 'hard';
   questions: IInterviewQuestion[];
   currentQuestionIndex: number;
   transcript: Array<{
@@ -52,6 +54,16 @@ const interviewSchema = new Schema<IInterview>(
       enum: ['pending', 'in_progress', 'completed'],
       default: 'pending',
       index: true,
+    },
+    role: {
+      type: String,
+      enum: ['technical', 'hr', 'combine'],
+      default: 'technical',
+    },
+    difficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard'],
+      default: 'medium',
     },
     questions: [
       {

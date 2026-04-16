@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   Mic,
   MicOff,
@@ -104,6 +105,14 @@ export default function Interview() {
         setConversation([{type: 'ai', text: q.question}]);
         speak(q.question);
         startRecording();
+        
+        // Auto-start voice listening after a short delay
+        setTimeout(() => {
+          if (recognitionRef.current) {
+            recognitionRef.current.start();
+            setListening(true);
+          }
+        }, 2000);
       }
       setTimeLeft((res.data.duration || 45) * 60);
     } catch (error) {
@@ -227,6 +236,14 @@ export default function Interview() {
       setConversation(prev => [...prev, {type: 'ai', text: res.data.question.question}]);
       speak(res.data.question.question);
       startRecording();
+      
+      // Auto-start voice listening after a short delay
+      setTimeout(() => {
+        if (recognitionRef.current) {
+          recognitionRef.current.start();
+          setListening(true);
+        }
+      }, 2000);
     } catch (error) {
       console.error('Error getting next question:', error);
     } finally {
@@ -333,6 +350,7 @@ export default function Interview() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            <ThemeToggle />
             <Button
               onClick={toggleRecording}
               variant={isRecording ? "destructive" : "default"}

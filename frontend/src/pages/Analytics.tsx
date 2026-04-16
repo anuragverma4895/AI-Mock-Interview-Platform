@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { analyticsAPI } from '../services/api';
 import { Analytics as AnalyticsData } from '../types';
 import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
 import {
@@ -24,17 +25,23 @@ export default function Analytics() {
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadAnalytics();
-  }, []);
+    if (user?.id) {
+      loadAnalytics();
+    }
+  }, [user?.id]);
 
   const loadAnalytics = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const res = await analyticsAPI.getUserAnalytics(user?.id || '');
       setAnalytics(res.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading analytics:', error);
+      setError(error?.response?.data?.message || 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
@@ -46,6 +53,66 @@ export default function Analytics() {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-300 font-medium">Analyzing your progress...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-950 dark:to-indigo-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 font-medium mb-4">{error}</p>
+          <button
+            onClick={() => loadAnalytics()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analytics || (analytics.totalInterviews === 0 && (!analytics.scoreTrends || analytics.scoreTrends.length === 0))) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+        <div className="flex">
+          <Sidebar>
+            <SidebarItem icon={<Home />} onClick={() => navigate('/dashboard')}>
+              Dashboard
+            </SidebarItem>
+            <SidebarItem icon={<Play />} onClick={() => navigate('/interview')}>
+              Start Interview
+            </SidebarItem>
+            <SidebarItem icon={<FileText />} onClick={() => navigate('/resume')}>
+              Resume Analysis
+            </SidebarItem>
+            <SidebarItem icon={<TrendingUp />} isActive={true}>
+              Analytics
+            </SidebarItem>
+            <SidebarItem icon={<User />} onClick={() => navigate('/profile')}>
+              Profile
+            </SidebarItem>
+            <SidebarItem icon={<SettingsIcon />} onClick={() => navigate('/settings')}>
+              Settings
+            </SidebarItem>
+          </Sidebar>
+          <div className="flex-1 p-8 flex items-center justify-center">
+            <div className="text-center">
+              <BarChart3 className="h-16 w-16 text-slate-300 dark:text-slate-700 mx-auto mb-6" />
+              <h2 className="text-3xl font-bold text-slate-700 dark:text-slate-300 mb-3">No Analytics Yet</h2>
+              <p className="text-slate-600 dark:text-slate-400 mb-8 max-w-md">
+                Complete your first interview to see detailed analytics and insights about your performance.
+              </p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

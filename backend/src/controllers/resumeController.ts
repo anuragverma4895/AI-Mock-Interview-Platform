@@ -11,7 +11,9 @@ export const uploadResume = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+    console.log('Parsing resume from:', req.file.path);
     const parsedData = await parseResume(req.file.path);
+    console.log('Resume parsed successfully:', parsedData);
 
     const resume = new Resume({
       userId: req.user?.id,
@@ -21,10 +23,12 @@ export const uploadResume = async (req: AuthRequest, res: Response): Promise<voi
     });
 
     await resume.save();
+    console.log('Resume saved to database:', resume._id);
 
     res.status(201).json({
       message: 'Resume uploaded successfully',
       resume: {
+        _id: resume._id,
         id: resume._id,
         fileName: resume.fileName,
         parsedData: resume.parsedData,

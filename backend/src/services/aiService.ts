@@ -166,20 +166,42 @@ export const generateInterviewQuestion = async (
   }
 
   try {
-    const prompt = `Generate a ${difficulty} level interview question for the category: ${category}. 
-    ${resumeSkills ? `Base it on these skills: ${resumeSkills.join(', ')}.` : ''}
-    ${projectNames ? `Base it on these projects: ${projectNames.join(', ')}.` : ''}
-    Response format: Only return the question text.`;
+    const skillsContext = resumeSkills && resumeSkills.length > 0 
+      ? `The candidate has these skills: ${resumeSkills.join(', ')}.` 
+      : '';
+    
+    const projectContext = projectNames && projectNames.length > 0 
+      ? `The candidate has worked on these projects: ${projectNames.join(', ')}.` 
+      : '';
 
-    const response = await getAICompletion(prompt);
+    const prompt = `You are an expert technical interviewer. Generate a ${difficulty} level interview question for the category: ${category}.
+    
+    ${skillsContext}
+    ${projectContext}
+    
+    Make the question specific to their background if possible. Return ONLY the question text, nothing else.`;
+
+    const questionText = await getAICompletion(prompt);
+    
+    const idealAnswerPrompt = `For this interview question: "${questionText}"
+    
+    Provide a concise but comprehensive ideal answer that would score 5/5 from an interviewer. Include:
+    1. Main concept explanation
+    2. Practical example or use case
+    3. Common pitfalls to avoid
+    
+    Keep the answer under 150 words but technical and detailed.`;
+
+    const idealAnswer = await getAICompletion(idealAnswerPrompt, "You are preparing interview answer guidelines.");
     
     return {
-      question: response || getRandomQuestion(category).question,
+      question: questionText || getRandomQuestion(category).question,
       category,
       difficulty,
-      idealAnswer: "Expected answer with practical examples"
+      idealAnswer: idealAnswer || "Expected answer with practical examples"
     };
   } catch (error) {
+    console.error('Error generating question:', error);
     const q = getRandomQuestion(category);
     return {
       question: q.question,

@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import InterviewSetup from './pages/InterviewSetup';
 import Interview from './pages/Interview';
 import ResumeUpload from './pages/ResumeUpload';
 import Analytics from './pages/Analytics';
@@ -45,6 +46,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview-setup"
+              element={
+                <ProtectedRoute>
+                  <InterviewSetup />
                 </ProtectedRoute>
               }
             />

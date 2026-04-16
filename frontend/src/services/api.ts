@@ -39,8 +39,8 @@ export const resumeAPI = {
 };
 
 export const interviewAPI = {
-  start: (resumeId?: string, duration?: number) =>
-    api.post('/interview/start', { resumeId, duration }),
+  start: (resumeId?: string, duration?: number, options?: { role?: string; difficulty?: string }) =>
+    api.post('/interview/start', { resumeId, duration, ...options }),
   getNextQuestion: (interviewId: string) =>
     api.get(`/interview/next-question/${interviewId}`),
   submitAnswer: (interviewId: string, answer: string) =>
