@@ -37,7 +37,8 @@ import {
   Clock,
   Star,
   LogOut,
-  Zap
+  Zap,
+  Video
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -128,6 +129,9 @@ export default function Dashboard() {
           </SidebarItem>
           <SidebarItem icon={<TrendingUp />} onClick={() => navigate('/analytics')}>
             {!sidebarCollapsed && "Analytics"}
+          </SidebarItem>
+          <SidebarItem icon={<Video />} onClick={() => navigate('/video-library')}>
+            {!sidebarCollapsed && "Video Library"}
           </SidebarItem>
           <SidebarItem icon={<Users />} onClick={() => navigate('/profile')}>
             {!sidebarCollapsed && "Profile"}

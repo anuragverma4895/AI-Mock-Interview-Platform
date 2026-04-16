@@ -153,7 +153,8 @@ export const generateInterviewQuestion = async (
   difficulty: string,
   conversationHistory: any[] = [],
   resumeSkills?: string[],
-  projectNames?: string[]
+  projectNames?: string[],
+  jobRole?: string
 ): Promise<GeneratedQuestion> => {
   if (!USE_AI) {
     const q = getRandomQuestion(category);
@@ -174,20 +175,27 @@ export const generateInterviewQuestion = async (
       ? `The candidate has worked on these projects: ${projectNames.join(', ')}.` 
       : '';
 
+    const jobRoleContext = jobRole 
+      ? `The candidate is interviewing for a ${jobRole} position.`
+      : '';
+
     const prompt = `You are an expert technical interviewer. Generate a ${difficulty} level interview question for the category: ${category}.
     
+    ${jobRoleContext}
     ${skillsContext}
     ${projectContext}
     
-    Make the question specific to their background if possible. Return ONLY the question text, nothing else.`;
+    Make the question specific to their background and target position if possible. Return ONLY the question text, nothing else.`;
 
     const questionText = await getAICompletion(prompt);
     
     const idealAnswerPrompt = `For this interview question: "${questionText}"
     
+    The candidate is interviewing for a ${jobRole} position.
+    
     Provide a concise but comprehensive ideal answer that would score 5/5 from an interviewer. Include:
     1. Main concept explanation
-    2. Practical example or use case
+    2. Practical example or use case relevant to ${jobRole}
     3. Common pitfalls to avoid
     
     Keep the answer under 150 words but technical and detailed.`;

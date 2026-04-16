@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload, SkipForward, Briefcase, Volume2, Zap } from 'lucide-react';
 
-type Step = 'resume' | 'role' | 'difficulty' | 'confirm';
-type Role = 'technical' | 'hr' | 'combine';
+type Step = 'resume' | 'jobRole' | 'interviewType' | 'difficulty' | 'confirm';
+type InterviewType = 'technical' | 'hr' | 'combine';
 type Difficulty = 'easy' | 'medium' | 'hard';
+type JobRole = 'frontend' | 'backend' | 'fullstack' | 'mern' | 'mevn' | 'dse' | 'da' | 'ds' | 'mobile' | 'devops' | 'qa';
 
 export default function InterviewSetup() {
   const { user } = useAuthStore();
@@ -18,16 +19,31 @@ export default function InterviewSetup() {
   
   const [step, setStep] = useState<Step>('resume');
   const [resumeId, setResumeId] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<Role>('technical');
+  const [selectedJobRole, setSelectedJobRole] = useState<JobRole>('fullstack');
+  const [selectedInterviewType, setSelectedInterviewType] = useState<InterviewType>('technical');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
   const [uploading, setUploading] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const roles: { id: Role; label: string; icon: string; description: string }[] = [
+  const jobRoles: { id: JobRole; label: string; icon: string; description: string }[] = [
+    { id: 'frontend', label: 'Frontend Developer', icon: '🎨', description: 'React, Vue, Angular' },
+    { id: 'backend', label: 'Backend Developer', icon: '⚙️', description: 'Node, Python, Java' },
+    { id: 'fullstack', label: 'Full Stack Developer', icon: '🔗', description: 'Frontend + Backend' },
+    { id: 'mern', label: 'MERN Stack', icon: '⚛️', description: 'MongoDB, Express, React, Node' },
+    { id: 'mevn', label: 'MEVN Stack', icon: '💚', description: 'MongoDB, Express, Vue, Node' },
+    { id: 'mobile', label: 'Mobile Developer', icon: '📱', description: 'React Native, Flutter' },
+    { id: 'dse', label: 'Data Science Engineer', icon: '📊', description: 'Python, ML, Analytics' },
+    { id: 'da', label: 'Data Analyst', icon: '📈', description: 'SQL, Analytics, BI Tools' },
+    { id: 'ds', label: 'DevOps/SRE', icon: '🐳', description: 'Docker, K8s, Cloud' },
+    { id: 'devops', label: 'Cloud Engineer', icon: '☁️', description: 'AWS, Azure, GCP' },
+    { id: 'qa', label: 'QA Engineer', icon: '🧪', description: 'Testing, Automation' },
+  ];
+
+  const interviewTypes: { id: InterviewType; label: string; icon: string; description: string }[] = [
     { id: 'technical', label: 'Technical Interview', icon: '💻', description: 'DSA, System Design, Database' },
     { id: 'hr', label: 'HR Interview', icon: '👤', description: 'Soft skills & behavioral' },
-    { id: 'combine', label: 'Combined', icon: '🎯', description: 'Both technical and HR', optional: true },
+    { id: 'combine', label: 'Combined', icon: '🎯', description: 'Both technical and HR' },
   ];
 
   const difficulties = [
@@ -48,7 +64,7 @@ export default function InterviewSetup() {
       formData.append('file', file);
       const res = await resumeAPI.upload(formData);
       setResumeId(res.data.resume._id);
-      setStep('role');
+      setStep('jobRole');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to upload resume');
     } finally {
@@ -58,7 +74,7 @@ export default function InterviewSetup() {
 
   const handleContinueWithoutResume = () => {
     setResumeId(null);
-    setStep('role');
+    setStep('jobRole');
   };
 
   const handleStartInterview = async () => {
@@ -67,7 +83,8 @@ export default function InterviewSetup() {
 
     try {
       const response = await interviewAPI.start(resumeId || undefined, 45, {
-        role: selectedRole,
+        jobRole: selectedJobRole,
+        interviewType: selectedInterviewType,
         difficulty: selectedDifficulty,
       });
       const interviewId = response.data.interview._id || response.data.interview.id;
@@ -180,33 +197,74 @@ export default function InterviewSetup() {
         )}
 
         {/* Step 2: Role Selection */}
-        {step === 'role' && (
+        {/* Step 2: Job Role Selection */}
+        {step === 'jobRole' && (
           <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-white text-2xl">Step 2: Interview Role</CardTitle>
+              <CardTitle className="text-white text-2xl">Step 2: Job Role</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-4">
-                {roles.map((role) => (
+              <div className="grid grid-cols-2 gap-4">
+                {jobRoles.map((role) => (
                   <motion.div
                     key={role.id}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => setSelectedRole(role.id)}
+                    onClick={() => setSelectedJobRole(role.id)}
+                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                      selectedJobRole === role.id
+                        ? 'bg-blue-500/20 border-blue-400/80 shadow-lg shadow-blue-500/20'
+                        : 'bg-white/5 border-white/20 hover:border-white/40'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">{role.icon}</div>
+                      <div className="flex-1">
+                        <h3 className="text-white font-semibold text-sm">{role.label}</h3>
+                        <p className="text-white/60 text-xs">{role.description}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <Button
+                onClick={() => setStep('interviewType')}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white h-12"
+              >
+                Continue
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 3: Interview Type Selection */}
+        {step === 'interviewType' && (
+          <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-white text-2xl">Step 3: Interview Type</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                {interviewTypes.map((type) => (
+                  <motion.div
+                    key={type.id}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => setSelectedInterviewType(type.id)}
                     className={`p-6 rounded-xl border-2 transition-all cursor-pointer ${
-                      selectedRole === role.id
+                      selectedInterviewType === type.id
                         ? 'bg-cyan-500/20 border-cyan-400/80 shadow-lg shadow-cyan-500/20'
                         : 'bg-white/5 border-white/20 hover:border-white/40'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex gap-4">
-                        <div className="text-3xl">{role.icon}</div>
+                        <div className="text-3xl">{type.icon}</div>
                         <div>
-                          <h3 className="text-white font-semibold text-lg">{role.label}</h3>
-                          <p className="text-white/60 text-sm">{role.description}</p>
+                          <h3 className="text-white font-semibold text-lg">{type.label}</h3>
+                          <p className="text-white/60 text-sm">{type.description}</p>
                         </div>
                       </div>
-                      {selectedRole === role.id && (
+                      {selectedInterviewType === type.id && (
                         <Badge className="bg-cyan-400 text-slate-900">Selected</Badge>
                       )}
                     </div>
@@ -224,11 +282,11 @@ export default function InterviewSetup() {
           </Card>
         )}
 
-        {/* Step 3: Difficulty Selection */}
+        {/* Step 4: Difficulty Selection */}
         {step === 'difficulty' && (
           <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-white text-2xl">Step 3: Difficulty Level</CardTitle>
+              <CardTitle className="text-white text-2xl">Step 4: Difficulty Level</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-3 gap-4">
@@ -264,7 +322,7 @@ export default function InterviewSetup() {
           </Card>
         )}
 
-        {/* Step 4: Confirmation */}
+        {/* Step 5: Confirmation */}
         {step === 'confirm' && (
           <Card className="bg-white/10 backdrop-blur-xl border-white/20 shadow-2xl">
             <CardHeader>
@@ -273,8 +331,13 @@ export default function InterviewSetup() {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="p-4 bg-white/5 rounded-lg border border-white/20">
-                  <p className="text-white/60 text-sm mb-1">Interview Role</p>
-                  <p className="text-white font-semibold capitalize">{selectedRole}</p>
+                  <p className="text-white/60 text-sm mb-1">Job Role</p>
+                  <p className="text-white font-semibold capitalize">{selectedJobRole}</p>
+                </div>
+
+                <div className="p-4 bg-white/5 rounded-lg border border-white/20">
+                  <p className="text-white/60 text-sm mb-1">Interview Type</p>
+                  <p className="text-white font-semibold capitalize">{selectedInterviewType}</p>
                 </div>
 
                 <div className="p-4 bg-white/5 rounded-lg border border-white/20">
@@ -302,7 +365,12 @@ export default function InterviewSetup() {
 
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  onClick={() => setStep('role')}
+                  onClick={() => {
+                    if (step === 'jobRole') setStep('resume');
+                    else if (step === 'interviewType') setStep('jobRole');
+                    else if (step === 'difficulty') setStep('interviewType');
+                    else if (step === 'confirm') setStep('difficulty');
+                  }}
                   variant="outline"
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-12"
                 >
@@ -322,13 +390,13 @@ export default function InterviewSetup() {
 
         {/* Progress Indicator */}
         <div className="mt-8 flex justify-center gap-2">
-          {(['resume', 'role', 'difficulty', 'confirm'] as Step[]).map((s) => (
+          {(['resume', 'jobRole', 'interviewType', 'difficulty', 'confirm'] as Step[]).map((s) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all ${
                 step === s ? 'bg-cyan-400 w-8' :
-                (['resume', 'role', 'difficulty', 'confirm'].indexOf(s) < 
-                 ['resume', 'role', 'difficulty', 'confirm'].indexOf(step)
+                (['resume', 'jobRole', 'interviewType', 'difficulty', 'confirm'].indexOf(s) < 
+                 ['resume', 'jobRole', 'interviewType', 'difficulty', 'confirm'].indexOf(step)
                   ? 'bg-cyan-400/50 w-4'
                   : 'bg-white/20 w-4')
               }`}

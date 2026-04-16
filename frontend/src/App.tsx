@@ -16,6 +16,7 @@ import Analytics from './pages/Analytics';
 import InterviewResult from './pages/InterviewResult';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
+import VideoLibrary from './pages/VideoLibrary';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { token } = useAuthStore();
@@ -78,6 +79,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Analytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/video-library"
+              element={
+                <ProtectedRoute>
+                  <VideoLibrary />
                 </ProtectedRoute>
               }
             />

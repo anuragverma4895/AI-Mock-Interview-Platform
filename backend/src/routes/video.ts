@@ -3,7 +3,7 @@ import {
   uploadVideoChunk,
   finalizeVideo,
   getVideoInfo,
-  downloadVideo,
+  getVideoStreamUrl,
   analyzeBodyLanguage,
 } from '../controllers/videoController';
 import { auth } from '../middleware/auth';
@@ -16,7 +16,7 @@ const router = Router();
 router.post('/upload-chunk', auth, videoUpload.single('chunk'), validateFileContent, uploadVideoChunk);
 router.post('/finalize', auth, finalizeVideo);
 router.get('/:id', auth, validateId, getVideoInfo);
-router.get('/:id/download', auth, validateId, downloadVideo);
+router.get('/:id/stream', auth, validateId, getVideoStreamUrl);
 router.post('/analyze-body-language', auth, analyzeBodyLanguage);
 
 export default router;

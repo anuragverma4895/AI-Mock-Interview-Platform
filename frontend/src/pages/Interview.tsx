@@ -253,6 +253,45 @@ export default function Interview() {
 
   const handleEndInterview = async () => {
     stopRecording();
+    
+    // Upload video chunks to server
+    try {
+      console.log(`Uploading ${chunksRef.current.length} video chunks...`);
+      for (let i = 0; i < chunksRef.current.length; i++) {
+        const chunk = chunksRef.current[i];
+        const formData = new FormData();
+        formData.append('chunk', chunk);
+        formData.append('interviewId', id!);
+        formData.append('chunkIndex', i.toString());
+        
+        try {
+          await (window as any).api.post('/video/upload-chunk', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          console.log(`Uploaded chunk ${i}`);
+        } catch (error) {
+          console.warn(`Failed to upload chunk ${i}:`, error);
+        }
+      }
+
+      // Finalize and combine video chunks on server
+      if (chunksRef.current.length > 0) {
+        console.log('Finalizing video on server...');
+        try {
+          await (window as any).api.post('/video/finalize', {
+            interviewId: id!,
+            totalChunks: chunksRef.current.length,
+          });
+          console.log('Video finalized and uploaded to Cloudinary');
+        } catch (error) {
+          console.warn('Failed to finalize video:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading video:', error);
+    }
+
+    // End interview and get closing message
     try {
       const res = await interviewAPI.endInterview(id!, undefined, {
         confidenceScore: 75,

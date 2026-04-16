@@ -17,6 +17,7 @@ export interface IInterview extends Document {
   status: 'pending' | 'in_progress' | 'completed';
   role: 'technical' | 'hr' | 'combine';
   difficulty: 'easy' | 'medium' | 'hard';
+  jobRole: 'frontend' | 'backend' | 'fullstack' | 'mern' | 'mevn' | 'dse' | 'da' | 'ds' | 'mobile' | 'devops' | 'qa';
   questions: IInterviewQuestion[];
   currentQuestionIndex: number;
   transcript: Array<{
@@ -64,6 +65,11 @@ const interviewSchema = new Schema<IInterview>(
       type: String,
       enum: ['easy', 'medium', 'hard'],
       default: 'medium',
+    },
+    jobRole: {
+      type: String,
+      enum: ['frontend', 'backend', 'fullstack', 'mern', 'mevn', 'dse', 'da', 'ds', 'mobile', 'devops', 'qa'],
+      default: 'fullstack',
     },
     questions: [
       {

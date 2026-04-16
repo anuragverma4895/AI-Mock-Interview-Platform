@@ -16,9 +16,9 @@ const MAX_QUESTIONS = 10;
 
 export const startInterview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { resumeId, duration, role = 'technical', difficulty = 'medium' } = req.body;
+    const { resumeId, duration, role = 'technical', difficulty = 'medium', jobRole = 'fullstack', interviewType = 'technical' } = req.body;
 
-    console.log('Starting interview with:', { resumeId, duration, role, difficulty });
+    console.log('Starting interview with:', { resumeId, duration, role, difficulty, jobRole, interviewType });
 
     let resumeData = null;
     if (resumeId) {
@@ -38,7 +38,8 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       difficulty,
       [],
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name)
+      resumeData?.projects?.map(p => p.name),
+      jobRole
     );
 
     console.log('First question generated:', firstQuestion);
@@ -47,8 +48,9 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       userId: req.user?.id,
       resumeId: resumeId || undefined,
       status: 'in_progress',
-      role: role || 'technical',
+      role: interviewType || role || 'technical',
       difficulty: difficulty || 'medium',
+      jobRole: jobRole || 'fullstack',
       questions: [{
         question: firstQuestion.question,
         category: firstQuestion.category as any,
@@ -79,6 +81,7 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
         status: interview.status,
         role: interview.role,
         difficulty: interview.difficulty,
+        jobRole: interview.jobRole,
         currentQuestion: interview.questions[0],
         currentQuestionIndex: interview.currentQuestionIndex,
         totalQuestions: MAX_QUESTIONS,
@@ -131,7 +134,8 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       difficulty,
       conversationHistory,
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name)
+      resumeData?.projects?.map(p => p.name),
+      interview.jobRole
     );
 
     interview.questions.push({

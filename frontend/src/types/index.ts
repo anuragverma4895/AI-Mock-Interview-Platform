@@ -34,6 +34,9 @@ export interface Interview {
   userId: string;
   resumeId?: string;
   status: 'pending' | 'in_progress' | 'completed';
+  role: 'technical' | 'hr' | 'combine';
+  difficulty: 'easy' | 'medium' | 'hard';
+  jobRole: 'frontend' | 'backend' | 'fullstack' | 'mern' | 'mevn' | 'dse' | 'da' | 'ds' | 'mobile' | 'devops' | 'qa';
   questions: InterviewQuestion[];
   currentQuestionIndex: number;
   transcript: Array<{ question: string; answer: string; timestamp: string }>;
