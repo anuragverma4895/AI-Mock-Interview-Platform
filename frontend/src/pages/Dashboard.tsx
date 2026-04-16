@@ -320,7 +320,7 @@ export default function Dashboard() {
                         {interviews.slice(0, 5).map((interview) => (
                           <tr key={interview._id || interview.id}>
                             <td className="py-4 text-sm">
-                              {new Date(interview.createdAt).toLocaleDateString()}
+                              {interview.createdAt ? new Date(interview.createdAt).toLocaleDateString() : (interview.startedAt ? new Date(interview.startedAt).toLocaleDateString() : 'N/A')}
                             </td>
                             <td className="py-4">
                               <Badge variant={interview.status === 'completed' ? 'success' : 'warning'}>

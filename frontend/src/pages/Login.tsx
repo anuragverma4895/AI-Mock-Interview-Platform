@@ -20,7 +20,7 @@ export default function Login() {
       const res = await authAPI.login(email, password);
       setToken(res.data.token);
       setUser(res.data.user);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
 
       setError(err.response?.data?.message || 'Login failed');

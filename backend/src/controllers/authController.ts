@@ -48,7 +48,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const sanitizedEmail = email.toLowerCase().trim();
 
     const user = await User.findOne({ email: sanitizedEmail });
-    if (!user) {
+    if (!user || !user.password) {
       res.status(400).json({ message: 'Invalid credentials' });
       return;
     }
