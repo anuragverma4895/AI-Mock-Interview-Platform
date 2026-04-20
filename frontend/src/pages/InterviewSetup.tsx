@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { resumeAPI, interviewAPI } from '../services/api';
 import { motion } from 'framer-motion';
@@ -16,10 +16,13 @@ type JobRole = 'frontend' | 'backend' | 'fullstack' | 'mern' | 'mevn' | 'dse' | 
 export default function InterviewSetup() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  const [step, setStep] = useState<Step>('resume');
-  const [resumeId, setResumeId] = useState<string | null>(null);
-  const [selectedJobRole, setSelectedJobRole] = useState<JobRole>('fullstack');
+  const initialStep = location.state?.resumeId ? 'interviewType' : 'resume';
+  
+  const [step, setStep] = useState<Step>(initialStep as Step);
+  const [resumeId, setResumeId] = useState<string | null>(location.state?.resumeId || null);
+  const [selectedJobRole, setSelectedJobRole] = useState<JobRole>(location.state?.jobRole || 'fullstack');
   const [selectedInterviewType, setSelectedInterviewType] = useState<InterviewType>('technical');
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
   const [uploading, setUploading] = useState(false);
@@ -185,7 +188,7 @@ export default function InterviewSetup() {
                   </motion.div>
 
                   <Button
-                    onClick={() => setStep('role')}
+                    onClick={() => setStep('jobRole')}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 font-semibold"
                   >
                     Continue with Resume
