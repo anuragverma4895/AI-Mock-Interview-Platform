@@ -19,6 +19,7 @@ interface InterviewWithVideo {
   finalScore?: number;
   completedAt?: string;
   videoPath?: string;
+  recordingUrl?: string;
   questions?: any[];
 }
 
@@ -40,8 +41,8 @@ export default function VideoLibrary() {
       setError(null);
       const res = await interviewAPI.getUserInterviews(user?.id || '');
       // Filter only completed interviews with videos
-      const completedWithVideos = res.data.filter((interview: any) => 
-        interview.status === 'completed' && interview.videoPath
+      const completedWithVideos = res.data.filter((interview: any) =>
+        interview.status === 'completed' && (interview.recordingUrl || interview.videoPath)
       );
       setInterviews(completedWithVideos);
     } catch (err: any) {
@@ -111,8 +112,8 @@ export default function VideoLibrary() {
             animate={{ opacity: 1, y: 0 }}
           >
             <VideoPlayer
-              videoUrl={selectedVideo.videoPath || ''}
-              title={`${selectedVideo.jobRole} - ${selectedVideo.role} Interview`}
+              videoUrl={selectedVideo.recordingUrl || selectedVideo.videoPath || ''}
+              title={`${selectedVideo.jobRole || selectedVideo.questions?.[0]?.category || 'Interview'} Session`}
             />
           </motion.div>
 
@@ -126,7 +127,7 @@ export default function VideoLibrary() {
             <Card className="bg-white/10 backdrop-blur-xl border-white/20">
               <CardContent className="p-4">
                 <p className="text-white/60 text-sm mb-1">Job Role</p>
-                <p className="text-white font-semibold capitalize">{selectedVideo.jobRole}</p>
+                <p className="text-white font-semibold capitalize">{selectedVideo.jobRole || selectedVideo.questions?.[0]?.category || 'Interview'}</p>
               </CardContent>
             </Card>
             <Card className="bg-white/10 backdrop-blur-xl border-white/20">
@@ -141,7 +142,7 @@ export default function VideoLibrary() {
               <CardContent className="p-4">
                 <p className="text-white/60 text-sm mb-1">Final Score</p>
                 <p className="text-white font-semibold text-lg">
-                  {selectedVideo.finalScore ? Math.round(selectedVideo.finalScore) : 'N/A'} / 100
+                  {typeof selectedVideo.finalScore === 'number' ? selectedVideo.finalScore.toFixed(1) : 'N/A'} / 5
                 </p>
               </CardContent>
             </Card>
@@ -229,12 +230,12 @@ export default function VideoLibrary() {
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity" />
                     <div className="relative space-y-2">
                       <CardTitle className="text-white capitalize flex items-center justify-between">
-                        <span>{interview.jobRole}</span>
+                        <span>{interview.jobRole || interview.questions?.[0]?.category || 'Interview'}</span>
                         <Play className="w-5 h-5 text-cyan-400 opacity-0 group-hover:opacity-100 transition" />
                       </CardTitle>
                       <div className="flex gap-2 flex-wrap">
-                        <Badge className={getRoleColor(interview.jobRole)}>
-                          {interview.role}
+                        <Badge className={getRoleColor(interview.jobRole || interview.role || '')}>
+                          {interview.role || interview.questions?.[0]?.category || 'Interview'}
                         </Badge>
                         <Badge className={getDifficultyColor(interview.difficulty)}>
                           {interview.difficulty}
@@ -247,7 +248,7 @@ export default function VideoLibrary() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/60">Score</span>
                         <span className="text-white font-semibold text-lg">
-                          {interview.finalScore ? Math.round(interview.finalScore) : 'N/A'} / 100
+                          {typeof interview.finalScore === 'number' ? interview.finalScore.toFixed(1) : 'N/A'} / 5
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-white/60">

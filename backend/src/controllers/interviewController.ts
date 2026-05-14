@@ -12,6 +12,7 @@ import {
 import { AuthRequest } from '../middleware/auth';
 
 const QUESTION_CATEGORIES = ['DSA', 'SystemDesign', 'DB', 'HR', 'Project'];
+const DIFFICULTY_SEQUENCE = ['easy', 'medium', 'medium', 'hard', 'medium', 'hard', 'medium', 'hard', 'medium', 'hard'];
 const MAX_QUESTIONS = 10;
 
 export const startInterview = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -22,6 +23,10 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     if (resumeId) {
       const resume = await Resume.findById(resumeId);
       if (resume) {
+        if (resume.userId.toString() !== req.user?.id) {
+          res.status(403).json({ message: 'Unauthorized resume' });
+          return;
+        }
         resumeData = resume.parsedData;
       }
     }
@@ -86,6 +91,10 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     if (interview.status === 'completed') {
       res.status(400).json({ message: 'Interview already completed' });
@@ -110,7 +119,7 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     }));
 
     const category = QUESTION_CATEGORIES[(interview.currentQuestionIndex + 1) % QUESTION_CATEGORIES.length];
-    const difficulty = ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
+    const difficulty = DIFFICULTY_SEQUENCE[interview.currentQuestionIndex + 1] || 'medium';
 
     const newQuestion = await generateInterviewQuestion(
       category,
@@ -159,6 +168,10 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     if (interview.status === 'completed') {
       res.status(400).json({ message: 'Interview already completed' });
@@ -182,7 +195,7 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
       currentQuestion.idealAnswer
     );
 
-    interview.questions[interview.currentQuestionIndex].answer = answer;
+    interview.questions[interview.currentQuestionIndex].answer = sanitizedAnswer;
     interview.questions[interview.currentQuestionIndex].score = evaluation.score;
     interview.questions[interview.currentQuestionIndex].feedback = evaluation.feedback;
 
@@ -224,6 +237,10 @@ export const askFollowUp = async (req: AuthRequest, res: Response): Promise<void
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const currentQuestion = interview.questions[interview.currentQuestionIndex];
     
@@ -257,6 +274,10 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     interview.status = 'completed';
     interview.completedAt = new Date();
@@ -264,8 +285,9 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
     if (videoPath) interview.videoPath = videoPath;
     if (bodyLanguageData) interview.bodyLanguageData = bodyLanguageData;
 
-    const totalScore = interview.questions.reduce((sum, q) => sum + (q.score || 0), 0);
-    interview.finalScore = totalScore / interview.questions.length;
+    const scoredQuestions = interview.questions.filter(q => q.score !== undefined);
+    const totalScore = scoredQuestions.reduce((sum, q) => sum + (q.score || 0), 0);
+    interview.finalScore = scoredQuestions.length > 0 ? totalScore / scoredQuestions.length : 0;
 
     const strongAreas = interview.questions
       .filter(q => (q.score || 0) >= 4)
@@ -307,6 +329,10 @@ export const getInterview = async (req: AuthRequest, res: Response): Promise<voi
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
     res.json(interview);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching interview', error: String(error) });
@@ -315,6 +341,11 @@ export const getInterview = async (req: AuthRequest, res: Response): Promise<voi
 
 export const getUserInterviews = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (req.params.userId !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+
     const interviews = await Interview.find({ userId: req.user?.id })
       .populate('resumeId')
       .sort({ createdAt: -1 });
@@ -329,6 +360,10 @@ export const getTranscript = async (req: AuthRequest, res: Response): Promise<vo
     const interview = await Interview.findById(req.params.id);
     if (!interview) {
       res.status(404).json({ message: 'Interview not found' });
+      return;
+    }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
       return;
     }
     res.json({

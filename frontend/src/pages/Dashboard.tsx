@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { useAuthStore } from "@/store/authStore"
+import { analyticsAPI, interviewAPI } from "@/services/api"
+import { Analytics, Interview } from "@/types"
 import {
   XAxis,
   YAxis,
@@ -36,63 +39,122 @@ import {
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [interviews, setInterviews] = useState<Interview[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data - in real app this would come from API
-  const stats = {
-    totalInterviews: 24,
-    averageScore: 4.2,
-    completionRate: 85,
-    studyStreak: 12
-  }
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      if (!user?.id) {
+        setLoading(false)
+        return
+      }
 
-  const recentInterviews = [
-    {
-      id: 1,
-      type: "Technical",
-      score: 4.5,
-      date: "2024-01-15",
-      duration: "45 min",
-      status: "completed"
-    },
-    {
-      id: 2,
-      type: "Behavioral",
-      score: 3.8,
-      date: "2024-01-12",
-      duration: "30 min",
-      status: "completed"
-    },
-    {
-      id: 3,
-      type: "System Design",
-      score: 4.1,
-      date: "2024-01-10",
-      duration: "60 min",
-      status: "completed"
+      try {
+        const [analyticsRes, interviewsRes] = await Promise.all([
+          analyticsAPI.getUserAnalytics(user.id),
+          interviewAPI.getUserInterviews(user.id),
+        ])
+        setAnalytics(analyticsRes.data)
+        setInterviews(interviewsRes.data)
+      } catch (error) {
+        console.error('Error loading dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const performanceData = [
-    { month: "Jan", score: 3.5, interviews: 4 },
-    { month: "Feb", score: 3.8, interviews: 6 },
-    { month: "Mar", score: 4.1, interviews: 8 },
-    { month: "Apr", score: 4.3, interviews: 6 }
-  ]
+    loadDashboardData()
+  }, [user?.id])
 
-  const weakAreas = [
-    { area: "System Design", score: 3.2, color: "#ef4444" },
-    { area: "Data Structures", score: 3.8, color: "#f59e0b" },
-    { area: "Algorithms", score: 4.1, color: "#10b981" },
-    { area: "Behavioral", score: 4.5, color: "#3b82f6" }
-  ]
+  const categoryColors = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed"]
 
-  const interviewTypes = [
-    { name: "Technical", value: 12, color: "#3b82f6" },
-    { name: "Behavioral", value: 6, color: "#10b981" },
-    { name: "System Design", value: 4, color: "#f59e0b" },
-    { name: "HR", value: 2, color: "#ef4444" }
-  ]
+  const dashboardData = useMemo(() => {
+    const completedInterviews = interviews.filter(interview => interview.status === 'completed')
+    const recordingsCount = completedInterviews.filter(interview => Boolean(interview.recordingUrl)).length
+    const completionRate = interviews.length > 0
+      ? Math.round((completedInterviews.length / interviews.length) * 100)
+      : 0
+
+    const recentInterviews = completedInterviews.slice(0, 3).map((interview) => {
+      const categoryCounts = interview.questions.reduce<Record<string, number>>((counts, question) => {
+        counts[question.category] = (counts[question.category] || 0) + 1
+        return counts
+      }, {})
+      const primaryCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Interview'
+
+      return {
+        id: interview._id,
+        type: primaryCategory,
+        score: interview.finalScore,
+        date: interview.completedAt || interview.startedAt || '',
+        duration: interview.recordingDuration
+          ? `${Math.round(interview.recordingDuration / 60)} min`
+          : `${interview.duration || 0} min`,
+        status: interview.recordingUrl ? 'recording saved' : 'completed',
+      }
+    })
+
+    const performanceData = [...(analytics?.scoreTrends || [])]
+      .reverse()
+      .map((trend) => ({
+        month: trend.date ? new Date(trend.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'N/A',
+        score: Number(trend.score || 0),
+      }))
+
+    const categoryScores = completedInterviews.reduce<Record<string, number[]>>((acc, interview) => {
+      interview.questions.forEach((question) => {
+        if (typeof question.score !== 'number') return
+        if (!acc[question.category]) acc[question.category] = []
+        acc[question.category].push(question.score)
+      })
+      return acc
+    }, {})
+
+    const categoryPerformance = Object.entries(categoryScores)
+      .map(([area, scores], index) => ({
+        area,
+        score: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+        color: categoryColors[index % categoryColors.length],
+      }))
+      .sort((a, b) => a.score - b.score)
+
+    const interviewTypes = completedInterviews.reduce<Record<string, number>>((acc, interview) => {
+      interview.questions.forEach((question) => {
+        acc[question.category] = (acc[question.category] || 0) + 1
+      })
+      return acc
+    }, {})
+
+    const interviewTypeData = Object.entries(interviewTypes).map(([name, value], index) => ({
+      name,
+      value,
+      color: categoryColors[index % categoryColors.length],
+    }))
+
+    return {
+      stats: {
+        totalInterviews: analytics?.totalInterviews || completedInterviews.length,
+        averageScore: analytics?.averageScore || 0,
+        completionRate,
+        recordingsCount,
+      },
+      recentInterviews,
+      performanceData,
+      categoryPerformance,
+      interviewTypeData,
+    }
+  }, [analytics, interviews])
+
+  const {
+    stats,
+    recentInterviews,
+    performanceData,
+    categoryPerformance,
+    interviewTypeData,
+  } = dashboardData
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
@@ -136,7 +198,7 @@ export default function Dashboard() {
                   Welcome back, Developer
                 </h1>
                 <p className="text-slate-600 dark:text-slate-300 mt-1">
-                  Ready to ace your next interview?
+                  {user?.name ? `Ready for your next practice round, ${user.name}?` : 'Ready for your next practice round?'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -173,7 +235,7 @@ export default function Dashboard() {
                     {stats.totalInterviews}
                   </div>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
-                    +12% from last month
+                    Completed interviews
                   </p>
                 </CardContent>
               </Card>
@@ -187,10 +249,10 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-                    {stats.averageScore}/5
+                    {Number(stats.averageScore || 0).toFixed(1)}/5
                   </div>
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    +0.3 from last month
+                    From saved evaluations
                   </p>
                 </CardContent>
               </Card>
@@ -213,16 +275,16 @@ export default function Dashboard() {
               <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
-                    Study Streak
+                    Saved Recordings
                   </CardTitle>
                   <Calendar className="h-4 w-4 text-orange-600" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                    {stats.studyStreak} days
+                    {stats.recordingsCount}
                   </div>
                   <p className="text-xs text-orange-600 dark:text-orange-400">
-                    Keep the momentum going
+                    Completed interviews with video
                   </p>
                 </CardContent>
               </Card>
@@ -244,21 +306,27 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis domain={[0, 5]} />
-                        <Tooltip />
-                        <Line
-                          type="monotone"
-                          dataKey="score"
-                          stroke="#4f46e5"
-                          strokeWidth={3}
-                          dot={{ fill: '#4f46e5', strokeWidth: 2, r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {loading ? (
+                      <div className="flex h-[300px] items-center justify-center text-slate-500">Loading performance...</div>
+                    ) : performanceData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={performanceData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis domain={[0, 5]} />
+                          <Tooltip />
+                          <Line
+                            type="monotone"
+                            dataKey="score"
+                            stroke="#4f46e5"
+                            strokeWidth={3}
+                            dot={{ fill: '#4f46e5', strokeWidth: 2, r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-[300px] items-center justify-center text-slate-500">Complete an interview to see your trend.</div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -277,37 +345,45 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={interviewTypes}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {interviewTypes.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                    {loading ? (
+                      <div className="flex h-[300px] items-center justify-center text-slate-500">Loading categories...</div>
+                    ) : interviewTypeData.length > 0 ? (
+                      <>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={interviewTypeData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={100}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {interviewTypeData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="flex flex-wrap justify-center gap-4 mt-4">
+                          {interviewTypeData.map((type, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: type.color }}
+                              />
+                              <span className="text-sm text-slate-600 dark:text-slate-300">
+                                {type.name}: {type.value}
+                              </span>
+                            </div>
                           ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="flex flex-wrap justify-center gap-4 mt-4">
-                      {interviewTypes.map((type, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: type.color }}
-                          />
-                          <span className="text-sm text-slate-600 dark:text-slate-300">
-                            {type.name}: {type.value}
-                          </span>
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    ) : (
+                      <div className="flex h-[300px] items-center justify-center text-slate-500">No question categories yet.</div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -330,27 +406,32 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {recentInterviews.map((interview) => (
+                      {recentInterviews.length > 0 ? recentInterviews.map((interview) => (
                         <div
                           key={interview.id}
-                          className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                          onClick={() => navigate(`/interview-result/${interview.id}`)}
+                          className="flex cursor-pointer items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700"
                         >
                           <div>
                             <p className="font-medium">{interview.type}</p>
                             <p className="text-sm text-slate-500">
-                              {interview.date} | {interview.duration}
+                              {interview.date ? new Date(interview.date).toLocaleDateString('en-IN') : 'No date'} | {interview.duration}
                             </p>
                           </div>
                           <div className="text-right">
                             <Badge variant="success" className="mb-1">
-                              {interview.score}/5
+                              {typeof interview.score === 'number' ? interview.score.toFixed(1) : 'N/A'}/5
                             </Badge>
                             <p className="text-xs text-slate-500">
                               {interview.status}
                             </p>
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 dark:bg-slate-800">
+                          No completed interviews yet.
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="outline"
@@ -378,12 +459,12 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {weakAreas.map((area, index) => (
+                      {categoryPerformance.length > 0 ? categoryPerformance.map((area, index) => (
                         <div key={index} className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="font-medium">{area.area}</span>
                             <span className="text-sm text-slate-500">
-                              {area.score}/5
+                              {area.score.toFixed(1)}/5
                             </span>
                           </div>
                           <Progress
@@ -391,7 +472,11 @@ export default function Dashboard() {
                             className="h-2"
                           />
                         </div>
-                      ))}
+                      )) : (
+                        <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 dark:bg-slate-800">
+                          Submit answers to see category analysis.
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="outline"

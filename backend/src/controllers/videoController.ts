@@ -87,20 +87,9 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
 
 export const analyzeBodyLanguage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { frameData } = req.body;
-
-    const mockAnalysis = {
-      eyeContact: 85,
-      faceOrientation: 90,
-      confidenceScore: 78,
-      suggestions: [
-        'Good eye contact maintained',
-        'Face well-oriented toward camera',
-        'Try to smile more to appear confident',
-      ],
-    };
-
-    res.json(mockAnalysis);
+    res.status(501).json({
+      message: 'Body language analysis is not configured. No analysis was generated.',
+    });
   } catch (error) {
     console.error('Error analyzing body language:', error);
     res.status(500).json({ message: 'Error analyzing body language', error: String(error) });

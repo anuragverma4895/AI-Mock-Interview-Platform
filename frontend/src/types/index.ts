@@ -73,5 +73,8 @@ export interface Analytics {
     date: string;
     finalScore: number;
     questionCount: number;
+    answeredCount?: number;
+    hasRecording?: boolean;
+    duration?: number;
   }>;
 }

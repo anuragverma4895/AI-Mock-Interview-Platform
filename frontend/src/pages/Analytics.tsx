@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { analyticsAPI } from '../services/api';
 import { Analytics as AnalyticsData } from '../types';
+import { BarChart3, PlayCircle } from 'lucide-react';
 
 export default function Analytics() {
   const { user } = useAuthStore();
@@ -108,14 +109,20 @@ export default function Analytics() {
                   <tr>
                     <th className="px-4 py-2 text-left">Date</th>
                     <th className="px-4 py-2 text-left">Score</th>
-                    <th className="px-4 py-2 text-left">Questions</th>
+                    <th className="px-4 py-2 text-left">Answered</th>
+                    <th className="px-4 py-2 text-left">Recording</th>
+                    <th className="px-4 py-2 text-left">Details</th>
                   </tr>
                 </thead>
                 <tbody>
                   {analytics.recentInterviews.map((interview, i) => (
-                    <tr key={i} className="border-t">
+                    <tr
+                      key={interview.id || i}
+                      onClick={() => navigate(`/interview-result/${interview.id}`)}
+                      className="border-t cursor-pointer hover:bg-blue-50 transition-colors"
+                    >
                       <td className="px-4 py-2">
-                        {new Date(interview.date).toLocaleDateString()}
+                        {interview.date ? new Date(interview.date).toLocaleDateString() : 'No date'}
                       </td>
                       <td className="px-4 py-2">
                         <span className={`px-2 py-1 rounded ${
@@ -123,10 +130,31 @@ export default function Analytics() {
                           interview.finalScore >= 3 ? 'bg-yellow-100 text-yellow-700' :
                           'bg-red-100 text-red-700'
                         }`}>
-                          {interview.finalScore.toFixed(1)}
+                          {Number(interview.finalScore || 0).toFixed(1)}
                         </span>
                       </td>
-                      <td className="px-4 py-2">{interview.questionCount}</td>
+                      <td className="px-4 py-2">{interview.answeredCount ?? interview.questionCount} / {interview.questionCount}</td>
+                      <td className="px-4 py-2">
+                        {interview.hasRecording ? (
+                          <span className="inline-flex items-center gap-1 text-green-700">
+                            <PlayCircle className="h-4 w-4" /> Saved
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Not saved</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/interview-result/${interview.id}`);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                          View analysis
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -208,8 +208,8 @@ export default function Profile() {
                   <h2 className="text-2xl font-bold mb-1">{user?.name}</h2>
                   <p className="text-slate-500 mb-4 capitalize">{user?.role || 'Interviewer'}</p>
                   <div className="flex justify-center gap-2">
-                    <Badge variant="secondary">LEVEL 12</Badge>
-                    <Badge className="bg-emerald-500">VERIFIED</Badge>
+                    <Badge variant="secondary" className="capitalize">{user?.role || 'candidate'}</Badge>
+                    <Badge className="bg-emerald-500">{recordings.length} recordings</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -273,12 +273,13 @@ export default function Profile() {
                           <Award className="h-8 w-8" />
                         </div>
                         <div>
-                          <p className="font-bold text-lg">Beta Explorer</p>
-                          <p className="text-indigo-100 text-sm">Active Member since April 2024</p>
+                          <p className="font-bold text-lg">Practice Summary</p>
+                          <p className="text-indigo-100 text-sm">Based on your saved interview recordings</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">Lvl 12</p>
+                        <p className="text-2xl font-bold">{recordings.length}</p>
+                        <p className="text-xs text-indigo-100">recordings</p>
                       </div>
                     </div>
                   </CardContent>
@@ -358,7 +359,7 @@ export default function Profile() {
                             <div className="flex items-center gap-3 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Award className="h-3 w-3" />
-                                Score: {rec.finalScore?.toFixed(1) || 'N/A'}/5
+                                Score: {typeof rec.finalScore === 'number' ? rec.finalScore.toFixed(1) : 'N/A'}/5
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />

@@ -53,9 +53,84 @@ const QUESTION_BANK = {
   ]
 };
 
-const getRandomQuestion = (category: string) => {
+const selectQuestion = (category: string, difficulty: string, conversationHistory: any[] = []) => {
   const questions = QUESTION_BANK[category as keyof typeof QUESTION_BANK] || QUESTION_BANK.DSA;
-  return questions[Math.floor(Math.random() * questions.length)];
+  const usedQuestions = new Set(
+    conversationHistory
+      .map(item => String(item.content || item.question || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  const matchingDifficulty = questions.filter(q => q.difficulty === difficulty);
+  const candidates = matchingDifficulty.length > 0 ? matchingDifficulty : questions;
+  return candidates.find(q => !usedQuestions.has(q.question.toLowerCase())) || candidates[0];
+};
+
+const clampScore = (score: unknown): number => {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) return 0;
+  return Math.max(0, Math.min(5, Math.round(numericScore * 10) / 10));
+};
+
+const tokenize = (value: string): string[] =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9+#.\s-]/g, ' ')
+    .split(/\s+/)
+    .filter(token => token.length > 2);
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  DSA: ['complexity', 'time', 'space', 'array', 'linked', 'hash', 'tree', 'stack', 'queue', 'recursion', 'algorithm'],
+  SystemDesign: ['scale', 'cache', 'database', 'load', 'latency', 'queue', 'service', 'api', 'storage', 'partition'],
+  DB: ['index', 'query', 'table', 'schema', 'transaction', 'acid', 'join', 'normalization', 'sql', 'nosql'],
+  HR: ['experience', 'team', 'communication', 'challenge', 'learning', 'strength', 'weakness', 'goal', 'conflict'],
+  Project: ['architecture', 'technology', 'debug', 'problem', 'solution', 'feature', 'testing', 'deployment', 'impact'],
+};
+
+const evaluateAnswerLocally = (
+  question: string,
+  answer: string,
+  category: string,
+  idealAnswer?: string
+): AnswerEvaluation => {
+  const trimmedAnswer = answer.trim();
+  const words = tokenize(trimmedAnswer);
+  const uniqueWords = new Set(words);
+  const expectedTokens = new Set([
+    ...tokenize(question),
+    ...tokenize(idealAnswer || ''),
+    ...(CATEGORY_KEYWORDS[category] || []),
+  ]);
+  const matchedExpected = [...uniqueWords].filter(word => expectedTokens.has(word)).length;
+
+  const lengthScore =
+    words.length >= 90 ? 2 :
+    words.length >= 50 ? 1.5 :
+    words.length >= 25 ? 1 :
+    words.length >= 10 ? 0.5 : 0;
+  const relevanceScore = Math.min(2, matchedExpected * 0.35);
+  const exampleScore = /\b(example|for instance|because|trade-?off|complexity|use case|in my project|we used)\b/i.test(trimmedAnswer) ? 0.7 : 0;
+  const structureScore = /[.!?]\s+\w/.test(trimmedAnswer) || /first|second|then|finally|step/i.test(trimmedAnswer) ? 0.3 : 0;
+  const score = clampScore(1 + lengthScore + relevanceScore + exampleScore + structureScore);
+
+  const strengths = [
+    words.length >= 25 ? 'Answer has enough detail to evaluate.' : 'Answer was submitted clearly.',
+    matchedExpected > 0 ? `Covered relevant ${category} terms from the question.` : 'Stayed on the interview question.',
+  ];
+
+  const improvements = [
+    words.length < 50 ? 'Add more depth with reasoning and concrete examples.' : 'Tighten the answer by highlighting trade-offs and decisions.',
+    matchedExpected < 3 ? `Use more precise ${category} concepts connected to the question.` : 'Mention edge cases, limitations, or alternatives where relevant.',
+  ];
+
+  return {
+    score,
+    feedback: `Score is based on answer length, relevance to the question, use of ${category} concepts, examples, and structure.`,
+    strengths,
+    improvements,
+    idealAnswer: idealAnswer || 'A strong answer should explain the core concept, discuss trade-offs, and include a practical example.',
+    followUpQuestion: `Can you add one concrete example or trade-off for your ${category} answer?`,
+  };
 };
 
 export interface GeneratedQuestion {
@@ -158,7 +233,7 @@ export const generateInterviewQuestion = async (
   projectNames?: string[]
 ): Promise<GeneratedQuestion> => {
   if (!USE_AI) {
-    const q = getRandomQuestion(category);
+    const q = selectQuestion(category, difficulty, conversationHistory);
     return {
       question: q.question,
       category,
@@ -176,13 +251,13 @@ export const generateInterviewQuestion = async (
     const response = await getAICompletion(prompt);
     
     return {
-      question: response || getRandomQuestion(category).question,
+      question: response || selectQuestion(category, difficulty, conversationHistory).question,
       category,
       difficulty,
       idealAnswer: "Expected answer with practical examples"
     };
   } catch (error) {
-    const q = getRandomQuestion(category);
+    const q = selectQuestion(category, difficulty, conversationHistory);
     return {
       question: q.question,
       category,
@@ -201,15 +276,7 @@ export const evaluateAnswer = async (
   idealAnswer?: string
 ): Promise<AnswerEvaluation> => {
   if (!USE_AI) {
-    // Fallback logic
-    return {
-      score: 3,
-      feedback: "Good attempt. Practice more to refine your answer.",
-      strengths: ["Clear response", "Correct direction"],
-      improvements: ["Add more detail", "Use technical terms"],
-      idealAnswer: idealAnswer || "A detailed technical explanation.",
-      followUpQuestion: "Can you elaborate on that?"
-    };
+    return evaluateAnswerLocally(question, answer, category, idealAnswer);
   }
 
   try {
@@ -242,23 +309,16 @@ export const evaluateAnswer = async (
     const data = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
 
     return {
-      score: data.score || 3,
-      feedback: data.feedback || "Good attempt.",
-      strengths: data.strengths || ["Basic understanding"],
-      improvements: data.improvements || ["Need more depth"],
+      score: clampScore(data.score),
+      feedback: data.feedback || "Evaluation completed from your answer.",
+      strengths: Array.isArray(data.strengths) ? data.strengths : [],
+      improvements: Array.isArray(data.improvements) ? data.improvements : [],
       idealAnswer: data.idealAnswer || idealAnswer || "A comprehensive technical answer.",
       followUpQuestion: data.followUpQuestion || "Tell me more."
     };
   } catch (error) {
     console.error('Evaluation Error:', error);
-    return {
-      score: 3,
-      feedback: "The AI evaluator is briefly unavailable, but you're doing great! Keep going.",
-      strengths: ["Persistence", "Communication"],
-      improvements: ["N/A"],
-      idealAnswer: idealAnswer || "A detailed technical explanation.",
-      followUpQuestion: "Next question coming up..."
-    };
+    return evaluateAnswerLocally(question, answer, category, idealAnswer);
   }
 };
 
@@ -282,13 +342,8 @@ export const generateFollowUpQuestion = async (
 };
 
 export const getGreeting = async (candidateName?: string): Promise<string> => {
-  const greetings = [
-    `Hi there! Welcome to your mock interview. I'm Alex, and I'll be your interviewer today. Let's get started!`,
-    `Hello! Great to have you here. I'm Alex, your AI interviewer. We'll have a friendly conversation about your skills. Ready?`,
-    `Hey! Welcome to AI Mock Interview Platform. I'm Alex and I'll be conducting your interview today. Let's begin!`,
-    `Hi! I'm Alex, your virtual interviewer. We'll talk about your technical skills and experience. Are you ready?`
-  ];
-  return greetings[Math.floor(Math.random() * greetings.length)];
+  const name = candidateName?.trim() || 'there';
+  return `Hi ${name}! Welcome to your mock interview. I'm Alex, your AI interviewer. Let's get started.`;
 };
 
 export const getClosingMessage = async (
@@ -320,7 +375,7 @@ export const generateFinalReport = async (
   report += `## Question Summary\n`;
   
   questions.forEach((q, i) => {
-    report += `Q${i+1}: ${q.category} (${q.difficulty}) - Score: ${q.score || 'N/A'}/5\n`;
+    report += `Q${i+1}: ${q.category} (${q.difficulty}) - Score: ${q.score !== undefined ? q.score : 'N/A'}/5\n`;
   });
   
   report += `\n## Recommendations\n`;

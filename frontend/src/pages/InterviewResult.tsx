@@ -36,6 +36,8 @@ export default function InterviewResult() {
 
   // Video URL comes directly from Cloudinary (recordingUrl field)
   const videoUrl = interview?.recordingUrl || null;
+  const finalScore = interview?.finalScore;
+  const finalScoreLabel = typeof finalScore === 'number' ? finalScore.toFixed(1) : '-';
 
   const downloadVideo = () => {
     if (!videoUrl) return;
@@ -107,7 +109,7 @@ export default function InterviewResult() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl text-center shadow-lg border border-blue-200/50 transform hover:scale-105 transition-all duration-300">
               <div className="text-5xl font-black bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">
-                {interview?.finalScore?.toFixed(1) || '-'}
+                {finalScoreLabel}
               </div>
               <div className="text-blue-700 font-semibold text-lg">Final Score</div>
               <div className="text-blue-500 text-sm mt-1">Out of 5.0</div>
@@ -128,11 +130,11 @@ export default function InterviewResult() {
             </div>
           </div>
 
-          {videoUrl && (
-            <div className="mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-                <Video className="h-7 w-7 text-blue-600" /> Review Your Interview
-              </h3>
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
+              <Video className="h-7 w-7 text-blue-600" /> Review Your Interview
+            </h3>
+            {videoUrl ? (
               <div className="bg-white/60 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
                 <video controls className="w-full max-w-4xl mx-auto rounded-2xl shadow-2xl border border-white/30">
                   <source src={videoUrl} type="video/webm" />
@@ -140,13 +142,17 @@ export default function InterviewResult() {
                 </video>
                 <p className="text-slate-600 mt-4 text-center font-medium">Watch your responses to identify areas for improvement</p>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-slate-100 p-8 rounded-2xl border border-slate-200 text-center text-slate-600">
+                No saved recording is available for this interview. The full answer analysis is shown below.
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded text-center">
               <div className="text-3xl font-bold text-blue-600">
-                {interview?.finalScore?.toFixed(1) || '-'}
+                {finalScoreLabel}
               </div>
               <div className="text-gray-600">Final Score</div>
             </div>

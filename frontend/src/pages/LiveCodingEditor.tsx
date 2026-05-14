@@ -63,26 +63,49 @@ export default function LiveCodingEditor() {
     setIsRunning(true)
     setOutput('Running tests...\n')
 
-    // Simulate code execution
-    setTimeout(() => {
+    try {
+      const solution = new Function(`${code}; return typeof twoSum === "function" ? twoSum : null;`)()
+      if (!solution) {
+        setOutput('Error: define a function named twoSum.\n')
+        setTestResults([])
+        return
+      }
+
       const results = challenge.testCases.map((testCase, index) => {
-        // Mock test execution - in real app this would run actual code
-        const passed = Math.random() > 0.3 // Simulate some tests passing
-        const actual = passed ? testCase.expectedOutput : 'Error or wrong output'
+        try {
+          const args = new Function(`return [${testCase.input}];`)()
+          const actualValue = solution(...args)
+          const actual = JSON.stringify(actualValue)
+          const expected = JSON.stringify(JSON.parse(testCase.expectedOutput))
+          const passed = actual === expected
 
-        setOutput(prev => prev + `Test ${index + 1}: ${passed ? 'PASS' : 'FAIL'}\n`)
+          setOutput(prev => prev + `Test ${index + 1}: ${passed ? 'PASS' : 'FAIL'}\n`)
 
-        return {
-          passed,
-          input: testCase.input,
-          expected: testCase.expectedOutput,
-          actual
+          return {
+            passed,
+            input: testCase.input,
+            expected: testCase.expectedOutput,
+            actual
+          }
+        } catch (error) {
+          const actual = error instanceof Error ? error.message : 'Execution error'
+          setOutput(prev => prev + `Test ${index + 1}: FAIL\n`)
+          return {
+            passed: false,
+            input: testCase.input,
+            expected: testCase.expectedOutput,
+            actual,
+          }
         }
       })
 
       setTestResults(results)
+    } catch (error) {
+      setOutput(`Error: ${error instanceof Error ? error.message : 'Unable to run code'}\n`)
+      setTestResults([])
+    } finally {
       setIsRunning(false)
-    }, 2000)
+    }
   }
 
   const resetCode = () => {

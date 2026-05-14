@@ -88,30 +88,5 @@ export const videoExists = async (interviewId: string): Promise<boolean> => {
 export const analyzeBodyLanguage = async (
   frameData: string
 ): Promise<{ confidenceScore: number; suggestions: string[] }> => {
-  const base64Data = frameData.replace(/^data:image\/\w+;base64,/, '');
-
-  const prompt = `Analyze this facial image for interview body language assessment.
-
-Analyze for:
-1. Eye contact (looking at camera or away)
-2. Face orientation (facing forward or turned)
-3. Expression confidence (smile, neutral, nervous)
-4. Overall engagement level
-
-Return a JSON:
-{
-  "eyeContact": 0-100,
-  "faceOrientation": 0-100,
-  "confidenceScore": 0-100,
-  "suggestions": ["suggestion1", "suggestion2"]
-}`;
-
-  return {
-    confidenceScore: 75,
-    suggestions: [
-      'Maintain better eye contact with the camera',
-      'Keep your face oriented toward the screen',
-      'Show more confidence in your expressions',
-    ],
-  };
+  throw new Error('Body language analysis is not configured. No analysis was generated.');
 };

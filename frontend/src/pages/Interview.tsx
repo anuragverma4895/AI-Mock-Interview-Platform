@@ -367,10 +367,7 @@ export default function Interview() {
     speechSynthesis.cancel();
 
     try {
-      const res = await interviewAPI.endInterview(id!, undefined, {
-        confidenceScore: 75,
-        suggestions: ['Good eye contact', 'Maintain posture'],
-      });
+      const res = await interviewAPI.endInterview(id!);
       setClosingMessage(res.data.closingMessage);
 
       // Auto-upload recording to Cloudinary
@@ -432,7 +429,7 @@ export default function Interview() {
               </div>
             ) : (
               <div className="text-center">
-                <p className="text-emerald-300 font-medium mb-2">✓ Recording saved to your profile!</p>
+                <p className="text-emerald-300 font-medium mb-2">Recording saved to your profile.</p>
                 <p className="text-white/70 font-medium">Redirecting to results...</p>
               </div>
             )}

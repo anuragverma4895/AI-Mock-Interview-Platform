@@ -12,6 +12,10 @@ router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: Aut
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const questionsByCategory: Record<string, { total: number; avgScore: number }> = {};
 
@@ -47,7 +51,12 @@ router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: Aut
 
 router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const interviews = await Interview.find({ userId: req.params.userId, status: 'completed' })
+    if (req.params.userId !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const interviews = await Interview.find({ userId: req.user?.id, status: 'completed' })
       .sort({ createdAt: -1 });
 
     if (interviews.length === 0) {
@@ -106,6 +115,9 @@ router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, r
       date: i.completedAt,
       finalScore: i.finalScore,
       questionCount: i.questions.length,
+      answeredCount: i.questions.filter(q => q.score !== undefined).length,
+      hasRecording: Boolean(i.recordingUrl),
+      duration: i.recordingDuration || i.duration * 60,
     }));
 
     res.json({

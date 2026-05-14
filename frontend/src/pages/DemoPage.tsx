@@ -157,7 +157,7 @@ export default function DemoPage() {
                       </div>
                       <div className="absolute top-3 left-3">
                         <Badge className="bg-emerald-500 text-white border-0">
-                          Score: {demo.score?.toFixed(1) || "N/A"}/5
+                          Score: {typeof demo.score === "number" ? demo.score.toFixed(1) : "N/A"}/5
                         </Badge>
                       </div>
                     </div>
@@ -183,7 +183,7 @@ export default function DemoPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Award className="h-3.5 w-3.5" />
-                          {demo.score?.toFixed(1) || "N/A"}
+                          {typeof demo.score === "number" ? demo.score.toFixed(1) : "N/A"}
                         </span>
                       </div>
                     </CardContent>
@@ -220,7 +220,7 @@ export default function DemoPage() {
                   <div>
                     <p className="text-white font-semibold text-sm">{selectedVideo.userName}'s Interview</p>
                     <p className="text-white/50 text-xs">
-                      Score: {selectedVideo.score?.toFixed(1)}/5 • {selectedVideo.questionsCount} questions • {formatDuration(selectedVideo.duration)}
+                      Score: {typeof selectedVideo.score === "number" ? selectedVideo.score.toFixed(1) : "N/A"}/5 • {selectedVideo.questionsCount} questions • {formatDuration(selectedVideo.duration)}
                     </p>
                   </div>
                 </div>
