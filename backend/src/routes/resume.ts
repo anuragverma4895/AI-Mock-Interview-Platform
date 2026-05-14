@@ -8,8 +8,8 @@ import { validateFileContent } from '../middleware/fileValidation';
 const router = Router();
 
 router.post('/upload', auth, upload.single('resume'), validateFileContent, uploadResume);
-router.get('/:id', auth, validateResumeId, getResume);
 router.get('/user/:userId', auth, validateUserId, getUserResumes);
+router.get('/:id', auth, validateResumeId, getResume);
 router.delete('/:id', auth, validateResumeId, deleteResume);
 
 export default router;

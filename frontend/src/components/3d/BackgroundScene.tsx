@@ -1,7 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import { PerspectiveCamera, Stars } from '@react-three/drei'
-import { animated } from '@react-spring/three'
 import * as THREE from 'three'
 
 function AnimatedGeometries() {

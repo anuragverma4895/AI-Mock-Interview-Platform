@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import { generateToken, AuthRequest } from '../middleware/auth';
 
+const serializeUser = (user: { _id: any; email: string; name: string; role: string }) => ({
+  id: user._id.toString(),
+  email: user.email,
+  name: user.name,
+  role: user.role,
+});
+
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password, name, role } = req.body;
@@ -24,12 +31,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
     res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      user: serializeUser(user),
     });
   } catch (error) {
     console.error('Registration Error:', error);
@@ -64,12 +66,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      user: serializeUser(user),
     });
   } catch (error) {
     console.error('Login Error:', error);
@@ -84,14 +81,67 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
       return;
     }
 
-    res.json({
-      id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-      role: req.user.role,
-    });
+    res.json(req.user);
   } catch (error) {
     console.error('GetMe Error:', error);
+    next(error);
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Not authenticated' });
+      return;
+    }
+
+    const updates: { name?: string; role?: string } = {};
+    if (typeof req.body.name === 'string') updates.name = req.body.name.trim();
+    if (typeof req.body.role === 'string') updates.role = req.body.role.trim();
+
+    const user = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    }).select('-password');
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.json({ user: serializeUser(user) });
+  } catch (error) {
+    console.error('UpdateProfile Error:', error);
+    next(error);
+  }
+};
+
+export const updateSettings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ message: 'Not authenticated' });
+      return;
+    }
+
+    const role = typeof req.body.role === 'string' ? req.body.role.trim() : undefined;
+    if (!role) {
+      res.status(400).json({ message: 'Role is required' });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, { role }, {
+      new: true,
+      runValidators: true,
+    }).select('-password');
+
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    res.json({ user: serializeUser(user) });
+  } catch (error) {
+    console.error('UpdateSettings Error:', error);
     next(error);
   }
 };

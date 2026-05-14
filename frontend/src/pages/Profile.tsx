@@ -43,6 +43,7 @@ export default function Profile() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) return
     setLoading(true)
     try {
       const response = await authAPI.updateProfile(formData)

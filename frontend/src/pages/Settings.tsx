@@ -29,6 +29,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(false)
 
   const handleUpdateRole = async (newRole: string) => {
+    if (!user) return
     setLoading(true)
     try {
       await authAPI.updateSettings({ role: newRole })
@@ -98,7 +99,7 @@ export default function Settings() {
                       </Button>
                       <Button 
                         variant={user?.role === 'admin' ? 'default' : 'outline'}
-                        onClick={() => handleUpdateRole('admin')}
+                        onClick={() => handleUpdateRole('interviewer')}
                         disabled={loading}
                         className="h-16"
                       >

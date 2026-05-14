@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { User } from '../types';
 
 const API_URL = '/api';
 
@@ -24,6 +25,10 @@ export const authAPI = {
   register: (email: string, password: string, name: string, role?: string) =>
     api.post('/auth/register', { email, password, name, role }),
   getMe: () => api.get('/auth/me'),
+  updateProfile: (profile: Partial<Pick<User, 'name' | 'role'>>) =>
+    api.patch('/auth/profile', profile),
+  updateSettings: (settings: Partial<Pick<User, 'role'>>) =>
+    api.patch('/auth/settings', settings),
 };
 
 export const resumeAPI = {
@@ -37,8 +42,12 @@ export const resumeAPI = {
 };
 
 export const interviewAPI = {
-  start: (resumeId?: string, duration?: number) =>
-    api.post('/interview/start', { resumeId, duration }),
+  start: (
+    resumeId?: string,
+    duration?: number,
+    options?: { jobRole?: string; interviewType?: string; difficulty?: string }
+  ) =>
+    api.post('/interview/start', { resumeId, duration, ...options }),
   getNextQuestion: (interviewId: string) =>
     api.get(`/interview/next-question/${interviewId}`),
   submitAnswer: (interviewId: string, answer: string) =>

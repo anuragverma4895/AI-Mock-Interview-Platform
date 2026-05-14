@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
 import { resumeAPI, interviewAPI } from '../services/api';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, SkipForward, Briefcase, Volume2, Zap } from 'lucide-react';
+import { Upload, SkipForward, Volume2, Zap } from 'lucide-react';
 
 type Step = 'resume' | 'jobRole' | 'interviewType' | 'difficulty' | 'confirm';
 type InterviewType = 'technical' | 'hr' | 'combine';
@@ -14,7 +13,6 @@ type Difficulty = 'easy' | 'medium' | 'hard';
 type JobRole = 'frontend' | 'backend' | 'fullstack' | 'mern' | 'mevn' | 'dse' | 'da' | 'ds' | 'mobile' | 'devops' | 'qa';
 
 export default function InterviewSetup() {
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -49,7 +47,7 @@ export default function InterviewSetup() {
     { id: 'combine', label: 'Combined', icon: '🎯', description: 'Both technical and HR' },
   ];
 
-  const difficulties = [
+  const difficulties: { id: Difficulty; label: string; description: string }[] = [
     { id: 'easy', label: 'Easy', description: 'Beginner level' },
     { id: 'medium', label: 'Medium', description: 'Intermediate level' },
     { id: 'hard', label: 'Hard', description: 'Expert level' },
@@ -368,12 +366,7 @@ export default function InterviewSetup() {
 
               <div className="grid grid-cols-2 gap-4">
                 <Button
-                  onClick={() => {
-                    if (step === 'jobRole') setStep('resume');
-                    else if (step === 'interviewType') setStep('jobRole');
-                    else if (step === 'difficulty') setStep('interviewType');
-                    else if (step === 'confirm') setStep('difficulty');
-                  }}
+                  onClick={() => setStep('difficulty')}
                   variant="outline"
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20 h-12"
                 >

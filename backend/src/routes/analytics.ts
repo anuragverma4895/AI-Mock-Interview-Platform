@@ -5,6 +5,46 @@ import { validateAnalyticsUserId, validateInterviewAnalyticsId } from '../middle
 
 const router = Router();
 
+router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+    if (!interview) {
+      res.status(404).json({ message: 'Interview not found' });
+      return;
+    }
+
+    const questionsByCategory: Record<string, { total: number; avgScore: number }> = {};
+
+    for (const question of interview.questions) {
+      const category = question.category;
+      if (!questionsByCategory[category]) {
+        questionsByCategory[category] = { total: 0, avgScore: 0 };
+      }
+      questionsByCategory[category].total++;
+      if (question.score !== undefined) {
+        questionsByCategory[category].avgScore += question.score;
+      }
+    }
+
+    for (const category of Object.keys(questionsByCategory)) {
+      const data = questionsByCategory[category];
+      data.avgScore = Math.round((data.avgScore / data.total) * 10) / 10;
+    }
+
+    res.json({
+      interviewId: interview._id,
+      finalScore: interview.finalScore,
+      totalQuestions: interview.questions.length,
+      questionsByCategory,
+      bodyLanguage: interview.bodyLanguageData,
+      duration: interview.duration,
+    });
+  } catch (error) {
+    console.error('Error fetching interview analytics:', error);
+    res.status(500).json({ message: 'Error fetching interview analytics', error: String(error) });
+  }
+});
+
 router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const interviews = await Interview.find({ userId: req.params.userId, status: 'completed' })
@@ -79,46 +119,6 @@ router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, r
   } catch (error) {
     console.error('Error fetching analytics:', error);
     res.status(500).json({ message: 'Error fetching analytics', error: String(error) });
-  }
-});
-
-router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const interview = await Interview.findById(req.params.id);
-    if (!interview) {
-      res.status(404).json({ message: 'Interview not found' });
-      return;
-    }
-
-    const questionsByCategory: Record<string, { total: number; avgScore: number }> = {};
-
-    for (const question of interview.questions) {
-      const category = question.category;
-      if (!questionsByCategory[category]) {
-        questionsByCategory[category] = { total: 0, avgScore: 0 };
-      }
-      questionsByCategory[category].total++;
-      if (question.score !== undefined) {
-        questionsByCategory[category].avgScore += question.score;
-      }
-    }
-
-    for (const category of Object.keys(questionsByCategory)) {
-      const data = questionsByCategory[category];
-      data.avgScore = Math.round((data.avgScore / data.total) * 10) / 10;
-    }
-
-    res.json({
-      interviewId: interview._id,
-      finalScore: interview.finalScore,
-      totalQuestions: interview.questions.length,
-      questionsByCategory,
-      bodyLanguage: interview.bodyLanguageData,
-      duration: interview.duration,
-    });
-  } catch (error) {
-    console.error('Error fetching interview analytics:', error);
-    res.status(500).json({ message: 'Error fetching interview analytics', error: String(error) });
   }
 });
 

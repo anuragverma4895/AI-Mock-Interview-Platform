@@ -2,12 +2,18 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 
+const videoUploadsRoot = path.join(__dirname, '..', '..', 'uploads', 'videos');
+
+const getInterviewVideoDir = (interviewId: string): string => {
+  return path.join(videoUploadsRoot, interviewId);
+};
+
 export const saveVideoChunk = async (
   interviewId: string,
   chunk: Buffer,
   chunkIndex: number
 ): Promise<string> => {
-  const uploadDir = path.join(process.cwd(), 'uploads', 'videos', interviewId);
+  const uploadDir = getInterviewVideoDir(interviewId);
 
   try {
     await fs.mkdir(uploadDir, { recursive: true });
@@ -25,7 +31,7 @@ export const combineVideoChunks = async (
   interviewId: string,
   totalChunks: number
 ): Promise<string> => {
-  const uploadDir = path.join(process.cwd(), 'uploads', 'videos', interviewId);
+  const uploadDir = getInterviewVideoDir(interviewId);
   const outputPath = path.join(uploadDir, `${interviewId}.webm`);
 
   const writeStream = fsSync.createWriteStream(outputPath);
@@ -54,7 +60,7 @@ export const combineVideoChunks = async (
 };
 
 export const deleteVideoChunks = async (interviewId: string): Promise<void> => {
-  const uploadDir = path.join(process.cwd(), 'uploads', 'videos', interviewId);
+  const uploadDir = getInterviewVideoDir(interviewId);
 
   try {
     const files = await fs.readdir(uploadDir);
@@ -66,7 +72,7 @@ export const deleteVideoChunks = async (interviewId: string): Promise<void> => {
 };
 
 export const getVideoPath = (interviewId: string): string => {
-  return path.join(process.cwd(), 'uploads', 'videos', `${interviewId}.webm`);
+  return path.join(getInterviewVideoDir(interviewId), `${interviewId}.webm`);
 };
 
 export const videoExists = async (interviewId: string): Promise<boolean> => {

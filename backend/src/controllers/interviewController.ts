@@ -125,7 +125,7 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       category: newQuestion.category as any,
       difficulty: newQuestion.difficulty as any,
       idealAnswer: newQuestion.idealAnswer,
-    });
+    } as any);
 
     interview.transcript.push({
       question: newQuestion.question,

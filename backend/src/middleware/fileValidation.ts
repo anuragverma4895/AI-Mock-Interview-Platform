@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileTypeFromBuffer } from 'file-type';
 
-const validateDocumentContent = async (filePath: string, buffer: Buffer): Promise<boolean> => {
+const validateDocumentContent = async (buffer: Buffer): Promise<boolean> => {
   const fileType = await fileTypeFromBuffer(buffer);
 
   const allowedDocTypes = [
@@ -37,7 +37,7 @@ const validateDocumentContent = async (filePath: string, buffer: Buffer): Promis
   return true;
 };
 
-const validateVideoContent = async (filePath: string, buffer: Buffer): Promise<boolean> => {
+const validateVideoContent = async (buffer: Buffer): Promise<boolean> => {
   const fileType = await fileTypeFromBuffer(buffer);
 
   const allowedVideoTypes = [
@@ -61,23 +61,26 @@ export const validateFileContent = async (req: Request, res: Response, next: Nex
     }
 
     const filePath = req.file.path;
-    const buffer = await fs.readFile(filePath);
+    const buffer = req.file.buffer || await fs.readFile(filePath);
 
     // Determine if it's a document or video based on destination
-    const isVideo = filePath.includes('/videos/');
+    const normalizedPathParts = filePath ? path.normalize(filePath).split(path.sep) : [];
+    const isVideo = req.file.mimetype.startsWith('video/')
+      || req.file.fieldname === 'chunk'
+      || normalizedPathParts.includes('videos');
     let isValid = false;
 
     if (isVideo) {
-      isValid = await validateVideoContent(filePath, buffer);
+      isValid = await validateVideoContent(buffer);
       if (!isValid) {
-        await fs.unlink(filePath);
+        if (filePath) await fs.unlink(filePath);
         res.status(400).json({ message: 'Invalid video file content. Only WebM, MP4, AVI, and MOV are allowed.' });
         return;
       }
     } else {
-      isValid = await validateDocumentContent(filePath, buffer);
+      isValid = await validateDocumentContent(buffer);
       if (!isValid) {
-        await fs.unlink(filePath);
+        if (filePath) await fs.unlink(filePath);
         res.status(400).json({ message: 'Invalid document file content. Only PDF and DOCX are allowed.' });
         return;
       }

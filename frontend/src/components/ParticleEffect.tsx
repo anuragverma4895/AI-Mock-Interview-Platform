@@ -6,6 +6,7 @@ export function ParticleEffect() {
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+    const particleContainer = container
 
     const particles: Array<{
       x: number
@@ -30,7 +31,7 @@ export function ParticleEffect() {
       particle.style.pointerEvents = 'none'
       particle.style.zIndex = '1'
 
-      container.appendChild(particle)
+      particleContainer.appendChild(particle)
 
       particles.push({
         x,

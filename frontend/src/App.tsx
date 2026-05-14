@@ -11,6 +11,9 @@ import Interview from './pages/Interview';
 import ResumeUpload from './pages/ResumeUpload';
 import Analytics from './pages/Analytics';
 import InterviewResult from './pages/InterviewResult';
+import InterviewSetup from './pages/InterviewSetup';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { token } = useAuthStore();
@@ -43,6 +46,14 @@ function App() {
             }
           />
           <Route
+            path="/interview"
+            element={
+              <ProtectedRoute>
+                <InterviewSetup />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/interview/:id"
             element={
               <ProtectedRoute>
@@ -71,6 +82,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewResult />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />
