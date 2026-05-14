@@ -22,7 +22,6 @@ export default function Login() {
       setUser(res.data.user);
       navigate('/dashboard');
     } catch (err: any) {
-
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);

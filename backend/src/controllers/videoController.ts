@@ -1,8 +1,9 @@
 import { Response } from 'express';
+import path from 'path';
 import fs from 'fs';
 import { AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
-import { saveVideoChunk, combineVideoChunks, uploadVideoToCloudinary } from '../services/videoService';
+import { saveVideoChunk, combineVideoChunks, getVideoPath, videoExists, deleteVideoChunks } from '../services/videoService';
 
 export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -10,18 +11,6 @@ export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise
     
     if (!req.file) {
       res.status(400).json({ message: 'No video chunk provided' });
-      return;
-    }
-
-    // Verify user owns this interview
-    const interview = await Interview.findById(interviewId);
-    if (!interview) {
-      res.status(404).json({ message: 'Interview not found' });
-      return;
-    }
-
-    if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized: You can only upload videos for your own interviews' });
       return;
     }
 
@@ -38,24 +27,15 @@ export const finalizeVideo = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { interviewId, totalChunks } = req.body;
 
-    // Verify user owns this interview
+    const videoPath = await combineVideoChunks(interviewId, parseInt(totalChunks));
+
     const interview = await Interview.findById(interviewId);
-    if (!interview) {
-      res.status(404).json({ message: 'Interview not found' });
-      return;
+    if (interview) {
+      interview.videoPath = videoPath;
+      await interview.save();
     }
 
-    if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized: You can only finalize videos for your own interviews' });
-      return;
-    }
-
-    const videoUrl = await combineVideoChunks(interviewId, parseInt(totalChunks));
-
-    interview.videoPath = videoUrl;
-    await interview.save();
-
-    res.json({ message: 'Video finalized and uploaded to Cloudinary', videoPath: videoUrl });
+    res.json({ message: 'Video finalized', videoPath });
   } catch (error) {
     console.error('Error finalizing video:', error);
     res.status(500).json({ message: 'Error finalizing video', error: String(error) });
@@ -72,29 +52,18 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    // Verify user owns this interview
-    if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized: You can only view your own videos' });
-      return;
-    }
+    const exists = await videoExists(id);
 
     res.json({
-      videoUrl: interview.videoPath,
-      interviewId: interview._id,
-      jobRole: interview.jobRole,
-      difficulty: interview.difficulty,
-      role: interview.role,
-      status: interview.status,
-      completedAt: interview.completedAt,
-      finalScore: interview.finalScore,
+      exists,
+      path: interview.videoPath,
     });
   } catch (error) {
-    console.error('Error getting video info:', error);
     res.status(500).json({ message: 'Error getting video info', error: String(error) });
   }
 };
 
-export const getVideoStreamUrl = async (req: AuthRequest, res: Response): Promise<void> => {
+export const downloadVideo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -104,17 +73,15 @@ export const getVideoStreamUrl = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    // Verify user owns this interview
-    if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized' });
+    const exists = await videoExists(id);
+    if (!exists) {
+      res.status(404).json({ message: 'Video file not found' });
       return;
     }
 
-    // Return Cloudinary URL for streaming
-    res.json({ url: interview.videoPath });
+    res.download(interview.videoPath);
   } catch (error) {
-    console.error('Error getting video stream URL:', error);
-    res.status(500).json({ message: 'Error getting video stream URL', error: String(error) });
+    res.status(500).json({ message: 'Error downloading video', error: String(error) });
   }
 };
 
@@ -122,7 +89,6 @@ export const analyzeBodyLanguage = async (req: AuthRequest, res: Response): Prom
   try {
     const { frameData } = req.body;
 
-    // Placeholder analysis logic
     const mockAnalysis = {
       eyeContact: 85,
       faceOrientation: 90,

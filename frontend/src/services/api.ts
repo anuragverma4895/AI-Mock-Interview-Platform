@@ -24,15 +24,12 @@ export const authAPI = {
   register: (email: string, password: string, name: string, role?: string) =>
     api.post('/auth/register', { email, password, name, role }),
   getMe: () => api.get('/auth/me'),
-  updateProfile: (data: any) => api.put('/auth/profile', data),
-  updateSettings: (data: any) => api.put('/auth/settings', data),
 };
 
 export const resumeAPI = {
   upload: (formData: FormData) =>
     api.post('/resume/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      transformRequest: [(data) => data], // Don't transform FormData
     }),
   getResume: (id: string) => api.get(`/resume/${id}`),
   getUserResumes: (userId: string) => api.get(`/resume/user/${userId}`),
@@ -40,8 +37,8 @@ export const resumeAPI = {
 };
 
 export const interviewAPI = {
-  start: (resumeId?: string, duration?: number, options?: { role?: string; difficulty?: string }) =>
-    api.post('/interview/start', { resumeId, duration, ...options }),
+  start: (resumeId?: string, duration?: number) =>
+    api.post('/interview/start', { resumeId, duration }),
   getNextQuestion: (interviewId: string) =>
     api.get(`/interview/next-question/${interviewId}`),
   submitAnswer: (interviewId: string, answer: string) =>

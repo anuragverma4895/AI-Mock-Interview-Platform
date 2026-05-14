@@ -75,10 +75,12 @@ export interface AnswerEvaluation {
 }
 
 /**
- * Generic AI completion helper using native fetch for Gemini with OpenAI fallback and retry logic
+ * Generic AI completion helper using native fetch for Gemini with retry logic
  */
 async function getAICompletion(prompt: string, systemPrompt: string = "You are Alex, a friendly technical interviewer."): Promise<string> {
   const callAI = async (bail: (error: Error) => void, attempt: number) => {
+    console.log(`AI attempt ${attempt}`);
+
     // Try Gemini First using native fetch (no dependency needed)
     if (process.env.GEMINI_API_KEY) {
       try {
@@ -92,8 +94,8 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
 
         if (!response.ok) {
           const error = new Error(`Gemini API error: ${response.status}`);
-          if (response.status >= 500) throw error; 
-          bail(error); 
+          if (response.status >= 500) throw error; // Retry on server errors
+          bail(error); // Don't retry on client errors
         }
 
         const data: any = await response.json();
@@ -102,11 +104,8 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         return result;
       } catch (error) {
         console.error('Gemini API Error:', error);
-        // If it's the first attempt and we have OpenAI, fall through.
-        // Otherwise throw to trigger retry or fail.
-        if (attempt > 1 || !openai) {
-           throw error;
-        }
+        if (error.message.includes('API error')) throw error; // Retry
+        // If network error, try OpenAI
       }
     }
 
@@ -124,12 +123,12 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         const result = completion.choices[0]?.message?.content;
         if (!result) throw new Error('Empty response from OpenAI');
         return result;
-      } catch (error: any) {
+      } catch (error) {
         console.error('OpenAI API Error:', error);
-        if (error?.message?.includes('rate limit') || error?.message?.includes('timeout')) {
-          throw error; 
+        if (error.message.includes('rate limit') || error.message.includes('timeout')) {
+          throw error; // Retry
         }
-        bail(error);
+        bail(error); // Don't retry other errors
       }
     }
 
@@ -138,9 +137,12 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
 
   try {
     return await retry(callAI, {
-      retries: 2,
+      retries: 3,
       minTimeout: 1000,
-      maxTimeout: 3000
+      maxTimeout: 5000,
+      onRetry: (error, attempt) => {
+        console.log(`Retrying AI call, attempt ${attempt}:`, error.message);
+      }
     });
   } catch (error) {
     console.error('All AI attempts failed:', error);
@@ -153,8 +155,7 @@ export const generateInterviewQuestion = async (
   difficulty: string,
   conversationHistory: any[] = [],
   resumeSkills?: string[],
-  projectNames?: string[],
-  jobRole?: string
+  projectNames?: string[]
 ): Promise<GeneratedQuestion> => {
   if (!USE_AI) {
     const q = getRandomQuestion(category);
@@ -167,49 +168,20 @@ export const generateInterviewQuestion = async (
   }
 
   try {
-    const skillsContext = resumeSkills && resumeSkills.length > 0 
-      ? `The candidate has these skills: ${resumeSkills.join(', ')}.` 
-      : '';
-    
-    const projectContext = projectNames && projectNames.length > 0 
-      ? `The candidate has worked on these projects: ${projectNames.join(', ')}.` 
-      : '';
+    const prompt = `Generate a ${difficulty} level interview question for the category: ${category}. 
+    ${resumeSkills ? `Base it on these skills: ${resumeSkills.join(', ')}.` : ''}
+    ${projectNames ? `Base it on these projects: ${projectNames.join(', ')}.` : ''}
+    Response format: Only return the question text.`;
 
-    const jobRoleContext = jobRole 
-      ? `The candidate is interviewing for a ${jobRole} position.`
-      : '';
-
-    const prompt = `You are an expert technical interviewer. Generate a ${difficulty} level interview question for the category: ${category}.
-    
-    ${jobRoleContext}
-    ${skillsContext}
-    ${projectContext}
-    
-    Make the question specific to their background and target position if possible. Return ONLY the question text, nothing else.`;
-
-    const questionText = await getAICompletion(prompt);
-    
-    const idealAnswerPrompt = `For this interview question: "${questionText}"
-    
-    The candidate is interviewing for a ${jobRole} position.
-    
-    Provide a concise but comprehensive ideal answer that would score 5/5 from an interviewer. Include:
-    1. Main concept explanation
-    2. Practical example or use case relevant to ${jobRole}
-    3. Common pitfalls to avoid
-    
-    Keep the answer under 150 words but technical and detailed.`;
-
-    const idealAnswer = await getAICompletion(idealAnswerPrompt, "You are preparing interview answer guidelines.");
+    const response = await getAICompletion(prompt);
     
     return {
-      question: questionText || getRandomQuestion(category).question,
+      question: response || getRandomQuestion(category).question,
       category,
       difficulty,
-      idealAnswer: idealAnswer || "Expected answer with practical examples"
+      idealAnswer: "Expected answer with practical examples"
     };
   } catch (error) {
-    console.error('Error generating question:', error);
     const q = getRandomQuestion(category);
     return {
       question: q.question,
@@ -229,6 +201,7 @@ export const evaluateAnswer = async (
   idealAnswer?: string
 ): Promise<AnswerEvaluation> => {
   if (!USE_AI) {
+    // Fallback logic
     return {
       score: 3,
       feedback: "Good attempt. Practice more to refine your answer.",
@@ -264,6 +237,7 @@ export const evaluateAnswer = async (
 
     const responseText = await getAICompletion(prompt, "You are a professional technical interviewer AI. Output ONLY valid JSON.");
     
+    // Parse JSON safely
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     const data = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
 
@@ -276,6 +250,7 @@ export const evaluateAnswer = async (
       followUpQuestion: data.followUpQuestion || "Tell me more."
     };
   } catch (error) {
+    console.error('Evaluation Error:', error);
     return {
       score: 3,
       feedback: "The AI evaluator is briefly unavailable, but you're doing great! Keep going.",
@@ -324,7 +299,7 @@ export const getClosingMessage = async (
   if (finalScore >= 4) {
     return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up and you'll do amazing in real interviews!`;
   } else if (finalScore >= 3) {
-    return `Good effort! You have a solid foundation in ${strongAreas[0] || 'several areas'}. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
+    return `Good effort! You have a solid foundation. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
   } else {
     return `Thank you for completing the interview! Keep practicing and don't give up. Every interview is a learning opportunity. All the best!`;
   }
@@ -338,7 +313,7 @@ export const generateFinalReport = async (
   const avgScore = validScores.length > 0 
     ? validScores.reduce((sum, q) => sum + q.score, 0) / validScores.length 
     : 0;
-
+  
   let report = `# Interview Report\n\n`;
   report += `## Overall Performance\n`;
   report += `Average Score: ${avgScore.toFixed(1)}/5\n\n`;

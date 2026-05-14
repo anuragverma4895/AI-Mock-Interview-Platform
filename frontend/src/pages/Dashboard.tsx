@@ -1,16 +1,11 @@
 import { motion } from "framer-motion"
-import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
-import { useAuthStore } from '../store/authStore'
-import { interviewAPI, resumeAPI } from '../services/api'
-import { Interview, Resume } from '../types'
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
-import { AnimatedCard3D } from "@/components/AnimatedCard3D"
-import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   XAxis,
   YAxis,
@@ -35,83 +30,71 @@ import {
   Target,
   Award,
   Clock,
-  Star,
-  LogOut,
-  Zap,
-  Video
+  Star
 } from "lucide-react"
 
 export default function Dashboard() {
-  const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [loading, setLoading] = useState(true)
-  
-  const [interviews, setInterviews] = useState<Interview[]>([])
-  const [resumes, setResumes] = useState<Resume[]>([])
 
-  useEffect(() => {
-    if (user) {
-      loadData()
-    }
-  }, [user])
-
-  const loadData = async () => {
-    try {
-      const [interviewsRes, resumesRes] = await Promise.all([
-        interviewAPI.getUserInterviews(user?.id || ''),
-        resumeAPI.getUserResumes(user?.id || ''),
-      ])
-      setInterviews(interviewsRes.data)
-      setResumes(resumesRes.data)
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Mock data - in real app this would come from API
+  const stats = {
+    totalInterviews: 24,
+    averageScore: 4.2,
+    completionRate: 85,
+    studyStreak: 12
   }
 
-  const handleStartInterview = () => {
-    navigate('/interview-setup')
-  }
-
-  const completedInterviews = interviews.filter(i => i.status === 'completed')
-  const avgScore = completedInterviews.length > 0 
-    ? (completedInterviews.reduce((sum, i) => sum + (i.finalScore || 0), 0) / completedInterviews.length).toFixed(1)
-    : "0.0"
-
-  const performanceData = completedInterviews.map((int, idx) => ({
-    name: `Int ${idx + 1}`,
-    score: int.finalScore || 0
-  })).slice(-6)
-
-  const interviewTypes = [
-    { name: "Technical", value: completedInterviews.length, color: "#3b82f6" },
-    { name: "In Progress", value: interviews.length - completedInterviews.length, color: "#f59e0b" },
+  const recentInterviews = [
+    {
+      id: 1,
+      type: "Technical",
+      score: 4.5,
+      date: "2024-01-15",
+      duration: "45 min",
+      status: "completed"
+    },
+    {
+      id: 2,
+      type: "Behavioral",
+      score: 3.8,
+      date: "2024-01-12",
+      duration: "30 min",
+      status: "completed"
+    },
+    {
+      id: 3,
+      type: "System Design",
+      score: 4.1,
+      date: "2024-01-10",
+      duration: "60 min",
+      status: "completed"
+    }
   ]
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  }
+  const performanceData = [
+    { month: "Jan", score: 3.5, interviews: 4 },
+    { month: "Feb", score: 3.8, interviews: 6 },
+    { month: "Mar", score: 4.1, interviews: 8 },
+    { month: "Apr", score: 4.3, interviews: 6 }
+  ]
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.8 },
-    },
-  }
+  const weakAreas = [
+    { area: "System Design", score: 3.2, color: "#ef4444" },
+    { area: "Data Structures", score: 3.8, color: "#f59e0b" },
+    { area: "Algorithms", score: 4.1, color: "#10b981" },
+    { area: "Behavioral", score: 4.5, color: "#3b82f6" }
+  ]
+
+  const interviewTypes = [
+    { name: "Technical", value: 12, color: "#3b82f6" },
+    { name: "Behavioral", value: 6, color: "#10b981" },
+    { name: "System Design", value: 4, color: "#f59e0b" },
+    { name: "HR", value: 2, color: "#ef4444" }
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       <div className="flex">
         {/* Sidebar */}
         <Sidebar
@@ -121,7 +104,7 @@ export default function Dashboard() {
           <SidebarItem icon={<Home />} isActive={true}>
             {!sidebarCollapsed && "Dashboard"}
           </SidebarItem>
-          <SidebarItem icon={<Play />} onClick={() => handleStartInterview()}>
+          <SidebarItem icon={<Play />} onClick={() => navigate('/interview')}>
             {!sidebarCollapsed && "Start Interview"}
           </SidebarItem>
           <SidebarItem icon={<FileText />} onClick={() => navigate('/resume')}>
@@ -130,20 +113,12 @@ export default function Dashboard() {
           <SidebarItem icon={<TrendingUp />} onClick={() => navigate('/analytics')}>
             {!sidebarCollapsed && "Analytics"}
           </SidebarItem>
-          <SidebarItem icon={<Video />} onClick={() => navigate('/video-library')}>
-            {!sidebarCollapsed && "Video Library"}
-          </SidebarItem>
           <SidebarItem icon={<Users />} onClick={() => navigate('/profile')}>
             {!sidebarCollapsed && "Profile"}
           </SidebarItem>
           <SidebarItem icon={<Settings />} onClick={() => navigate('/settings')}>
             {!sidebarCollapsed && "Settings"}
           </SidebarItem>
-          <div className="mt-auto pb-4">
-             <SidebarItem icon={<LogOut />} onClick={logout}>
-               {!sidebarCollapsed && "Logout"}
-             </SidebarItem>
-          </div>
         </Sidebar>
 
         {/* Main Content */}
@@ -157,22 +132,19 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Welcome back, {user?.name || 'Developer'}
+                  Welcome back, Developer! 👋
                 </h1>
                 <p className="text-slate-600 dark:text-slate-300 mt-1">
                   Ready to ace your next interview?
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <ThemeToggle />
-                <Button
-                  onClick={() => handleStartInterview()}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Start New Interview
-                </Button>
-              </div>
+              <Button
+                onClick={() => navigate('/interview')}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Start New Interview
+              </Button>
             </div>
           </motion.header>
 
@@ -194,10 +166,10 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                    {interviews.length}
+                    {stats.totalInterviews}
                   </div>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
-                    Track your progress
+                    +12% from last month
                   </p>
                 </CardContent>
               </Card>
@@ -211,10 +183,10 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-                    {avgScore}/5
+                    {stats.averageScore}/5
                   </div>
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Based on {completedInterviews.length} sessions
+                    +0.3 from last month
                   </p>
                 </CardContent>
               </Card>
@@ -222,15 +194,15 @@ export default function Dashboard() {
               <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                    Resumes
+                    Completion Rate
                   </CardTitle>
-                  <FileText className="h-4 w-4 text-purple-600" />
+                  <Award className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                    {resumes.length}
+                    {stats.completionRate}%
                   </div>
-                  <Progress value={Math.min(resumes.length * 20, 100)} className="mt-2" />
+                  <Progress value={stats.completionRate} className="mt-2" />
                 </CardContent>
               </Card>
 
@@ -243,7 +215,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-                    7 days
+                    {stats.studyStreak} days
                   </div>
                   <p className="text-xs text-orange-600 dark:text-orange-400">
                     Keep it up! 🔥
@@ -254,113 +226,180 @@ export default function Dashboard() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Performance Trend
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis domain={[0, 5]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="score"
-                        stroke="#4f46e5"
-                        strokeWidth={3}
-                        dot={{ fill: '#4f46e5', strokeWidth: 2, r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              {/* Performance Over Time */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Performance Trend
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={performanceData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis domain={[0, 5]} />
+                        <Tooltip />
+                        <Line
+                          type="monotone"
+                          dataKey="score"
+                          stroke="#4f46e5"
+                          strokeWidth={3}
+                          dot={{ fill: '#4f46e5', strokeWidth: 2, r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Session Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={interviewTypes}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {interviewTypes.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              {/* Interview Types Distribution */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Interview Types
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={interviewTypes}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {interviewTypes.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="flex flex-wrap justify-center gap-4 mt-4">
+                      {interviewTypes.map((type, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: type.color }}
+                          />
+                          <span className="text-sm text-slate-600 dark:text-slate-300">
+                            {type.name}: {type.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
-            {/* Recent Interviews Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Recent Sessions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                   <table className="w-full text-left">
-                     <thead>
-                       <tr className="border-b border-slate-200 dark:border-slate-800">
-                         <th className="pb-3 font-semibold">Date</th>
-                         <th className="pb-3 font-semibold">Status</th>
-                         <th className="pb-3 font-semibold">Score</th>
-                         <th className="pb-3 font-semibold text-right">Actions</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {interviews.slice(0, 5).map((interview) => (
-                          <tr key={interview._id || interview.id}>
-                            <td className="py-4 text-sm">
-                              {interview.createdAt ? new Date(interview.createdAt).toLocaleDateString() : (interview.startedAt ? new Date(interview.startedAt).toLocaleDateString() : 'N/A')}
-                            </td>
-                            <td className="py-4">
-                              <Badge variant={interview.status === 'completed' ? 'success' : 'warning'}>
-                                {interview.status}
-                              </Badge>
-                            </td>
-                            <td className="py-4 font-bold">
-                              {interview.finalScore ? `${interview.finalScore.toFixed(1)}/5` : '-'}
-                            </td>
-                            <td className="py-4 text-right">
-                               {interview.status === 'completed' ? (
-                                 <Button variant="ghost" size="sm" onClick={() => navigate(`/interview-result/${interview._id || interview.id}`)}>
-                                   View Report
-                                 </Button>
-                               ) : (
-                                 <Button variant="ghost" size="sm" onClick={() => navigate(`/interview/${interview._id || interview.id}`)}>
-                                   Resume
-                                 </Button>
-                               )}
-                            </td>
-                          </tr>
-                        ))}
-                     </tbody>
-                   </table>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Recent Interviews & Weak Areas */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Interviews */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Interviews
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {recentInterviews.map((interview) => (
+                        <div
+                          key={interview.id}
+                          className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                        >
+                          <div>
+                            <p className="font-medium">{interview.type}</p>
+                            <p className="text-sm text-slate-500">
+                              {interview.date} • {interview.duration}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="success" className="mb-1">
+                              {interview.score}/5
+                            </Badge>
+                            <p className="text-xs text-slate-500">
+                              {interview.status}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => navigate('/analytics')}
+                    >
+                      View All Interviews
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Areas for Improvement */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Areas for Improvement
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {weakAreas.map((area, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{area.area}</span>
+                            <span className="text-sm text-slate-500">
+                              {area.score}/5
+                            </span>
+                          </div>
+                          <Progress
+                            value={(area.score / 5) * 100}
+                            className="h-2"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => navigate('/analytics')}
+                    >
+                      Get Detailed Analysis
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
           </main>
         </div>
       </div>

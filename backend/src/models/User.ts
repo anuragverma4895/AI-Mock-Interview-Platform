@@ -6,7 +6,6 @@ export interface IUser extends Document {
   password: string;
   name: string;
   role: string;
-  clerkId?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -36,11 +35,6 @@ const userSchema = new Schema<IUser>(
       type: String,
       default: 'candidate',
       enum: ['candidate', 'interviewer', 'admin'],
-    },
-    clerkId: {
-      type: String,
-      sparse: true,
-      index: true,
     },
   },
   {

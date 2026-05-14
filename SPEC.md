@@ -1,7 +1,4 @@
-cd backend
-npm install
-npm run cleanup-index
-npm run dev# AI Mock Interview Platform - Complete Documentation
+# AI Mock Interview Platform - Complete Documentation
 
 ## Table of Contents
 1. [Project Overview](#project-overview)

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   Mic,
   MicOff,
@@ -71,13 +70,13 @@ export default function Interview() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
-      
+
       recognitionRef.current.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setAnswer(prev => prev + ' ' + transcript);
         setListening(false);
       };
-      
+
       recognitionRef.current.onerror = () => {
         setListening(false);
       };
@@ -100,19 +99,11 @@ export default function Interview() {
       const res = await interviewAPI.getInterview(id!);
       setInterview(res.data);
       if (res.data.questions[res.data.currentQuestionIndex]) {
+        setCurrentQuestion(res.data.questions[res.data.currentQuestionIndex]);
         const q = res.data.questions[res.data.currentQuestionIndex];
-        setCurrentQuestion(q);
         setConversation([{type: 'ai', text: q.question}]);
         speak(q.question);
         startRecording();
-        
-        // Auto-start voice listening after a short delay
-        setTimeout(() => {
-          if (recognitionRef.current) {
-            recognitionRef.current.start();
-            setListening(true);
-          }
-        }, 2000);
       }
       setTimeLeft((res.data.duration || 45) * 60);
     } catch (error) {
@@ -124,8 +115,9 @@ export default function Interview() {
 
   const startCamera = async () => {
     try {
+      // Check if media devices are supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera and microphone access is not supported in this browser.');
+        alert('Camera and microphone access is not supported in this browser. Please use a modern browser like Chrome or Firefox.');
         return;
       }
 
@@ -140,6 +132,19 @@ export default function Interview() {
       setCameraPermissionGranted(true);
     } catch (error: any) {
       console.error('Error accessing camera:', error);
+      let errorMessage = 'Unable to access camera and microphone. ';
+
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Please allow camera and microphone permissions and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No camera or microphone found on this device.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage += 'Camera and microphone access is not supported.';
+      } else {
+        errorMessage += 'Please check your device settings and try again.';
+      }
+
+      alert(errorMessage);
       setCameraPermissionGranted(false);
     }
   };
@@ -161,6 +166,7 @@ export default function Interview() {
 
   const startRecording = async () => {
     if (!cameraPermissionGranted) {
+      alert('Camera permission is required to record video. Please allow camera access first.');
       return;
     }
 
@@ -170,15 +176,24 @@ export default function Interview() {
         audio: true
       });
 
+      // Check if MediaRecorder is supported
       if (!MediaRecorder.isTypeSupported('video/webm')) {
+        alert('Video recording is not supported in this browser. Please use Chrome or Firefox.');
         return;
       }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        alert('An error occurred during recording. Please try again.');
+        setIsRecording(false);
       };
 
       mediaRecorderRef.current = mediaRecorder;
@@ -186,6 +201,7 @@ export default function Interview() {
       setIsRecording(true);
     } catch (error: any) {
       console.error('Error starting recording:', error);
+      alert('Failed to start recording. Please check camera permissions.');
       setIsRecording(false);
     }
   };
@@ -210,6 +226,7 @@ export default function Interview() {
   const handleSubmitAnswer = async () => {
     if (!answer.trim()) return;
     setSubmitting(true);
+
     setConversation(prev => [...prev, {type: 'user', text: answer}]);
 
     try {
@@ -236,14 +253,6 @@ export default function Interview() {
       setConversation(prev => [...prev, {type: 'ai', text: res.data.question.question}]);
       speak(res.data.question.question);
       startRecording();
-      
-      // Auto-start voice listening after a short delay
-      setTimeout(() => {
-        if (recognitionRef.current) {
-          recognitionRef.current.start();
-          setListening(true);
-        }
-      }, 2000);
     } catch (error) {
       console.error('Error getting next question:', error);
     } finally {
@@ -253,45 +262,7 @@ export default function Interview() {
 
   const handleEndInterview = async () => {
     stopRecording();
-    
-    // Upload video chunks to server
-    try {
-      console.log(`Uploading ${chunksRef.current.length} video chunks...`);
-      for (let i = 0; i < chunksRef.current.length; i++) {
-        const chunk = chunksRef.current[i];
-        const formData = new FormData();
-        formData.append('chunk', chunk);
-        formData.append('interviewId', id!);
-        formData.append('chunkIndex', i.toString());
-        
-        try {
-          await (window as any).api.post('/video/upload-chunk', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-          console.log(`Uploaded chunk ${i}`);
-        } catch (error) {
-          console.warn(`Failed to upload chunk ${i}:`, error);
-        }
-      }
 
-      // Finalize and combine video chunks on server
-      if (chunksRef.current.length > 0) {
-        console.log('Finalizing video on server...');
-        try {
-          await (window as any).api.post('/video/finalize', {
-            interviewId: id!,
-            totalChunks: chunksRef.current.length,
-          });
-          console.log('Video finalized and uploaded to Cloudinary');
-        } catch (error) {
-          console.warn('Failed to finalize video:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error uploading video:', error);
-    }
-
-    // End interview and get closing message
     try {
       const res = await interviewAPI.endInterview(id!, undefined, {
         confidenceScore: 75,
@@ -384,19 +355,18 @@ export default function Interview() {
                 <span className="font-mono text-lg">{formatTime(timeLeft)}</span>
               </div>
               <Badge variant="secondary" className="bg-white/10 text-white border-white/20">
-                Question {(interview?.currentQuestionIndex ?? 0) + 1}
+                Question {(interview?.currentQuestionIndex ?? 0) + 1} of 10
               </Badge>
             </div>
           </div>
           <div className="flex items-center space-x-3">
-            <ThemeToggle />
             <Button
               onClick={toggleRecording}
               variant={isRecording ? "destructive" : "default"}
-              className={`transition-all duration-300 ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+              className={`transition-all duration-300 ${isRecording ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25' : 'bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/25'}`}
             >
               {isRecording ? <Square className="mr-2 h-4 w-4" /> : <Video className="mr-2 h-4 w-4" />}
-              {isRecording ? 'Stop Recording' : 'Start Recording'}
+              {isRecording ? 'Complete Recording' : 'Start Recording'}
             </Button>
             <Button
               onClick={handleEndInterview}
@@ -415,11 +385,12 @@ export default function Interview() {
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-6 flex flex-col"
+            className="space-y-6"
           >
             {/* AI Avatar & Question */}
             <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl flex-1">
               <CardContent className="p-8 h-full flex flex-col">
+                {/* AI Avatar */}
                 <div className="flex items-center justify-center mb-8">
                   <motion.div
                     animate={isSpeaking ? { scale: 1.1 } : { scale: 1 }}
@@ -428,6 +399,9 @@ export default function Interview() {
                   >
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center text-5xl shadow-2xl border-4 border-white/20">
                       <span className="text-6xl drop-shadow-lg">🤖</span>
+                    </div>
+                    <div className="absolute bottom-2 right-2 bg-emerald-400 w-6 h-6 rounded-full border-2 border-white/20 shadow-lg flex items-center justify-center">
+                      <Mic className="h-3 w-3 text-white" />
                     </div>
                     {isSpeaking && (
                       <motion.div
@@ -443,6 +417,7 @@ export default function Interview() {
                   </motion.div>
                 </div>
 
+                {/* Question Display */}
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentQuestion?.id}
@@ -451,81 +426,282 @@ export default function Interview() {
                     exit={{ opacity: 0, y: -20 }}
                     className="flex-1 flex flex-col justify-center"
                   >
-                    <div className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6 text-center">
-                      <p className="text-white text-xl leading-relaxed">
-                        {currentQuestion?.question}
-                      </p>
+                    <div className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
+                      <div className="flex items-start space-x-3 mb-4">
+                        <MessageCircle className="h-6 w-6 text-blue-400 mt-1" />
+                        <div className="flex-1">
+                          <p className="text-white text-lg leading-relaxed mb-4">
+                            {currentQuestion?.question}
+                          </p>
+                          <div className="flex gap-3">
+                            <Badge variant="secondary" className="bg-blue-500/20 text-blue-200 border-blue-400/30">
+                              {currentQuestion?.category}
+                            </Badge>
+                            <Badge
+                              variant={currentQuestion?.difficulty === 'easy' ? 'success' : currentQuestion?.difficulty === 'medium' ? 'warning' : 'destructive'}
+                              className="capitalize"
+                            >
+                              {currentQuestion?.difficulty}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 </AnimatePresence>
 
-                {!showFeedback && (
-                  <div className="space-y-4">
-                    <textarea
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      placeholder="Type your answer here..."
-                      className="w-full h-32 bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400/20"
-                    />
-                    <div className="flex gap-3">
-                      <Button onClick={toggleVoiceInput} variant={listening ? "destructive" : "secondary"}>
-                         {listening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-                         {listening ? 'Stop listening' : 'Record Answer'}
-                      </Button>
-                      <Button
-                        onClick={handleSubmitAnswer}
-                        disabled={submitting || !answer.trim()}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600"
-                      >
-                        {submitting ? 'Submitting...' : 'Submit Answer'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                {/* Answer Input */}
+                <AnimatePresence>
+                  {!showFeedback && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4"
+                    >
+                      <textarea
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        placeholder="Type your answer here, or use voice input..."
+                        className="w-full h-32 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-white placeholder-white/60 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300 resize-none"
+                      />
 
-                {showFeedback && evaluation && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-                    <div className="bg-emerald-500/20 border border-emerald-500/30 p-4 rounded-xl">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold text-emerald-400">Score: {evaluation.score}/5</h4>
-                        <Badge className="bg-emerald-500">{evaluation.score >= 4 ? 'Excellent' : 'Good'}</Badge>
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={toggleVoiceInput}
+                          variant={listening ? "destructive" : "secondary"}
+                          className="flex items-center gap-2"
+                        >
+                          {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          {listening ? 'Stop Voice' : 'Voice Input'}
+                        </Button>
+
+                        <Button
+                          onClick={() => speak(currentQuestion?.question)}
+                          variant="outline"
+                          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        >
+                          🔊 Read Question
+                        </Button>
+
+                        <Button
+                          onClick={handleSubmitAnswer}
+                          disabled={submitting || !answer.trim()}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                        >
+                          {submitting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Submitting...
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Send className="h-4 w-4" />
+                              Submit Answer
+                            </div>
+                          )}
+                        </Button>
                       </div>
-                      <p className="text-white/90 text-sm">{evaluation.feedback}</p>
-                    </div>
-                    <Button onClick={isLastQuestion ? handleEndInterview : handleNextQuestion} className="w-full bg-indigo-600">
-                      {isLastQuestion ? 'Finish Interview' : 'Next Question'}
-                    </Button>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Feedback Display */}
+                <AnimatePresence>
+                  {showFeedback && evaluation && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="space-y-6"
+                    >
+                      {/* Score Card */}
+                      <Card className="bg-gradient-to-r from-emerald-500 to-green-600 border-0 shadow-2xl">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-white">Your Score</h3>
+                            <div className="text-4xl font-black text-white">{evaluation.score}/5</div>
+                          </div>
+                          <p className="text-white/95 text-lg">{evaluation.feedback}</p>
+                        </CardContent>
+                      </Card>
+
+                      {/* Strengths & Improvements */}
+                      <div className="grid grid-cols-1 gap-4">
+                        <Card className="bg-white/10 backdrop-blur-sm border border-emerald-400/20">
+                          <CardContent className="p-6">
+                            <h4 className="text-emerald-300 font-bold mb-4 flex items-center gap-2">
+                              <CheckCircle className="h-5 w-5" />
+                              Strengths
+                            </h4>
+                            <ul className="space-y-2 text-white/90">
+                              {evaluation.strengths.map((s, i) => (
+                                <li key={i} className="flex items-start gap-3">
+                                  <span className="text-emerald-400 text-lg mt-1">✨</span>
+                                  <span className="text-sm leading-relaxed">{s}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-white/10 backdrop-blur-sm border border-amber-400/20">
+                          <CardContent className="p-6">
+                            <h4 className="text-amber-300 font-bold mb-4 flex items-center gap-2">
+                              <XCircle className="h-5 w-5" />
+                              Areas to Improve
+                            </h4>
+                            <ul className="space-y-2 text-white/90">
+                              {evaluation.improvements.map((imp, i) => (
+                                <li key={i} className="flex items-start gap-3">
+                                  <span className="text-amber-400 text-lg mt-1">💡</span>
+                                  <span className="text-sm leading-relaxed">{imp}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Follow-up Question */}
+                      {evaluation.followUpQuestion && (
+                        <Card className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 backdrop-blur-sm border border-blue-400/30">
+                          <CardContent className="p-6">
+                            <p className="text-blue-200 font-semibold flex items-center gap-2">
+                              <span className="text-xl">🎯</span>
+                              Follow-up: {evaluation.followUpQuestion}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Next Action */}
+                      <Button
+                        onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
+                        className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 py-4 text-lg font-bold"
+                      >
+                        {isLastQuestion ? '🎉 Finish Interview' : '➡️ Next Question'}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Right Panel - Video Feed */}
+          {/* Right Panel - User Video & Controls */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
+            className="space-y-6"
           >
-            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden h-full">
-               <div className="relative h-full bg-black/40">
+            {/* User Video */}
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Your Camera
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCameraEnabled(!cameraEnabled)}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    >
+                      {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setMicEnabled(!micEnabled)}
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                    >
+                      {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative aspect-video bg-black/50 rounded-xl overflow-hidden">
                   <video
                     ref={videoRef}
                     autoPlay
                     muted
                     className="w-full h-full object-cover"
                   />
-                  {!cameraPermissionGranted && (
-                    <div className="absolute inset-0 flex items-center justify-center text-white/50 bg-black/80">
-                      Camera access required
-                    </div>
-                  )}
                   {isRecording && (
-                    <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 px-3 py-1 rounded-full text-white text-xs font-bold animate-pulse">
-                      <div className="w-2 h-2 bg-white rounded-full" />
-                      REC
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="absolute top-4 right-4 w-4 h-4 bg-red-500 rounded-full shadow-lg"
+                    />
+                  )}
+                  {!cameraEnabled && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                      <VideoOff className="h-12 w-12 text-white/50" />
                     </div>
                   )}
-               </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Progress & Status */}
+            <div className="grid grid-cols-1 gap-4">
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white/80 text-sm">Interview Progress</span>
+                    <span className="text-white font-semibold">
+                      {(interview?.currentQuestionIndex ?? 0) + 1} / 10
+                    </span>
+                  </div>
+                    <Progress
+                      value={(((interview?.currentQuestionIndex ?? 0) + 1) / 10) * 100}
+                      className="h-2"
+                    />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/80 text-sm">Interview Progress</span>
+                    <span className="text-white font-semibold">
+                      {(interview?.currentQuestionIndex ?? 0) + 1} / 10
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Conversation History */}
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl flex-1">
+              <CardContent className="p-4 h-64">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Conversation
+                </h3>
+                <div className="space-y-3 overflow-y-auto h-full">
+                  {conversation.slice(-5).map((msg, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: msg.type === 'ai' ? -20 : 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`p-3 rounded-lg text-sm ${
+                        msg.type === 'ai'
+                          ? 'bg-blue-600/30 border border-blue-400/30 text-blue-200'
+                          : 'bg-emerald-600/30 border border-emerald-400/30 text-emerald-200 ml-auto max-w-xs'
+                      }`}
+                    >
+                      <div className="font-semibold text-xs mb-1">
+                        {msg.type === 'ai' ? '🤖 InterviewAI' : '👤 You'}
+                      </div>
+                      {msg.text}
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
         </div>

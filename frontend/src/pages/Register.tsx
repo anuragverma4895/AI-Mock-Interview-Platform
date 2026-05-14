@@ -23,7 +23,6 @@ export default function Register() {
       setUser(res.data.user);
       navigate('/dashboard');
     } catch (err: any) {
-
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);

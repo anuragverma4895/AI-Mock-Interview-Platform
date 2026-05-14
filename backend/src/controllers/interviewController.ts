@@ -16,41 +16,29 @@ const MAX_QUESTIONS = 10;
 
 export const startInterview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { resumeId, duration, role = 'technical', difficulty = 'medium', jobRole = 'fullstack', interviewType = 'technical' } = req.body;
-
-    console.log('Starting interview with:', { resumeId, duration, role, difficulty, jobRole, interviewType });
+    const { resumeId, duration } = req.body;
 
     let resumeData = null;
     if (resumeId) {
-      console.log('Fetching resume:', resumeId);
       const resume = await Resume.findById(resumeId);
       if (resume) {
         resumeData = resume.parsedData;
-        console.log('Resume data found:', resumeData);
-      } else {
-        console.log('Resume not found');
       }
     }
 
     const firstCategory = QUESTION_CATEGORIES[0];
     const firstQuestion = await generateInterviewQuestion(
       firstCategory,
-      difficulty,
+      'easy',
       [],
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name),
-      jobRole
+      resumeData?.projects?.map(p => p.name)
     );
-
-    console.log('First question generated:', firstQuestion);
 
     const interview = new Interview({
       userId: req.user?.id,
       resumeId: resumeId || undefined,
       status: 'in_progress',
-      role: interviewType || role || 'technical',
-      difficulty: difficulty || 'medium',
-      jobRole: jobRole || 'fullstack',
       questions: [{
         question: firstQuestion.question,
         category: firstQuestion.category as any,
@@ -68,7 +56,6 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     });
 
     await interview.save();
-    console.log('Interview saved:', interview._id);
 
     const greeting = await getGreeting(req.user?.name);
 
@@ -76,12 +63,8 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       message: 'Interview started',
       greeting,
       interview: {
-        _id: interview._id,
         id: interview._id,
         status: interview.status,
-        role: interview.role,
-        difficulty: interview.difficulty,
-        jobRole: interview.jobRole,
         currentQuestion: interview.questions[0],
         currentQuestionIndex: interview.currentQuestionIndex,
         totalQuestions: MAX_QUESTIONS,
@@ -127,15 +110,14 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     }));
 
     const category = QUESTION_CATEGORIES[(interview.currentQuestionIndex + 1) % QUESTION_CATEGORIES.length];
-    const difficulty = interview.difficulty || 'medium';
+    const difficulty = ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)];
 
     const newQuestion = await generateInterviewQuestion(
       category,
       difficulty,
       conversationHistory,
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name),
-      interview.jobRole
+      resumeData?.projects?.map(p => p.name)
     );
 
     interview.questions.push({
@@ -193,7 +175,6 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
 
     const evaluation = await evaluateAnswer(
       currentQuestion.question,
-
       sanitizedAnswer,
       currentQuestion.category,
       currentQuestion.difficulty,

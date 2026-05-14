@@ -3,7 +3,7 @@ import config from './index';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(config.mongoUri || process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-interview');
+    const conn = await mongoose.connect(config.mongoUri);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {

@@ -1,5 +1,6 @@
 import multer from 'multer';
 import path from 'path';
+import { fileTypeFromBuffer } from 'file-type';
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -11,20 +12,25 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = async (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedMimeTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only PDF and DOCX are allowed.'));
+  const allowedExtensions = ['pdf', 'docx'];
+
+  // Check MIME type
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    return cb(new Error('Invalid file type. Only PDF and DOCX are allowed.'));
   }
+
+  // For content validation, we'll need to read the file buffer
+  // This will be done in a custom middleware after multer
+  cb(null, true);
 };
 
 export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
@@ -49,6 +55,6 @@ export const videoUpload = multer({
   }),
   fileFilter: videoFileFilter,
   limits: {
-    fileSize: 500 * 1024 * 1024, // 500MB limit
+    fileSize: 500 * 1024 * 1024,
   },
 });
