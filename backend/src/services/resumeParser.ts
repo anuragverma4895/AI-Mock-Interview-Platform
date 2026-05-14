@@ -81,12 +81,14 @@ const extractSkills = (text: string): string[] => {
   return [...new Set(foundSkills)];
 };
 
-export const analyzeResumeSuitability = (parsedData: ParsedResume, role: string): {
+interface ResumeAnalysis {
   suitabilityScore: number;
   matchedSkills: string[];
   missingSkills: string[];
   recommendations: string[];
-} => {
+}
+
+export const analyzeResumeSuitability = (parsedData: ParsedResume, role: string): ResumeAnalysis => {
   const roleSkills: Record<string, string[]> = {
     frontend: ['javascript', 'typescript', 'react', 'vue', 'angular', 'html', 'css', 'tailwind'],
     backend: ['nodejs', 'python', 'java', 'express', 'django', 'spring', 'sql', 'mongodb'],
