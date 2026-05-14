@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   XAxis,
   YAxis,
@@ -138,13 +139,16 @@ export default function Dashboard() {
                   Ready to ace your next interview?
                 </p>
               </div>
-              <Button
-                onClick={() => navigate('/interview')}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Start New Interview
-              </Button>
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+                <Button
+                  onClick={() => navigate('/interview')}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Start New Interview
+                </Button>
+              </div>
             </div>
           </motion.header>
 

@@ -2,6 +2,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import { useNavigate } from "react-router-dom"
 import { useEffect } from "react"
 import { useAuthStore } from "../store/authStore"
@@ -113,6 +114,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Button variant="ghost" onClick={() => navigate('/login')}>
                 Sign In
               </Button>

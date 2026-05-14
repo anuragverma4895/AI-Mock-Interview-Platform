@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { useTheme } from "@/components/theme-provider"
 import {
   User,
   Home,
@@ -25,8 +26,10 @@ import { authAPI } from "../services/api"
 
 export default function Settings() {
   const { user, setUser } = useAuthStore()
+  const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const isDarkMode = theme === 'dark'
 
   const handleUpdateRole = async (newRole: string) => {
     if (!user) return
@@ -75,7 +78,7 @@ export default function Settings() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl mx-auto"
           >
-            <h1 className="text-3xl font-bold mb-8">Platform Settings</h1>
+            <h1 className="text-3xl font-bold mb-8 text-slate-900 dark:text-white">Platform Settings</h1>
 
             <div className="space-y-6">
               {/* Account Preferences */}
@@ -122,9 +125,13 @@ export default function Settings() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label>Dark Mode</Label>
-                      <p className="text-sm text-slate-500">Switch between light and dark themes.</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Switch between light and dark themes.</p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={isDarkMode}
+                      onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                      aria-label="Toggle dark mode"
+                    />
                   </div>
                 </CardContent>
               </Card>
