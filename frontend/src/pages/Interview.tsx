@@ -16,7 +16,6 @@ import {
   Video,
   VideoOff,
   Send,
-  Square,
   Clock,
   MessageCircle,
   CheckCircle,
@@ -46,17 +45,18 @@ export default function Interview() {
   const [listening, setListening] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
-  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadingRecording, setUploadingRecording] = useState(false);
+  const [recordingSaveError, setRecordingSaveError] = useState(false);
+  const [endingInterview, setEndingInterview] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fullRecordingChunksRef = useRef<Blob[]>([]);
   const fullMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingTimeRef = useRef(0);
+  const endingInterviewRef = useRef(false);
 
   useEffect(() => {
     loadInterview();
@@ -72,8 +72,8 @@ export default function Interview() {
     }, 1000);
     return () => {
       clearInterval(timer);
+      void stopFullRecording();
       stopCamera();
-      stopFullRecording();
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
   }, []);
@@ -117,7 +117,6 @@ export default function Interview() {
         const q = res.data.questions[res.data.currentQuestionIndex];
         setConversation([{type: 'ai', text: q.question}]);
         speak(q.question);
-        startRecording();
       }
       setTimeLeft((res.data.duration || 45) * 60);
     } catch (error) {
@@ -143,7 +142,6 @@ export default function Interview() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-      setCameraPermissionGranted(true);
 
       // Start full interview recording automatically
       startFullRecording(stream);
@@ -162,7 +160,6 @@ export default function Interview() {
       }
 
       alert(errorMessage);
-      setCameraPermissionGranted(false);
     }
   };
 
@@ -173,70 +170,26 @@ export default function Interview() {
     }
   };
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  };
-
-  const startRecording = async () => {
-    if (!cameraPermissionGranted) {
-      alert('Camera permission is required to record video. Please allow camera access first.');
-      return;
-    }
-
+  // Full interview recording (runs entire session, uploaded to Cloudinary at end)
+  const startFullRecording = (stream: MediaStream) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480 },
-        audio: true
-      });
-
-      // Check if MediaRecorder is supported
-      if (!MediaRecorder.isTypeSupported('video/webm')) {
+      if (!('MediaRecorder' in window)) {
         alert('Video recording is not supported in this browser. Please use Chrome or Firefox.');
         return;
       }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      if (fullMediaRecorderRef.current && fullMediaRecorderRef.current.state !== 'inactive') {
+        return;
+      }
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
-        alert('An error occurred during recording. Please try again.');
-        setIsRecording(false);
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (error: any) {
-      console.error('Error starting recording:', error);
-      alert('Failed to start recording. Please check camera permissions.');
-      setIsRecording(false);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  // Full interview recording (runs entire session, uploaded to Cloudinary at end)
-  const startFullRecording = (stream: MediaStream) => {
-    try {
-      if (!MediaRecorder.isTypeSupported('video/webm')) return;
+      const mimeType = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+      ].find((type) => MediaRecorder.isTypeSupported(type));
 
       fullRecordingChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -244,13 +197,24 @@ export default function Interview() {
         }
       };
 
+      mediaRecorder.onerror = (event) => {
+        console.error('Full interview recorder error:', event);
+        setIsRecording(false);
+      };
+
       fullMediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start(1000); // Collect data every 1 second
+      setIsRecording(true);
 
       // Start recording timer
+      recordingTimeRef.current = 0;
       setRecordingTime(0);
       recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime(prev => {
+          const next = prev + 1;
+          recordingTimeRef.current = next;
+          return next;
+        });
       }, 1000);
 
       console.log('Full interview recording started');
@@ -259,14 +223,37 @@ export default function Interview() {
     }
   };
 
-  const stopFullRecording = () => {
-    if (fullMediaRecorderRef.current && fullMediaRecorderRef.current.state !== 'inactive') {
-      fullMediaRecorderRef.current.stop();
-    }
+  const stopFullRecording = (): Promise<Blob | null> => {
     if (recordingTimerRef.current) {
       clearInterval(recordingTimerRef.current);
       recordingTimerRef.current = null;
     }
+
+    const recorder = fullMediaRecorderRef.current;
+
+    return new Promise((resolve) => {
+      const finish = () => {
+        fullMediaRecorderRef.current = null;
+        setIsRecording(false);
+        const blob = fullRecordingChunksRef.current.length > 0
+          ? new Blob(fullRecordingChunksRef.current, { type: fullRecordingChunksRef.current[0]?.type || 'video/webm' })
+          : null;
+        resolve(blob);
+      };
+
+      if (!recorder || recorder.state === 'inactive') {
+        finish();
+        return;
+      }
+
+      recorder.addEventListener('stop', finish, { once: true });
+      try {
+        recorder.requestData();
+      } catch (error) {
+        console.error('Unable to request final recording data:', error);
+      }
+      recorder.stop();
+    });
   };
 
   const formatRecordingTime = (seconds: number) => {
@@ -318,7 +305,6 @@ export default function Interview() {
       setCurrentQuestion(res.data.question);
       setConversation(prev => [...prev, {type: 'ai', text: res.data.question.question}]);
       speak(res.data.question.question);
-      startRecording();
     } catch (error) {
       console.error('Error getting next question:', error);
     } finally {
@@ -327,14 +313,16 @@ export default function Interview() {
   };
 
   const handleEndInterview = async () => {
-    stopRecording();
-    stopFullRecording();
-
-    // Build recording blob from full recording
-    let recordingBlob: Blob | null = null;
-    if (fullRecordingChunksRef.current.length > 0) {
-      recordingBlob = new Blob(fullRecordingChunksRef.current, { type: 'video/webm' });
+    if (endingInterviewRef.current) {
+      return;
     }
+
+    endingInterviewRef.current = true;
+    setEndingInterview(true);
+    setRecordingSaveError(false);
+
+    const finalRecordingTime = recordingTimeRef.current;
+    const recordingBlob = await stopFullRecording();
 
     try {
       const res = await interviewAPI.endInterview(id!, undefined, {
@@ -347,26 +335,19 @@ export default function Interview() {
       if (recordingBlob && recordingBlob.size > 0) {
         setUploadingRecording(true);
         try {
-          const reader = new FileReader();
-          reader.readAsDataURL(recordingBlob);
-          reader.onloadend = async () => {
-            const base64 = reader.result as string;
-            try {
-              await demoAPI.uploadRecording(id!, base64, recordingTime);
-              console.log('Recording uploaded successfully!');
-            } catch (uploadErr) {
-              console.error('Recording upload failed:', uploadErr);
-            } finally {
-              setUploadingRecording(false);
-            }
-          };
-        } catch (e) {
-          console.error('Error reading recording:', e);
+          await demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime);
+          console.log('Recording uploaded successfully!');
+        } catch (uploadErr) {
+          console.error('Recording upload failed:', uploadErr);
+          setRecordingSaveError(true);
+        } finally {
           setUploadingRecording(false);
         }
+      } else {
+        setRecordingSaveError(true);
       }
 
-      setTimeout(() => navigate(`/interview-result/${id}`), 4000);
+      setTimeout(() => navigate(`/interview-result/${id}`), 1500);
     } catch (error) {
       console.error('Error ending interview:', error);
       navigate(`/interview-result/${id}`);
@@ -401,6 +382,11 @@ export default function Interview() {
               <div className="text-center">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-white/70 font-medium">Saving your recording...</p>
+              </div>
+            ) : recordingSaveError ? (
+              <div className="text-center">
+                <p className="text-amber-200 font-medium mb-2">Interview completed, but recording could not be saved.</p>
+                <p className="text-white/70 font-medium">Redirecting to results...</p>
               </div>
             ) : (
               <div className="text-center">
@@ -464,7 +450,7 @@ export default function Interview() {
                 Question {(interview?.currentQuestionIndex ?? 0) + 1} of 10
               </Badge>
               {/* Recording Timer */}
-              {recordingTime > 0 && (
+              {(isRecording || recordingTime > 0) && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -482,19 +468,20 @@ export default function Interview() {
           </div>
           <div className="flex items-center space-x-3">
             <Button
-              onClick={toggleRecording}
+              disabled
               variant={isRecording ? "destructive" : "default"}
-              className={`transition-all duration-300 ${isRecording ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25' : 'bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/25'}`}
+              className={`transition-all duration-300 ${isRecording ? 'bg-red-500 shadow-lg shadow-red-500/25' : 'bg-slate-500 shadow-lg shadow-slate-500/25'}`}
             >
-              {isRecording ? <Square className="mr-2 h-4 w-4" /> : <Video className="mr-2 h-4 w-4" />}
-              {isRecording ? 'Complete Recording' : 'Start Recording'}
+              <Video className="mr-2 h-4 w-4" />
+              {isRecording ? 'Auto Recording' : 'Recording Off'}
             </Button>
             <Button
               onClick={handleEndInterview}
+              disabled={endingInterview}
               variant="outline"
               className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
-              End Interview
+              {endingInterview ? 'Ending...' : 'End Interview'}
             </Button>
           </div>
         </div>

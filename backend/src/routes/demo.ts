@@ -2,15 +2,16 @@ import { Router, Response } from 'express';
 import { auth, AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
 import { uploadVideoToCloudinary, deleteVideoFromCloudinary } from '../services/cloudinaryService';
+import { videoUpload } from '../middleware/upload';
 
 const router = Router();
 
 /**
  * POST /api/demo/upload-recording/:interviewId
  * Upload interview recording to Cloudinary and save URL
- * Body: { videoBase64: string, duration: number }
+ * Body: multipart { recording: File, duration: number } or JSON { videoBase64, duration }
  */
-router.post('/upload-recording/:interviewId', auth, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/upload-recording/:interviewId', auth, videoUpload.single('recording'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { interviewId } = req.params;
     const { videoBase64, duration } = req.body;
@@ -27,9 +28,17 @@ router.post('/upload-recording/:interviewId', auth, async (req: AuthRequest, res
       return;
     }
 
-    // Convert base64 to buffer
-    const base64Data = videoBase64.replace(/^data:video\/\w+;base64,/, '');
-    const videoBuffer = Buffer.from(base64Data, 'base64');
+    let videoBuffer: Buffer | null = req.file?.buffer || null;
+
+    if (!videoBuffer && typeof videoBase64 === 'string') {
+      const base64Data = videoBase64.replace(/^data:video\/\w+;base64,/, '');
+      videoBuffer = Buffer.from(base64Data, 'base64');
+    }
+
+    if (!videoBuffer || videoBuffer.length === 0) {
+      res.status(400).json({ message: 'No recording file provided' });
+      return;
+    }
 
     const publicId = `interview_${interviewId}_${Date.now()}`;
 
@@ -38,7 +47,8 @@ router.post('/upload-recording/:interviewId', auth, async (req: AuthRequest, res
     const result = await uploadVideoToCloudinary(videoBuffer, publicId);
 
     interview.recordingUrl = result.url;
-    interview.recordingDuration = duration || result.duration;
+    interview.recordingPublicId = result.publicId;
+    interview.recordingDuration = Number(duration) || result.duration;
     await interview.save();
 
     console.log(`Recording uploaded: ${result.url}`);
@@ -46,7 +56,7 @@ router.post('/upload-recording/:interviewId', auth, async (req: AuthRequest, res
     res.json({
       message: 'Recording uploaded successfully',
       recordingUrl: result.url,
-      duration: duration || result.duration,
+      duration: Number(duration) || result.duration,
     });
   } catch (error) {
     console.error('Error uploading recording:', error);
@@ -127,11 +137,15 @@ router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Res
     // Try to delete from Cloudinary
     if (interview.recordingUrl) {
       try {
-        // Extract public_id from URL
-        const urlParts = interview.recordingUrl.split('/');
-        const fileWithExt = urlParts[urlParts.length - 1];
-        const folder = urlParts[urlParts.length - 2];
-        const publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+        let publicId = interview.recordingPublicId;
+
+        if (!publicId) {
+          const urlParts = interview.recordingUrl.split('/');
+          const fileWithExt = urlParts[urlParts.length - 1];
+          const folder = urlParts[urlParts.length - 2];
+          publicId = `${folder}/${fileWithExt.split('.')[0]}`;
+        }
+
         await deleteVideoFromCloudinary(publicId);
       } catch (e) {
         console.error('Cloudinary delete failed (continuing):', e);
@@ -139,6 +153,7 @@ router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Res
     }
 
     interview.recordingUrl = undefined;
+    interview.recordingPublicId = undefined;
     interview.recordingDuration = 0;
     interview.isPublished = false;
     await interview.save();

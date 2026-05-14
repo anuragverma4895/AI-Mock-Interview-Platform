@@ -37,6 +37,10 @@ export interface Interview {
   currentQuestionIndex: number;
   transcript: Array<{ question: string; answer: string; timestamp: string }>;
   videoPath?: string;
+  recordingUrl?: string;
+  recordingPublicId?: string;
+  recordingDuration?: number;
+  isPublished?: boolean;
   bodyLanguageData?: {
     eyeContact: number;
     faceOrientation: number;

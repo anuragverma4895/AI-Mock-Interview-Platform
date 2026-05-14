@@ -13,7 +13,7 @@ const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
 export const uploadVideoToCloudinary = async (
   videoBuffer: Buffer,
   publicId: string
-): Promise<{ url: string; duration: number }> => {
+): Promise<{ url: string; duration: number; publicId: string }> => {
   if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
     throw new Error('Cloudinary credentials not configured');
   }
@@ -77,6 +77,7 @@ export const uploadVideoToCloudinary = async (
             resolve({
               url: json.secure_url || json.url,
               duration: Math.round(json.duration || 0),
+              publicId: json.public_id || `${folder}/${publicId}`,
             });
           }
         } catch (e) {

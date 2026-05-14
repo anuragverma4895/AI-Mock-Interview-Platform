@@ -444,7 +444,7 @@ function example() {
                 className="border-white text-white hover:bg-white/10"
                 onClick={() => navigate('/demo')}
               >
-                Book a Demo
+                Watch Demo
               </Button>
             </div>
           </motion.div>

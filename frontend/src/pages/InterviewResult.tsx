@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { interviewAPI, videoAPI } from '../services/api';
+import { interviewAPI } from '../services/api';
 import { Interview } from '../types';
 import {
   ArrowLeft,
@@ -18,11 +18,9 @@ export default function InterviewResult() {
   const navigate = useNavigate();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadInterview();
-    loadVideo();
   }, []);
 
   const loadInterview = async () => {
@@ -36,29 +34,18 @@ export default function InterviewResult() {
     }
   };
 
-  const loadVideo = async () => {
-    try {
-      const response = await videoAPI.downloadVideo(id!);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      setVideoUrl(url);
-    } catch (error) {
-      console.error('Error loading video:', error);
-    }
-  };
+  // Video URL comes directly from Cloudinary (recordingUrl field)
+  const videoUrl = interview?.recordingUrl || null;
 
-  const downloadVideo = async () => {
-    try {
-      const response = await videoAPI.downloadVideo(id!);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `interview-${id}.webm`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error('Error downloading video:', error);
-    }
+  const downloadVideo = () => {
+    if (!videoUrl) return;
+    const link = document.createElement('a');
+    link.href = videoUrl;
+    link.setAttribute('download', `interview-${id}.webm`);
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   if (loading) {
@@ -97,14 +84,23 @@ export default function InterviewResult() {
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20 mb-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Interview Results</h2>
-            {interview?.videoPath && (
-              <button
-                onClick={downloadVideo}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
-              >
-                <Download className="mr-2 inline h-5 w-5" />
-                Download Video
-              </button>
+            {videoUrl && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-all duration-300"
+                >
+                  <Video className="mr-2 inline h-5 w-5" />
+                  Saved in Profile
+                </button>
+                <button
+                  onClick={downloadVideo}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
+                >
+                  <Download className="mr-2 inline h-5 w-5" />
+                  Download Video
+                </button>
+              </div>
             )}
           </div>
 

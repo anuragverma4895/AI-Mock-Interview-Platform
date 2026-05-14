@@ -81,10 +81,22 @@ export const analyticsAPI = {
 };
 
 export const demoAPI = {
-  uploadRecording: (interviewId: string, videoBase64: string, duration: number) =>
-    api.post(`/demo/upload-recording/${interviewId}`, { videoBase64, duration }, {
-      timeout: 120000, // 2 min timeout for large uploads
-    }),
+  uploadRecording: (interviewId: string, video: Blob | string, duration: number) => {
+    if (typeof video === 'string') {
+      return api.post(`/demo/upload-recording/${interviewId}`, { videoBase64: video, duration }, {
+        timeout: 180000,
+      });
+    }
+
+    const formData = new FormData();
+    formData.append('recording', video, `interview-${interviewId}.webm`);
+    formData.append('duration', String(duration));
+
+    return api.post(`/demo/upload-recording/${interviewId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
+    });
+  },
   publish: (interviewId: string) => api.post(`/demo/publish/${interviewId}`),
   unpublish: (interviewId: string) => api.post(`/demo/unpublish/${interviewId}`),
   deleteRecording: (interviewId: string) => api.delete(`/demo/recording/${interviewId}`),

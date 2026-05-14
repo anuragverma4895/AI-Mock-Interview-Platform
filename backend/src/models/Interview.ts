@@ -24,6 +24,7 @@ export interface IInterview extends Document {
   }>;
   videoPath?: string;
   recordingUrl?: string;
+  recordingPublicId?: string;
   recordingDuration?: number;
   isPublished?: boolean;
   bodyLanguageData?: {
@@ -86,6 +87,7 @@ const interviewSchema = new Schema<IInterview>(
     ],
     videoPath: String,
     recordingUrl: String,
+    recordingPublicId: String,
     recordingDuration: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: false },
     bodyLanguageData: {
