@@ -189,11 +189,12 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
-                variant="outline"
                 size="xl"
+                className="group"
                 onClick={() => navigate('/demo')}
               >
                 Watch Demo
+                <PlayCircle className="ml-2 h-5 w-5" />
               </Button>
             </motion.div>
           </motion.div>
@@ -440,11 +441,12 @@ function example() {
               </Button>
               <Button
                 size="xl"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
+                variant="secondary"
+                className="bg-white text-indigo-600 hover:bg-slate-50"
                 onClick={() => navigate('/demo')}
               >
                 Watch Demo
+                <PlayCircle className="ml-2 h-5 w-5" />
               </Button>
             </div>
           </motion.div>
