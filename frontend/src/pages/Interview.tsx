@@ -54,7 +54,7 @@ export default function Interview() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
-  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fullRecordingChunksRef = useRef<Blob[]>([]);
   const fullMediaRecorderRef = useRef<MediaRecorder | null>(null);
 
