@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewAPI, videoAPI } from '../services/api';
 import { Interview } from '../types';
+import {
+  ArrowLeft,
+  ClipboardList,
+  Download,
+  Eye,
+  Lightbulb,
+  MessageSquare,
+  Sparkles,
+  Video,
+} from 'lucide-react';
 
 export default function InterviewResult() {
   const { id } = useParams<{ id: string }>();
@@ -76,7 +86,8 @@ export default function InterviewResult() {
               onClick={() => navigate('/')}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-all duration-300"
             >
-              ← Back to Dashboard
+              <ArrowLeft className="mr-2 inline h-4 w-4" />
+              Back to Dashboard
             </button>
           </div>
         </div>
@@ -91,7 +102,8 @@ export default function InterviewResult() {
                 onClick={downloadVideo}
                 className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
               >
-                📥 Download Video
+                <Download className="mr-2 inline h-5 w-5" />
+                Download Video
               </button>
             )}
           </div>
@@ -123,14 +135,14 @@ export default function InterviewResult() {
           {videoUrl && (
             <div className="mb-8">
               <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-                <span className="text-3xl">🎥</span> Review Your Interview
+                <Video className="h-7 w-7 text-blue-600" /> Review Your Interview
               </h3>
               <div className="bg-white/60 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
                 <video controls className="w-full max-w-4xl mx-auto rounded-2xl shadow-2xl border border-white/30">
                   <source src={videoUrl} type="video/webm" />
                   Your browser does not support the video tag.
                 </video>
-                <p className="text-slate-600 mt-4 text-center font-medium">📝 Watch your responses to identify areas for improvement</p>
+                <p className="text-slate-600 mt-4 text-center font-medium">Watch your responses to identify areas for improvement</p>
               </div>
             </div>
           )}
@@ -159,7 +171,7 @@ export default function InterviewResult() {
           {interview?.bodyLanguageData && (
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-8 rounded-2xl mb-8 border border-amber-200/50 shadow-lg">
               <h3 className="text-2xl font-bold mb-6 text-amber-800 flex items-center gap-3">
-                <span className="text-3xl">👁️</span> Body Language Analysis
+                <Eye className="h-7 w-7 text-amber-700" /> Body Language Analysis
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="bg-white/60 p-6 rounded-xl text-center shadow-md border border-amber-200/30">
@@ -187,12 +199,12 @@ export default function InterviewResult() {
               {interview.bodyLanguageData.suggestions.length > 0 && (
                 <div className="bg-white/40 p-6 rounded-xl border border-amber-200/30">
                   <h4 className="font-bold text-amber-800 mb-4 flex items-center gap-2">
-                    <span className="text-xl">💡</span> Suggestions for Improvement:
+                    <Lightbulb className="h-5 w-5" /> Suggestions for Improvement:
                   </h4>
                   <ul className="space-y-2">
                     {interview.bodyLanguageData.suggestions.map((s, i) => (
                       <li key={i} className="flex items-start gap-3 text-amber-700">
-                        <span className="text-amber-500 text-lg mt-1">•</span>
+                        <span className="mt-2 h-2 w-2 rounded-full bg-amber-500" />
                         <span>{s}</span>
                       </li>
                     ))}
@@ -205,7 +217,7 @@ export default function InterviewResult() {
 
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20">
           <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-            <span className="text-3xl">📋</span> Question-wise Breakdown
+            <ClipboardList className="h-7 w-7 text-slate-700" /> Question-wise Breakdown
           </h3>
           <div className="space-y-6">
             {interview?.questions.map((q, i) => (
@@ -225,14 +237,14 @@ export default function InterviewResult() {
                     </span>
                   </div>
                   <div className="text-2xl font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-                    {q.score !== undefined ? `${q.score}/5` : '⏳'}
+                    {q.score !== undefined ? `${q.score}/5` : 'Pending'}
                   </div>
                 </div>
                 <p className="text-slate-800 mb-4 text-lg leading-relaxed font-medium">{q.question}</p>
                 {q.answer && (
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200/30 mb-4">
                     <strong className="text-blue-800 font-semibold flex items-center gap-2">
-                      <span>💬</span> Your Answer:
+                      <MessageSquare className="h-4 w-4" /> Your Answer:
                     </strong>
                     <p className="text-blue-700 mt-2 leading-relaxed">{q.answer.substring(0, 300)}{q.answer.length > 300 ? '...' : ''}</p>
                   </div>
@@ -240,7 +252,7 @@ export default function InterviewResult() {
                 {q.feedback && (
                   <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200/30">
                     <strong className="text-emerald-800 font-semibold flex items-center gap-2">
-                      <span>✨</span> Feedback:
+                      <Sparkles className="h-4 w-4" /> Feedback:
                     </strong>
                     <p className="text-emerald-700 mt-2 leading-relaxed">{q.feedback}</p>
                   </div>

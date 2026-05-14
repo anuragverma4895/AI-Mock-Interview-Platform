@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
 import connectDB from '../config/db';
 
 /**
@@ -11,7 +11,7 @@ const dropOldIndex = async (): Promise<void> => {
     console.log('Connected to database');
 
     const usersCollection = mongoose.connection.collection('users');
-    
+ 
     // Get all indexes
     const indexes = await usersCollection.getIndexes();
     console.log('Current indexes:', indexes);
@@ -19,9 +19,9 @@ const dropOldIndex = async (): Promise<void> => {
     // Drop the clerkId_1 index if it exists
     if (indexes['clerkId_1']) {
       await usersCollection.dropIndex('clerkId_1');
-      console.log('✓ Dropped old clerkId_1 index successfully');
+      console.log('OK Dropped old clerkId_1 index successfully');
     } else {
-      console.log('✓ clerkId_1 index not found (already clean)');
+      console.log('OK clerkId_1 index not found (already clean)');
     }
 
     mongoose.connection.close();
@@ -33,3 +33,4 @@ const dropOldIndex = async (): Promise<void> => {
 };
 
 dropOldIndex();
+

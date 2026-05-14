@@ -8,6 +8,7 @@ import { useEffect } from "react"
 import { useAuthStore } from "../store/authStore"
 import {
   ArrowRight,
+  Bot,
   Brain,
   Code,
   FileText,
@@ -157,7 +158,7 @@ export default function LandingPage() {
             className="text-center"
           >
             <Badge variant="indigo" className="mb-6">
-              🚀 Now in Beta - Join 10,000+ users
+              Now in Beta - Join 10,000+ users
             </Badge>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
@@ -214,7 +215,7 @@ export default function LandingPage() {
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                        🤖
+                        <Bot className="h-7 w-7 text-white" />
                       </div>
                       <div>
                         <p className="font-semibold">InterviewAI</p>

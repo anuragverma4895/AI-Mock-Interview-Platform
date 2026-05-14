@@ -10,6 +10,9 @@ import { Progress } from "@/components/ui/progress"
 import {
   Mic,
   MicOff,
+  ArrowRight,
+  Award,
+  Bot,
   Video,
   VideoOff,
   Send,
@@ -17,6 +20,10 @@ import {
   Clock,
   MessageCircle,
   CheckCircle,
+  Lightbulb,
+  Target,
+  User,
+  Volume2,
   XCircle
 } from "lucide-react"
 
@@ -296,7 +303,7 @@ export default function Interview() {
               transition={{ repeat: Infinity, duration: 2 }}
               className="text-8xl mb-6"
             >
-              🎉
+              <Award className="mx-auto h-20 w-20 text-white" />
             </motion.div>
             <h2 className="text-3xl font-bold mb-6 text-white">Interview Complete!</h2>
             <p className="text-white/90 text-lg leading-relaxed mb-6">{closingMessage}</p>
@@ -398,7 +405,7 @@ export default function Interview() {
                     className="relative"
                   >
                     <div className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center text-5xl shadow-2xl border-4 border-white/20">
-                      <span className="text-6xl drop-shadow-lg">🤖</span>
+                      <Bot className="h-16 w-16 text-white drop-shadow-lg" />
                     </div>
                     <div className="absolute bottom-2 right-2 bg-emerald-400 w-6 h-6 rounded-full border-2 border-white/20 shadow-lg flex items-center justify-center">
                       <Mic className="h-3 w-3 text-white" />
@@ -481,7 +488,8 @@ export default function Interview() {
                           variant="outline"
                           className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                         >
-                          🔊 Read Question
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Read Question
                         </Button>
 
                         <Button
@@ -537,7 +545,7 @@ export default function Interview() {
                             <ul className="space-y-2 text-white/90">
                               {evaluation.strengths.map((s, i) => (
                                 <li key={i} className="flex items-start gap-3">
-                                  <span className="text-emerald-400 text-lg mt-1">✨</span>
+                                  <span className="mt-2 h-2 w-2 rounded-full bg-emerald-400" />
                                   <span className="text-sm leading-relaxed">{s}</span>
                                 </li>
                               ))}
@@ -554,7 +562,7 @@ export default function Interview() {
                             <ul className="space-y-2 text-white/90">
                               {evaluation.improvements.map((imp, i) => (
                                 <li key={i} className="flex items-start gap-3">
-                                  <span className="text-amber-400 text-lg mt-1">💡</span>
+                                  <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                                   <span className="text-sm leading-relaxed">{imp}</span>
                                 </li>
                               ))}
@@ -568,7 +576,7 @@ export default function Interview() {
                         <Card className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 backdrop-blur-sm border border-blue-400/30">
                           <CardContent className="p-6">
                             <p className="text-blue-200 font-semibold flex items-center gap-2">
-                              <span className="text-xl">🎯</span>
+                              <Target className="h-5 w-5" />
                               Follow-up: {evaluation.followUpQuestion}
                             </p>
                           </CardContent>
@@ -580,7 +588,8 @@ export default function Interview() {
                         onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
                         className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 py-4 text-lg font-bold"
                       >
-                        {isLastQuestion ? '🎉 Finish Interview' : '➡️ Next Question'}
+                        {isLastQuestion ? 'Finish Interview' : 'Next Question'}
+                        {!isLastQuestion && <ArrowRight className="ml-2 h-5 w-5" />}
                       </Button>
                     </motion.div>
                   )}
@@ -695,7 +704,10 @@ export default function Interview() {
                       }`}
                     >
                       <div className="font-semibold text-xs mb-1">
-                        {msg.type === 'ai' ? '🤖 InterviewAI' : '👤 You'}
+                        <span className="inline-flex items-center gap-1">
+                          {msg.type === 'ai' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                          {msg.type === 'ai' ? 'InterviewAI' : 'You'}
+                        </span>
                       </div>
                       {msg.text}
                     </motion.div>

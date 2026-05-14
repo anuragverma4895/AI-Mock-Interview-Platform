@@ -133,7 +133,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Welcome back, Developer! 👋
+                  Welcome back, Developer
                 </h1>
                 <p className="text-slate-600 dark:text-slate-300 mt-1">
                   Ready to ace your next interview?
@@ -222,7 +222,7 @@ export default function Dashboard() {
                     {stats.studyStreak} days
                   </div>
                   <p className="text-xs text-orange-600 dark:text-orange-400">
-                    Keep it up! 🔥
+                    Keep the momentum going
                   </p>
                 </CardContent>
               </Card>
@@ -338,7 +338,7 @@ export default function Dashboard() {
                           <div>
                             <p className="font-medium">{interview.type}</p>
                             <p className="text-sm text-slate-500">
-                              {interview.date} • {interview.duration}
+                              {interview.date} | {interview.duration}
                             </p>
                           </div>
                           <div className="text-right">

@@ -1,11 +1,30 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { resumeAPI, interviewAPI } from '../services/api';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Upload, SkipForward, Volume2, Zap } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  CheckCircle,
+  Cloud,
+  Code2,
+  Database,
+  Layers3,
+  LineChart,
+  Monitor,
+  ServerCog,
+  ShieldCheck,
+  Smartphone,
+  Target,
+  Upload,
+  UserRound,
+  Users,
+  Volume2,
+  Zap,
+} from 'lucide-react';
 
 type Step = 'resume' | 'jobRole' | 'interviewType' | 'difficulty' | 'confirm';
 type InterviewType = 'technical' | 'hr' | 'combine';
@@ -27,26 +46,25 @@ export default function InterviewSetup() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const jobRoles: { id: JobRole; label: string; icon: string; description: string }[] = [
-    { id: 'frontend', label: 'Frontend Developer', icon: '🎨', description: 'React, Vue, Angular' },
-    { id: 'backend', label: 'Backend Developer', icon: '⚙️', description: 'Node, Python, Java' },
-    { id: 'fullstack', label: 'Full Stack Developer', icon: '🔗', description: 'Frontend + Backend' },
-    { id: 'mern', label: 'MERN Stack', icon: '⚛️', description: 'MongoDB, Express, React, Node' },
-    { id: 'mevn', label: 'MEVN Stack', icon: '💚', description: 'MongoDB, Express, Vue, Node' },
-    { id: 'mobile', label: 'Mobile Developer', icon: '📱', description: 'React Native, Flutter' },
-    { id: 'dse', label: 'Data Science Engineer', icon: '📊', description: 'Python, ML, Analytics' },
-    { id: 'da', label: 'Data Analyst', icon: '📈', description: 'SQL, Analytics, BI Tools' },
-    { id: 'ds', label: 'DevOps/SRE', icon: '🐳', description: 'Docker, K8s, Cloud' },
-    { id: 'devops', label: 'Cloud Engineer', icon: '☁️', description: 'AWS, Azure, GCP' },
-    { id: 'qa', label: 'QA Engineer', icon: '🧪', description: 'Testing, Automation' },
+  const jobRoles: { id: JobRole; label: string; icon: ReactNode; description: string }[] = [
+    { id: 'frontend', label: 'Frontend Developer', icon: <Monitor className="h-6 w-6" />, description: 'React, Vue, Angular' },
+    { id: 'backend', label: 'Backend Developer', icon: <ServerCog className="h-6 w-6" />, description: 'Node, Python, Java' },
+    { id: 'fullstack', label: 'Full Stack Developer', icon: <Layers3 className="h-6 w-6" />, description: 'Frontend + Backend' },
+    { id: 'mern', label: 'MERN Stack', icon: <Code2 className="h-6 w-6" />, description: 'MongoDB, Express, React, Node' },
+    { id: 'mevn', label: 'MEVN Stack', icon: <Database className="h-6 w-6" />, description: 'MongoDB, Express, Vue, Node' },
+    { id: 'mobile', label: 'Mobile Developer', icon: <Smartphone className="h-6 w-6" />, description: 'React Native, Flutter' },
+    { id: 'dse', label: 'Data Science Engineer', icon: <BarChart3 className="h-6 w-6" />, description: 'Python, ML, Analytics' },
+    { id: 'da', label: 'Data Analyst', icon: <LineChart className="h-6 w-6" />, description: 'SQL, Analytics, BI Tools' },
+    { id: 'ds', label: 'DevOps/SRE', icon: <ShieldCheck className="h-6 w-6" />, description: 'Docker, K8s, Cloud' },
+    { id: 'devops', label: 'Cloud Engineer', icon: <Cloud className="h-6 w-6" />, description: 'AWS, Azure, GCP' },
+    { id: 'qa', label: 'QA Engineer', icon: <Target className="h-6 w-6" />, description: 'Testing, Automation' },
   ];
 
-  const interviewTypes: { id: InterviewType; label: string; icon: string; description: string }[] = [
-    { id: 'technical', label: 'Technical Interview', icon: '💻', description: 'DSA, System Design, Database' },
-    { id: 'hr', label: 'HR Interview', icon: '👤', description: 'Soft skills & behavioral' },
-    { id: 'combine', label: 'Combined', icon: '🎯', description: 'Both technical and HR' },
+  const interviewTypes: { id: InterviewType; label: string; icon: ReactNode; description: string }[] = [
+    { id: 'technical', label: 'Technical Interview', icon: <Code2 className="h-7 w-7" />, description: 'DSA, System Design, Database' },
+    { id: 'hr', label: 'HR Interview', icon: <UserRound className="h-7 w-7" />, description: 'Soft skills & behavioral' },
+    { id: 'combine', label: 'Combined', icon: <Users className="h-7 w-7" />, description: 'Both technical and HR' },
   ];
-
   const difficulties: { id: Difficulty; label: string; description: string }[] = [
     { id: 'easy', label: 'Easy', description: 'Beginner level' },
     { id: 'medium', label: 'Medium', description: 'Intermediate level' },
@@ -165,7 +183,7 @@ export default function InterviewSetup() {
                     onClick={handleContinueWithoutResume}
                     className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/30 h-12"
                   >
-                    <SkipForward className="mr-2 h-4 w-4" />
+                    <ArrowRight className="mr-2 h-4 w-4" />
                     Continue Without Resume
                   </Button>
                 </>
@@ -181,7 +199,7 @@ export default function InterviewSetup() {
                         <p className="text-emerald-300 font-semibold mb-2">Resume Uploaded</p>
                         <p className="text-white/70 text-sm">Questions will be customized based on your resume</p>
                       </div>
-                      <div className="text-3xl">✓</div>
+                      <CheckCircle className="h-8 w-8 text-emerald-300" />
                     </div>
                   </motion.div>
 
@@ -218,7 +236,7 @@ export default function InterviewSetup() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="text-2xl">{role.icon}</div>
+                      <div className="text-cyan-300">{role.icon}</div>
                       <div className="flex-1">
                         <h3 className="text-white font-semibold text-sm">{role.label}</h3>
                         <p className="text-white/60 text-xs">{role.description}</p>
@@ -259,7 +277,7 @@ export default function InterviewSetup() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex gap-4">
-                        <div className="text-3xl">{type.icon}</div>
+                        <div className="text-cyan-300">{type.icon}</div>
                         <div>
                           <h3 className="text-white font-semibold text-lg">{type.label}</h3>
                           <p className="text-white/60 text-sm">{type.description}</p>
@@ -403,3 +421,4 @@ export default function InterviewSetup() {
     </div>
   );
 }
+
