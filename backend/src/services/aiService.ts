@@ -102,7 +102,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!result) throw new Error('Empty response from Gemini');
         return result;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Gemini API Error:', error);
         if (error.message.includes('API error')) throw error; // Retry
         // If network error, try OpenAI
@@ -123,7 +123,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
         const result = completion.choices[0]?.message?.content;
         if (!result) throw new Error('Empty response from OpenAI');
         return result;
-      } catch (error) {
+      } catch (error: any) {
         console.error('OpenAI API Error:', error);
         if (error.message.includes('rate limit') || error.message.includes('timeout')) {
           throw error; // Retry
@@ -140,7 +140,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
       retries: 3,
       minTimeout: 1000,
       maxTimeout: 5000,
-      onRetry: (error, attempt) => {
+      onRetry: (error: any, attempt: number) => {
         console.log(`Retrying AI call, attempt ${attempt}:`, error.message);
       }
     });

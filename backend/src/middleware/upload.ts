@@ -2,17 +2,19 @@ import multer from 'multer';
 import path from 'path';
 import { fileTypeFromBuffer } from 'file-type';
 
+import { Request } from 'express';
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req: Request, file: any, cb: any) => {
     cb(null, 'uploads/');
   },
-  filename: (req, file, cb) => {
+  filename: (req: Request, file: any, cb: any) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-const fileFilter = async (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = async (req: Request, file: any, cb: any) => {
   const allowedMimeTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
   const allowedExtensions = ['pdf', 'docx'];
 
@@ -34,7 +36,7 @@ export const upload = multer({
   },
 });
 
-const videoFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const videoFileFilter = (req: Request, file: any, cb: any) => {
   const allowedTypes = ['video/webm', 'video/mp4', 'video/avi', 'video/mov'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -45,10 +47,10 @@ const videoFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFil
 
 export const videoUpload = multer({
   storage: multer.diskStorage({
-    destination: (req, file, cb) => {
+    destination: (req: Request, file: any, cb: any) => {
       cb(null, 'uploads/videos/');
     },
-    filename: (req, file, cb) => {
+    filename: (req: Request, file: any, cb: any) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       cb(null, uniqueSuffix + path.extname(file.originalname));
     },

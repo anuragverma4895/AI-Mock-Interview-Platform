@@ -33,11 +33,11 @@ export const combineVideoChunks = async (
   for (let i = 0; i < totalChunks; i++) {
     const chunkPath = path.join(uploadDir, `chunk-${i}.webm`);
     try {
-      await fsSync.access(chunkPath);
+      await fs.access(chunkPath);
       const readStream = fsSync.createReadStream(chunkPath);
       await new Promise((resolve, reject) => {
         readStream.pipe(writeStream, { end: false });
-        readStream.on('end', resolve);
+        readStream.on('end', () => resolve(null));
         readStream.on('error', reject);
       });
     } catch (error) {
