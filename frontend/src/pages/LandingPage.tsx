@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { Logo } from "@/components/Logo"
 import { useNavigate } from "react-router-dom"
 import { useEffect } from "react"
 import { useAuthStore } from "../store/authStore"
@@ -114,13 +115,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <motion.div
-              className="flex items-center space-x-2"
+              className="flex items-center"
               whileHover={{ scale: 1.05 }}
             >
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                InterviewAI
-              </span>
+              <Logo />
             </motion.div>
 
             <div className="hidden md:flex items-center space-x-8">
@@ -458,9 +456,8 @@ function example() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
-                <span className="text-xl font-bold">InterviewAI</span>
+              <div className="mb-4">
+                <Logo />
               </div>
               <p className="text-slate-400">
                 The most advanced AI-powered interview preparation platform.
