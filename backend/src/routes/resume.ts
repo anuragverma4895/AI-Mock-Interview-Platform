@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { uploadResume, getResume, getUserResumes, deleteResume } from '../controllers/resumeController';
+import { uploadResume, analyzeResume, getResume, getUserResumes, deleteResume } from '../controllers/resumeController';
 import { auth, AuthRequest } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import { validateResumeId, validateUserId } from '../middleware/validation';
