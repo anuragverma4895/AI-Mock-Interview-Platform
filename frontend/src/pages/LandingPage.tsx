@@ -11,10 +11,13 @@ import {
   Brain,
   Code,
   FileText,
+  MessageSquare,
+  PlayCircle,
   Users,
   TrendingUp,
   Shield,
-  Star
+  Star,
+  Upload
 } from "lucide-react"
 
 export default function LandingPage() {
@@ -81,6 +84,24 @@ export default function LandingPage() {
     }
   ]
 
+  const workflowSteps = [
+    {
+      icon: <Upload className="h-7 w-7" />,
+      title: "Upload your resume",
+      description: "Start with your resume or continue without one. The platform prepares questions around your profile and goals."
+    },
+    {
+      icon: <MessageSquare className="h-7 w-7" />,
+      title: "Practice realistic rounds",
+      description: "Choose your role, interview type, and difficulty, then answer AI-generated questions in a focused session."
+    },
+    {
+      icon: <TrendingUp className="h-7 w-7" />,
+      title: "Review your feedback",
+      description: "Get scores, improvement areas, transcripts, and analytics so your next attempt is sharper than the last."
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
       {/* Navigation */}
@@ -108,8 +129,8 @@ export default function LandingPage() {
               <a href="#testimonials" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
                 Testimonials
               </a>
-              <a href="#pricing" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
-                Pricing
+              <a href="#workflow" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
+                How It Works
               </a>
             </div>
 
@@ -283,6 +304,69 @@ function example() {
         </div>
       </section>
 
+      {/* Workflow Section */}
+      <section id="workflow" className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <Badge variant="indigo" className="mb-5">
+              Built for repeated practice
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+              Practice, improve, repeat
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
+              A simple flow that takes you from setup to actionable feedback without checkout distractions.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {workflowSteps.map((step, index) => (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.12 }}
+              >
+                <Card className="h-full border-slate-200/80 bg-white/80 shadow-soft backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
+                  <CardContent className="p-6">
+                    <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/25">
+                      {step.icon}
+                    </div>
+                    <div className="mb-3 text-sm font-semibold text-indigo-600 dark:text-indigo-300">
+                      Step {index + 1}
+                    </div>
+                    <h3 className="mb-3 text-xl font-semibold text-slate-900 dark:text-white">
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {step.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <Button
+              size="lg"
+              className="group"
+              onClick={() => navigate(token ? '/interview' : '/register')}
+            >
+              <PlayCircle className="mr-2 h-5 w-5" />
+              Start Practicing
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -385,9 +469,9 @@ function example() {
             <div>
               <h3 className="font-semibold mb-4">Product</h3>
               <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Demo</a></li>
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#workflow" className="hover:text-white transition-colors">How It Works</a></li>
+                <li><button onClick={() => navigate('/demo')} className="hover:text-white transition-colors">Demo</button></li>
               </ul>
             </div>
 
