@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { interviewAPI } from '../services/api';
+import { interviewAPI, demoAPI } from '../services/api';
 import { Interview as InterviewData, AnswerEvaluation } from '../types';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -47,11 +47,16 @@ export default function Interview() {
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const recognitionRef = useRef<any>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fullRecordingChunksRef = useRef<Blob[]>([]);
+  const fullMediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     loadInterview();
@@ -68,6 +73,8 @@ export default function Interview() {
     return () => {
       clearInterval(timer);
       stopCamera();
+      stopFullRecording();
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
   }, []);
 
@@ -137,6 +144,9 @@ export default function Interview() {
         videoRef.current.srcObject = stream;
       }
       setCameraPermissionGranted(true);
+
+      // Start full interview recording automatically
+      startFullRecording(stream);
     } catch (error: any) {
       console.error('Error accessing camera:', error);
       let errorMessage = 'Unable to access camera and microphone. ';
@@ -220,6 +230,55 @@ export default function Interview() {
     }
   };
 
+  // Full interview recording (runs entire session, uploaded to Cloudinary at end)
+  const startFullRecording = (stream: MediaStream) => {
+    try {
+      if (!MediaRecorder.isTypeSupported('video/webm')) return;
+
+      fullRecordingChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          fullRecordingChunksRef.current.push(event.data);
+        }
+      };
+
+      fullMediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(1000); // Collect data every 1 second
+
+      // Start recording timer
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+      console.log('Full interview recording started');
+    } catch (e) {
+      console.error('Failed to start full recording:', e);
+    }
+  };
+
+  const stopFullRecording = () => {
+    if (fullMediaRecorderRef.current && fullMediaRecorderRef.current.state !== 'inactive') {
+      fullMediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const formatRecordingTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const toggleVoiceInput = () => {
     if (listening) {
       recognitionRef.current?.stop();
@@ -269,6 +328,13 @@ export default function Interview() {
 
   const handleEndInterview = async () => {
     stopRecording();
+    stopFullRecording();
+
+    // Build recording blob from full recording
+    let recordingBlob: Blob | null = null;
+    if (fullRecordingChunksRef.current.length > 0) {
+      recordingBlob = new Blob(fullRecordingChunksRef.current, { type: 'video/webm' });
+    }
 
     try {
       const res = await interviewAPI.endInterview(id!, undefined, {
@@ -276,7 +342,31 @@ export default function Interview() {
         suggestions: ['Good eye contact', 'Maintain posture'],
       });
       setClosingMessage(res.data.closingMessage);
-      setTimeout(() => navigate(`/interview-result/${id}`), 3000);
+
+      // Auto-upload recording to Cloudinary
+      if (recordingBlob && recordingBlob.size > 0) {
+        setUploadingRecording(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(recordingBlob);
+          reader.onloadend = async () => {
+            const base64 = reader.result as string;
+            try {
+              await demoAPI.uploadRecording(id!, base64, recordingTime);
+              console.log('Recording uploaded successfully!');
+            } catch (uploadErr) {
+              console.error('Recording upload failed:', uploadErr);
+            } finally {
+              setUploadingRecording(false);
+            }
+          };
+        } catch (e) {
+          console.error('Error reading recording:', e);
+          setUploadingRecording(false);
+        }
+      }
+
+      setTimeout(() => navigate(`/interview-result/${id}`), 4000);
     } catch (error) {
       console.error('Error ending interview:', error);
       navigate(`/interview-result/${id}`);
@@ -307,8 +397,17 @@ export default function Interview() {
             </motion.div>
             <h2 className="text-3xl font-bold mb-6 text-white">Interview Complete!</h2>
             <p className="text-white/90 text-lg leading-relaxed mb-6">{closingMessage}</p>
-            <p className="text-white/70 font-medium">Redirecting to results...</p>
-            <div className="mt-6 w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
+            {uploadingRecording ? (
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-white/70 font-medium">Saving your recording...</p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-emerald-300 font-medium mb-2">✓ Recording saved to your profile!</p>
+                <p className="text-white/70 font-medium">Redirecting to results...</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -364,6 +463,21 @@ export default function Interview() {
               <Badge variant="secondary" className="bg-white/10 text-white border-white/20">
                 Question {(interview?.currentQuestionIndex ?? 0) + 1} of 10
               </Badge>
+              {/* Recording Timer */}
+              {recordingTime > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center space-x-2 bg-red-500/20 border border-red-400/30 text-red-300 px-3 py-1.5 rounded-full"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="w-2.5 h-2.5 bg-red-500 rounded-full"
+                  />
+                  <span className="font-mono text-sm font-semibold">REC {formatRecordingTime(recordingTime)}</span>
+                </motion.div>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-3">

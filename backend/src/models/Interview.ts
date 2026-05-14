@@ -23,6 +23,9 @@ export interface IInterview extends Document {
     timestamp: Date;
   }>;
   videoPath?: string;
+  recordingUrl?: string;
+  recordingDuration?: number;
+  isPublished?: boolean;
   bodyLanguageData?: {
     eyeContact: number;
     faceOrientation: number;
@@ -82,6 +85,9 @@ const interviewSchema = new Schema<IInterview>(
       },
     ],
     videoPath: String,
+    recordingUrl: String,
+    recordingDuration: { type: Number, default: 0 },
+    isPublished: { type: Boolean, default: false },
     bodyLanguageData: {
       eyeContact: Number,
       faceOrientation: Number,
@@ -104,4 +110,20 @@ const interviewSchema = new Schema<IInterview>(
 // Add compound index for userId and status
 interviewSchema.index({ userId: 1, status: 1 });
 
-export default mongoose.model<IInterview>('Interview', interviewSchema);
+// Static method to find user's recordings
+interviewSchema.statics.findMyRecordings = function (userId: string) {
+  return this.find({
+    userId,
+    status: 'completed',
+    recordingUrl: { $exists: true, $ne: '' },
+  })
+    .select('recordingUrl recordingDuration isPublished finalScore questions completedAt createdAt')
+    .sort({ completedAt: -1 });
+};
+
+const Interview = mongoose.model<IInterview>('Interview', interviewSchema);
+
+// Attach static type
+(Interview as any).findMyRecordings = interviewSchema.statics.findMyRecordings;
+
+export default Interview;

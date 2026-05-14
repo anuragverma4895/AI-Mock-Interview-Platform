@@ -80,4 +80,16 @@ export const analyticsAPI = {
   getInterviewAnalytics: (id: string) => api.get(`/analytics/interview/${id}`),
 };
 
+export const demoAPI = {
+  uploadRecording: (interviewId: string, videoBase64: string, duration: number) =>
+    api.post(`/demo/upload-recording/${interviewId}`, { videoBase64, duration }, {
+      timeout: 120000, // 2 min timeout for large uploads
+    }),
+  publish: (interviewId: string) => api.post(`/demo/publish/${interviewId}`),
+  unpublish: (interviewId: string) => api.post(`/demo/unpublish/${interviewId}`),
+  deleteRecording: (interviewId: string) => api.delete(`/demo/recording/${interviewId}`),
+  getMyRecordings: () => api.get('/demo/my-recordings'),
+  getPublicDemos: () => api.get('/demo/public'),
+};
+
 export default api;

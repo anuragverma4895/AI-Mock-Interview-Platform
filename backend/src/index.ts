@@ -8,6 +8,7 @@ import resumeRoutes from './routes/resume';
 import interviewRoutes from './routes/interview';
 import videoRoutes from './routes/video';
 import analyticsRoutes from './routes/analytics';
+import demoRoutes from './routes/demo';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
 
@@ -63,6 +64,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/demo', demoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 
