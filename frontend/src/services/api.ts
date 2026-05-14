@@ -36,6 +36,7 @@ export const resumeAPI = {
     api.post('/resume/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  analyze: (id: string, role: string) => api.post(`/resume/analyze/${id}`, { role }),
   getResume: (id: string) => api.get(`/resume/${id}`),
   getUserResumes: (userId: string) => api.get(`/resume/user/${userId}`),
   deleteResume: (id: string) => api.delete(`/resume/${id}`),

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Resume from '../models/Resume';
-import { parseResume } from '../services/resumeParser';
+import { parseResume, analyzeResumeSuitability } from '../services/resumeParser';
 import path from 'path';
 import { auth, AuthRequest } from '../middleware/auth';
 
@@ -57,6 +57,32 @@ export const getUserResumes = async (req: AuthRequest, res: Response): Promise<v
     res.json(resumes);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching resumes', error: String(error) });
+  }
+};
+
+export const analyzeResume = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const resume = await Resume.findOne({ _id: req.params.id, userId: req.user?.id });
+    if (!resume) {
+      res.status(404).json({ message: 'Resume not found' });
+      return;
+    }
+
+    const { role } = req.body;
+    if (!role) {
+      res.status(400).json({ message: 'Role is required' });
+      return;
+    }
+
+    const analysis = analyzeResumeSuitability(resume.parsedData, role);
+
+    res.json({
+      resumeId: resume._id,
+      role,
+      analysis,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error analyzing resume', error: String(error) });
   }
 };
 

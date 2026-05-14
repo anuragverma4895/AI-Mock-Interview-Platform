@@ -81,6 +81,56 @@ const extractSkills = (text: string): string[] => {
   return [...new Set(foundSkills)];
 };
 
+export const analyzeResumeSuitability = (parsedData: ParsedResume, role: string): {
+  suitabilityScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  recommendations: string[];
+} => {
+  const roleSkills: Record<string, string[]> = {
+    frontend: ['javascript', 'typescript', 'react', 'vue', 'angular', 'html', 'css', 'tailwind'],
+    backend: ['nodejs', 'python', 'java', 'express', 'django', 'spring', 'sql', 'mongodb'],
+    fullstack: ['javascript', 'typescript', 'react', 'nodejs', 'express', 'sql', 'mongodb'],
+    mern: ['mongodb', 'express', 'react', 'nodejs'],
+    mevn: ['mongodb', 'express', 'vue', 'nodejs'],
+    mobile: ['react native', 'flutter', 'swift', 'kotlin'],
+    dse: ['python', 'machine learning', 'tensorflow', 'pandas', 'numpy', 'scikit-learn'],
+    da: ['sql', 'python', 'excel', 'tableau', 'power bi', 'pandas'],
+    ds: ['docker', 'kubernetes', 'aws', 'azure', 'jenkins', 'terraform'],
+    devops: ['aws', 'azure', 'gcp', 'docker', 'kubernetes'],
+    qa: ['selenium', 'cypress', 'jest', 'testing', 'automation']
+  };
+
+  const requiredSkills = roleSkills[role.toLowerCase()] || [];
+  const resumeSkills = parsedData.skills.map(s => s.toLowerCase());
+
+  const matchedSkills = requiredSkills.filter(skill => resumeSkills.includes(skill));
+  const missingSkills = requiredSkills.filter(skill => !resumeSkills.includes(skill));
+
+  const suitabilityScore = requiredSkills.length > 0 ? Math.round((matchedSkills.length / requiredSkills.length) * 100) : 0;
+
+  const recommendations = [];
+  if (suitabilityScore < 50) {
+    recommendations.push('Consider gaining more experience in core technologies for this role.');
+  }
+  if (missingSkills.length > 0) {
+    recommendations.push(`Focus on learning: ${missingSkills.slice(0, 3).join(', ')}`);
+  }
+  if (parsedData.projects.length < 2) {
+    recommendations.push('Add more relevant projects to showcase your skills.');
+  }
+  if (parsedData.experience.length === 0) {
+    recommendations.push('Highlight your professional experience more prominently.');
+  }
+
+  return {
+    suitabilityScore,
+    matchedSkills,
+    missingSkills,
+    recommendations,
+  };
+};
+
 const extractProjects = (text: string): Array<{ name: string; description: string }> => {
   const projects: Array<{ name: string; description: string }> = [];
   const lines = text.split('\n');
