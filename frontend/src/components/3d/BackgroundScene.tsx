@@ -1,85 +1,22 @@
-import { Canvas } from '@react-three/fiber'
-import { Suspense } from 'react'
-import { PerspectiveCamera, Stars } from '@react-three/drei'
-import * as THREE from 'three'
-
-function AnimatedGeometries() {
-  const meshRef1 = (el: THREE.Mesh) => {
-    if (el) {
-      el.rotation.x = 0.1
-      el.rotation.y = 0.1
-    }
-  }
-
-  return (
-    <>
-      <mesh ref={meshRef1} position={[-3, 1, -5]}>
-        <boxGeometry args={[1.5, 1.5, 1.5]} />
-        <meshPhongMaterial 
-          color="#3b82f6" 
-          wireframe={false}
-          emissive="#1e40af"
-          shininess={100}
-        />
-      </mesh>
-
-      <mesh position={[3, -1, -5]} rotation={[0.4, 0.4, 0]}>
-        <sphereGeometry args={[1.2, 32, 32]} />
-        <meshPhongMaterial 
-          color="#8b5cf6"
-          emissive="#5b21b6"
-          wireframe={false}
-          shininess={100}
-        />
-      </mesh>
-
-      <mesh position={[0, 0, -8]} rotation={[0, 0.5, 0]}>
-        <octahedronGeometry args={[1.5, 0]} />
-        <meshPhongMaterial 
-          color="#ec4899"
-          emissive="#be185d"
-          wireframe={false}
-          shininess={100}
-        />
-      </mesh>
-
-      <mesh position={[-2, -2, -5]} rotation={[0.3, 0.3, 0]}>
-        <icosahedronGeometry args={[0.8, 4]} />
-        <meshPhongMaterial 
-          color="#10b981"
-          emissive="#065f46"
-          wireframe={false}
-          shininess={100}
-        />
-      </mesh>
-
-      <mesh position={[2, 2, -6]}>
-        <tetrahedronGeometry args={[1, 0]} />
-        <meshPhongMaterial 
-          color="#f59e0b"
-          emissive="#b45309"
-          wireframe={false}
-          shininess={100}
-        />
-      </mesh>
-
-      <ambientLight intensity={0.6} />
-      <pointLight position={[10, 10, 10]} intensity={1} color="#ffffff" />
-      <pointLight position={[-10, -10, 5]} intensity={0.5} color="#3b82f6" />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-    </>
-  )
-}
+const shapes = [
+  'left-[12%] top-[18%] h-28 w-28 rotate-12 border-cyan-300/40 bg-cyan-400/10 shadow-cyan-400/20',
+  'right-[14%] top-[28%] h-32 w-32 -rotate-12 rounded-full border-violet-300/40 bg-violet-400/10 shadow-violet-400/20',
+  'left-[42%] top-[46%] h-36 w-36 rotate-45 border-pink-300/35 bg-pink-400/10 shadow-pink-400/20',
+  'left-[22%] bottom-[14%] h-24 w-24 -rotate-6 border-emerald-300/35 bg-emerald-400/10 shadow-emerald-400/20',
+  'right-[26%] bottom-[20%] h-24 w-24 rotate-[28deg] border-amber-300/35 bg-amber-400/10 shadow-amber-400/20',
+]
 
 export function BackgroundScene() {
   return (
-    <div className="fixed inset-0 -z-10 h-full w-full">
-      <Canvas>
-        <PerspectiveCamera position={[0, 0, 5]} fov={75} />
-        <Suspense fallback={null}>
-          <AnimatedGeometries />
-        </Suspense>
-      </Canvas>
+    <div className="fixed inset-0 -z-10 h-full w-full overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_80%_30%,rgba(168,85,247,0.18),transparent_30%),radial-gradient(circle_at_50%_80%,rgba(16,185,129,0.14),transparent_28%)]" />
+      <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(circle,rgba(255,255,255,0.65)_1px,transparent_1px)] [background-size:28px_28px]" />
+      {shapes.map((className) => (
+        <div
+          key={className}
+          className={`absolute border shadow-2xl backdrop-blur-sm ${className}`}
+        />
+      ))}
     </div>
   )
 }
