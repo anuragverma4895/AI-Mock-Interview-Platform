@@ -35,6 +35,7 @@ export default function Interview() {
   const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [questionLoading, setQuestionLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(45 * 60);
   const [isRecording, setIsRecording] = useState(false);
   const [closingMessage, setClosingMessage] = useState('');
@@ -51,6 +52,7 @@ export default function Interview() {
   const [endingInterview, setEndingInterview] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fullRecordingChunksRef = useRef<Blob[]>([]);
@@ -74,9 +76,16 @@ export default function Interview() {
       clearInterval(timer);
       void stopFullRecording();
       stopCamera();
+      speechSynthesis.cancel();
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (videoRef.current && streamRef.current && !videoRef.current.srcObject) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [loading, currentQuestion]);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -139,6 +148,7 @@ export default function Interview() {
         audio: true
       });
 
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -164,10 +174,32 @@ export default function Interview() {
   };
 
   const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
+    const stream = streamRef.current || (videoRef.current?.srcObject as MediaStream | null);
+
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const toggleCamera = () => {
+    const nextEnabled = !cameraEnabled;
+    streamRef.current?.getVideoTracks().forEach(track => {
+      track.enabled = nextEnabled;
+    });
+    setCameraEnabled(nextEnabled);
+  };
+
+  const toggleMic = () => {
+    const nextEnabled = !micEnabled;
+    streamRef.current?.getAudioTracks().forEach(track => {
+      track.enabled = nextEnabled;
+    });
+    setMicEnabled(nextEnabled);
   };
 
   // Full interview recording (runs entire session, uploaded to Cloudinary at end)
@@ -295,20 +327,28 @@ export default function Interview() {
   };
 
   const handleNextQuestion = async () => {
-    setLoading(true);
-    setAnswer('');
-    setEvaluation(null);
-    setShowFeedback(false);
+    setQuestionLoading(true);
 
     try {
       const res = await interviewAPI.getNextQuestion(id!);
+      setAnswer('');
+      setEvaluation(null);
+      setShowFeedback(false);
       setCurrentQuestion(res.data.question);
+      setInterview(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          currentQuestionIndex: res.data.currentIndex,
+          questions: [...prev.questions, res.data.question],
+        };
+      });
       setConversation(prev => [...prev, {type: 'ai', text: res.data.question.question}]);
       speak(res.data.question.question);
     } catch (error) {
       console.error('Error getting next question:', error);
     } finally {
-      setLoading(false);
+      setQuestionLoading(false);
     }
   };
 
@@ -323,6 +363,8 @@ export default function Interview() {
 
     const finalRecordingTime = recordingTimeRef.current;
     const recordingBlob = await stopFullRecording();
+    stopCamera();
+    speechSynthesis.cancel();
 
     try {
       const res = await interviewAPI.endInterview(id!, undefined, {
@@ -487,17 +529,17 @@ export default function Interview() {
         </div>
       </motion.header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-120px)]">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 min-h-[calc(100vh-120px)] lg:items-start">
           {/* Left Panel - AI Interaction */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
+            className="space-y-6 min-w-0"
           >
             {/* AI Avatar & Question */}
-            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl flex-1">
-              <CardContent className="p-8 h-full flex flex-col">
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+              <CardContent className="p-5 sm:p-6 lg:p-8 h-full max-h-none lg:max-h-[calc(100vh-150px)] overflow-y-auto flex flex-col">
                 {/* AI Avatar */}
                 <div className="flex items-center justify-center mb-8">
                   <motion.div
@@ -528,20 +570,20 @@ export default function Interview() {
                 {/* Question Display */}
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={currentQuestion?.id}
+                    key={currentQuestion?._id || currentQuestion?.question}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    className="flex-1 flex flex-col justify-center"
+                    className="flex flex-col"
                   >
-                    <div className="bg-white/10 rounded-2xl p-6 border border-white/20 mb-6">
+                    <div className="bg-white/10 rounded-2xl p-5 sm:p-6 border border-white/20 mb-6">
                       <div className="flex items-start space-x-3 mb-4">
                         <MessageCircle className="h-6 w-6 text-blue-400 mt-1" />
                         <div className="flex-1">
                           <p className="text-white text-lg leading-relaxed mb-4">
                             {currentQuestion?.question}
                           </p>
-                          <div className="flex gap-3">
+                          <div className="flex flex-wrap gap-3">
                             <Badge variant="secondary" className="bg-blue-500/20 text-blue-200 border-blue-400/30">
                               {currentQuestion?.category}
                             </Badge>
@@ -574,7 +616,7 @@ export default function Interview() {
                         className="w-full h-32 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-white placeholder-white/60 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300 resize-none"
                       />
 
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
                         <Button
                           onClick={toggleVoiceInput}
                           variant={listening ? "destructive" : "secondary"}
@@ -596,7 +638,7 @@ export default function Interview() {
                         <Button
                           onClick={handleSubmitAnswer}
                           disabled={submitting || !answer.trim()}
-                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 min-h-11"
                         >
                           {submitting ? (
                             <div className="flex items-center gap-2">
@@ -622,11 +664,11 @@ export default function Interview() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="space-y-6"
+                      className="space-y-5 pb-2"
                     >
                       {/* Score Card */}
                       <Card className="bg-gradient-to-r from-emerald-500 to-green-600 border-0 shadow-2xl">
-                        <CardContent className="p-6">
+                        <CardContent className="p-5 sm:p-6">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-white">Your Score</h3>
                             <div className="text-4xl font-black text-white">{evaluation.score}/5</div>
@@ -638,7 +680,7 @@ export default function Interview() {
                       {/* Strengths & Improvements */}
                       <div className="grid grid-cols-1 gap-4">
                         <Card className="bg-white/10 backdrop-blur-sm border border-emerald-400/20">
-                          <CardContent className="p-6">
+                          <CardContent className="p-5">
                             <h4 className="text-emerald-300 font-bold mb-4 flex items-center gap-2">
                               <CheckCircle className="h-5 w-5" />
                               Strengths
@@ -655,7 +697,7 @@ export default function Interview() {
                         </Card>
 
                         <Card className="bg-white/10 backdrop-blur-sm border border-amber-400/20">
-                          <CardContent className="p-6">
+                          <CardContent className="p-5">
                             <h4 className="text-amber-300 font-bold mb-4 flex items-center gap-2">
                               <XCircle className="h-5 w-5" />
                               Areas to Improve
@@ -675,10 +717,10 @@ export default function Interview() {
                       {/* Follow-up Question */}
                       {evaluation.followUpQuestion && (
                         <Card className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 backdrop-blur-sm border border-blue-400/30">
-                          <CardContent className="p-6">
-                            <p className="text-blue-200 font-semibold flex items-center gap-2">
-                              <Target className="h-5 w-5" />
-                              Follow-up: {evaluation.followUpQuestion}
+                          <CardContent className="p-5">
+                            <p className="text-blue-100 font-semibold flex items-start gap-2 leading-relaxed">
+                              <Target className="h-5 w-5 shrink-0 mt-0.5" />
+                              <span>Follow-up: {evaluation.followUpQuestion}</span>
                             </p>
                           </CardContent>
                         </Card>
@@ -687,10 +729,11 @@ export default function Interview() {
                       {/* Next Action */}
                       <Button
                         onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
-                        className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 py-4 text-lg font-bold"
+                        disabled={questionLoading || endingInterview}
+                        className="sticky bottom-0 w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 py-4 text-base sm:text-lg font-bold shadow-2xl shadow-purple-950/30 min-h-14"
                       >
-                        {isLastQuestion ? 'Finish Interview' : 'Next Question'}
-                        {!isLastQuestion && <ArrowRight className="ml-2 h-5 w-5" />}
+                        {questionLoading ? 'Loading next question...' : isLastQuestion ? 'Finish Interview' : 'Next Question'}
+                        {!isLastQuestion && !questionLoading && <ArrowRight className="ml-2 h-5 w-5" />}
                       </Button>
                     </motion.div>
                   )}
@@ -717,7 +760,7 @@ export default function Interview() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setCameraEnabled(!cameraEnabled)}
+                      onClick={toggleCamera}
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                     >
                       {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
@@ -725,7 +768,7 @@ export default function Interview() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setMicEnabled(!micEnabled)}
+                      onClick={toggleMic}
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                     >
                       {micEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
@@ -737,6 +780,7 @@ export default function Interview() {
                   <video
                     ref={videoRef}
                     autoPlay
+                    playsInline
                     muted
                     className="w-full h-full object-cover"
                   />
