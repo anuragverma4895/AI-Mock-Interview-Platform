@@ -84,7 +84,7 @@ export const demoAPI = {
   uploadRecording: (interviewId: string, video: Blob | string, duration: number) => {
     if (typeof video === 'string') {
       return api.post(`/demo/upload-recording/${interviewId}`, { videoBase64: video, duration }, {
-        timeout: 180000,
+        timeout: 600000,
       });
     }
 
@@ -93,8 +93,7 @@ export const demoAPI = {
     formData.append('duration', String(duration));
 
     return api.post(`/demo/upload-recording/${interviewId}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 180000,
+      timeout: 600000,
     });
   },
   publish: (interviewId: string) => api.post(`/demo/publish/${interviewId}`),

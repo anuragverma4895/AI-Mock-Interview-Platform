@@ -49,6 +49,7 @@ export default function Interview() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadingRecording, setUploadingRecording] = useState(false);
   const [recordingSaveError, setRecordingSaveError] = useState(false);
+  const [recordingSaveErrorMessage, setRecordingSaveErrorMessage] = useState('');
   const [endingInterview, setEndingInterview] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -365,6 +366,7 @@ export default function Interview() {
     endingInterviewRef.current = true;
     setEndingInterview(true);
     setRecordingSaveError(false);
+    setRecordingSaveErrorMessage('');
 
     const finalRecordingTime = recordingTimeRef.current;
     const recordingBlob = await stopFullRecording();
@@ -383,11 +385,17 @@ export default function Interview() {
           console.log('Recording uploaded successfully!');
         } catch (uploadErr) {
           console.error('Recording upload failed:', uploadErr);
+          const errorMessage = (uploadErr as any)?.response?.data?.message
+            || (uploadErr as any)?.response?.data?.error
+            || (uploadErr as any)?.message
+            || 'Recording upload failed';
+          setRecordingSaveErrorMessage(errorMessage);
           setRecordingSaveError(true);
         } finally {
           setUploadingRecording(false);
         }
       } else {
+        setRecordingSaveErrorMessage('No recording data was captured by the browser.');
         setRecordingSaveError(true);
       }
 
@@ -430,6 +438,9 @@ export default function Interview() {
             ) : recordingSaveError ? (
               <div className="text-center">
                 <p className="text-amber-200 font-medium mb-2">Interview completed, but recording could not be saved.</p>
+                {recordingSaveErrorMessage && (
+                  <p className="mb-2 text-sm text-white/70">{recordingSaveErrorMessage}</p>
+                )}
                 <p className="text-white/70 font-medium">Redirecting to results...</p>
               </div>
             ) : (

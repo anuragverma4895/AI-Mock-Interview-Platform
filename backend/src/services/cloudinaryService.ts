@@ -32,7 +32,6 @@ export const uploadVideoToCloudinary = async (
     signature,
     folder,
     public_id: publicId,
-    resource_type: 'video',
   };
 
   const parts: Buffer[] = [];
