@@ -8,6 +8,7 @@ import { Sidebar, SidebarItem } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/ThemeToggle"
 import {
   User,
   Mail,
@@ -178,6 +179,7 @@ export default function Profile() {
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-3xl font-bold">User Profile</h1>
               <div className="flex gap-3">
+                <ThemeToggle />
                 <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
                   {isEditing ? <X className="mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
                   {isEditing ? 'Cancel' : 'Edit Profile'}
@@ -206,7 +208,7 @@ export default function Profile() {
                     </Button>
                   </div>
                   <h2 className="text-2xl font-bold mb-1">{user?.name}</h2>
-                  <p className="text-slate-500 mb-4 capitalize">{user?.role || 'Interviewer'}</p>
+                  <p className="text-slate-500 mb-4 capitalize dark:text-slate-400">{user?.role || 'Interviewer'}</p>
                   <div className="flex justify-center gap-2">
                     <Badge variant="secondary" className="capitalize">{user?.role || 'candidate'}</Badge>
                     <Badge className="bg-emerald-500">{recordings.length} recordings</Badge>
@@ -246,14 +248,14 @@ export default function Profile() {
                         <div className="flex items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                           <Mail className="h-5 w-5 mr-4 text-indigo-500" />
                           <div>
-                            <p className="text-sm text-slate-500">Email Address</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Email Address</p>
                             <p className="font-medium">{user?.email}</p>
                           </div>
                         </div>
                         <div className="flex items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                           <Shield className="h-5 w-5 mr-4 text-purple-500" />
                           <div>
-                            <p className="text-sm text-slate-500">Account Role</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Account Role</p>
                             <p className="font-medium capitalize">{user?.role}</p>
                           </div>
                         </div>
@@ -314,7 +316,7 @@ export default function Profile() {
                         <Video className="h-8 w-8 text-slate-400" />
                       </div>
                       <h3 className="text-lg font-semibold mb-2">No Recordings Yet</h3>
-                      <p className="text-slate-500 mb-4">Complete a mock interview to get your first recording.</p>
+                      <p className="text-slate-500 mb-4 dark:text-slate-400">Complete a mock interview to get your first recording.</p>
                       <Button onClick={() => navigate('/interview')} className="bg-gradient-to-r from-indigo-600 to-purple-600">
                         <Play className="mr-2 h-4 w-4" />
                         Start Interview
@@ -356,7 +358,7 @@ export default function Profile() {
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                               <span className="flex items-center gap-1">
                                 <Award className="h-3 w-3" />
                                 Score: {typeof rec.finalScore === 'number' ? rec.finalScore.toFixed(1) : 'N/A'}/5
