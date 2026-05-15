@@ -1,5 +1,4 @@
 import https from 'https';
-import http from 'http';
 import crypto from 'crypto';
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
@@ -71,8 +70,8 @@ export const uploadVideoToCloudinary = async (
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.error) {
-            reject(new Error(`Cloudinary error: ${json.error.message}`));
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300 || json.error) {
+            reject(new Error(`Cloudinary upload failed (${res.statusCode || 'no status'}): ${json.error?.message || data}`));
           } else {
             resolve({
               url: json.secure_url || json.url,
@@ -87,6 +86,9 @@ export const uploadVideoToCloudinary = async (
     });
 
     req.on('error', reject);
+    req.setTimeout(5 * 60 * 1000, () => {
+      req.destroy(new Error('Cloudinary upload timed out'));
+    });
     req.write(body);
     req.end();
   });

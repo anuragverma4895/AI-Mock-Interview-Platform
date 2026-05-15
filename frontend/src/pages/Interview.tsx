@@ -221,7 +221,12 @@ export default function Interview() {
       ].find((type) => MediaRecorder.isTypeSupported(type));
 
       fullRecordingChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorderOptions: MediaRecorderOptions = {
+        ...(mimeType ? { mimeType } : {}),
+        videoBitsPerSecond: 450_000,
+        audioBitsPerSecond: 64_000,
+      };
+      const mediaRecorder = new MediaRecorder(stream, recorderOptions);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {

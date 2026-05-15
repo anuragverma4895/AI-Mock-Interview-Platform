@@ -45,7 +45,9 @@ export const upload = multer({
 
 const videoFileFilter = (req: Request, file: any, cb: any) => {
   const allowedTypes = ['video/webm', 'video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
-  if (allowedTypes.includes(file.mimetype)) {
+  const mimeType = String(file.mimetype || '').split(';')[0].trim().toLowerCase();
+
+  if (allowedTypes.includes(mimeType)) {
     cb(null, true);
   } else {
     cb(new Error('Invalid video file type. Only WebM, MP4, AVI, and MOV are allowed.'));
