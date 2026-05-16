@@ -99,40 +99,58 @@ const evaluateAnswerLocally = (
   const trimmedAnswer = answer.trim();
   const words = tokenize(trimmedAnswer);
   const uniqueWords = new Set(words);
-  const expectedTokens = new Set([
-    ...tokenize(question),
-    ...tokenize(idealAnswer || ''),
-    ...(CATEGORY_KEYWORDS[category] || []),
-  ]);
-  const matchedExpected = [...uniqueWords].filter(word => expectedTokens.has(word)).length;
 
-  const lengthScore =
-    words.length >= 90 ? 2 :
-    words.length >= 50 ? 1.5 :
-    words.length >= 25 ? 1 :
-    words.length >= 10 ? 0.5 : 0;
-  const relevanceScore = Math.min(2, matchedExpected * 0.35);
-  const exampleScore = /\b(example|for instance|because|trade-?off|complexity|use case|in my project|we used)\b/i.test(trimmedAnswer) ? 0.7 : 0;
-  const structureScore = /[.!?]\s+\w/.test(trimmedAnswer) || /first|second|then|finally|step/i.test(trimmedAnswer) ? 0.3 : 0;
-  const score = clampScore(1 + lengthScore + relevanceScore + exampleScore + structureScore);
+  // Build expected tokens from the ideal answer (most important), the question, and category keywords
+  const idealTokens = tokenize(idealAnswer || '');
+  const questionTokens = tokenize(question);
+  const categoryTokens = CATEGORY_KEYWORDS[category] || [];
+  const allExpectedTokens = new Set([...idealTokens, ...questionTokens, ...categoryTokens]);
 
-  const strengths = [
-    words.length >= 25 ? 'Answer has enough detail to evaluate.' : 'Answer was submitted clearly.',
-    matchedExpected > 0 ? `Covered relevant ${category} terms from the question.` : 'Stayed on the interview question.',
-  ];
+  // Count how many expected keywords the answer hits
+  const matchedAll = [...uniqueWords].filter(word => allExpectedTokens.has(word)).length;
+  // Specifically measure overlap with the ideal answer (most accurate signal)
+  const idealTokenSet = new Set(idealTokens);
+  const matchedIdeal = idealTokens.length > 0
+    ? [...uniqueWords].filter(word => idealTokenSet.has(word)).length
+    : 0;
+  const idealCoverage = idealTokenSet.size > 0 ? matchedIdeal / idealTokenSet.size : 0;
 
-  const improvements = [
-    words.length < 50 ? 'Add more depth with reasoning and concrete examples.' : 'Tighten the answer by highlighting trade-offs and decisions.',
-    matchedExpected < 3 ? `Use more precise ${category} concepts connected to the question.` : 'Mention edge cases, limitations, or alternatives where relevant.',
-  ];
+  // ----- Scoring (out of 5) -----
+  // Relevance to ideal answer: up to 2.0 points
+  const relevanceScore = Math.min(2, idealCoverage * 3);
+  // Keyword breadth (question + category terms): up to 1.0 point
+  const keywordScore = Math.min(1, matchedAll * 0.15);
+  // Use of examples / reasoning: 0.5 point
+  const exampleScore = /\b(example|for instance|because|trade-?off|complexity|use case|in my project|we used|such as|like when)\b/i.test(trimmedAnswer) ? 0.5 : 0;
+  // Structure / multi-sentence answer: 0.5 point
+  const structureScore = /[.!?]\s+\w/.test(trimmedAnswer) || /first|second|then|finally|step/i.test(trimmedAnswer) ? 0.5 : 0;
+  // Minimum length gate (just to penalise blank/1-word answers): up to 0.5
+  const lengthGate = words.length >= 15 ? 0.5 : words.length >= 5 ? 0.25 : 0;
+
+  // Base of 0.5 so even an attempt gets something
+  const score = clampScore(0.5 + relevanceScore + keywordScore + exampleScore + structureScore + lengthGate);
+
+  const strengths: string[] = [];
+  if (idealCoverage >= 0.3) strengths.push('Your answer covers key concepts from the expected answer.');
+  if (matchedAll >= 3) strengths.push(`Good use of relevant ${category} terminology.`);
+  if (exampleScore > 0) strengths.push('Included practical examples or reasoning.');
+  if (structureScore > 0) strengths.push('Well-structured, multi-sentence answer.');
+  if (strengths.length === 0) strengths.push('Answer was submitted clearly.');
+
+  const improvements: string[] = [];
+  if (idealCoverage < 0.3) improvements.push('Cover more key concepts that the question is asking about.');
+  if (matchedAll < 3) improvements.push(`Use more precise ${category} terminology in your answer.`);
+  if (exampleScore === 0) improvements.push('Add practical examples or reasoning to support your answer.');
+  if (words.length < 15) improvements.push('Provide a more detailed and thorough answer.');
+  if (improvements.length === 0) improvements.push('Consider mentioning edge cases, limitations, or alternatives.');
 
   return {
     score,
-    feedback: `Score is based on answer length, relevance to the question, use of ${category} concepts, examples, and structure.`,
+    feedback: `Score is based on how well your answer matches the expected concepts, use of relevant terminology, examples, and structure.`,
     strengths,
     improvements,
     idealAnswer: idealAnswer || 'A strong answer should explain the core concept, discuss trade-offs, and include a practical example.',
-    followUpQuestion: `Can you add one concrete example or trade-off for your ${category} answer?`,
+    followUpQuestion: `Can you elaborate further on the key concepts in your ${category} answer?`,
   };
 };
 

@@ -92,22 +92,64 @@ export default function Interview() {
     }
   }, [loading, currentQuestion]);
 
+  // Ref to track whether the user intentionally stopped voice input
+  const manualStopRef = useRef(false);
+  // Ref to hold the confirmed (final) transcript so far
+  const confirmedTranscriptRef = useRef('');
+
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setAnswer(prev => prev + ' ' + transcript);
-        setListening(false);
+      recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Append any newly finalised text to the confirmed buffer
+        if (finalTranscript) {
+          confirmedTranscriptRef.current += finalTranscript;
+        }
+
+        // Show confirmed text + whatever is being spoken right now
+        setAnswer(confirmedTranscriptRef.current + interimTranscript);
       };
 
-      recognitionRef.current.onerror = () => {
+      recognition.onerror = (event: any) => {
+        // Ignore 'no-speech' & 'aborted' — these happen naturally during pauses
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
+        console.error('Speech recognition error:', event.error);
         setListening(false);
+        manualStopRef.current = true;
       };
+
+      // Auto-restart when recognition ends (e.g. browser auto-stops after silence)
+      recognition.onend = () => {
+        if (!manualStopRef.current) {
+          // User didn't stop — keep listening
+          try {
+            recognition.start();
+          } catch (_e) {
+            // Already running — ignore
+          }
+        } else {
+          setListening(false);
+        }
+      };
+
+      recognitionRef.current = recognition;
     }
   }, []);
 
@@ -316,10 +358,19 @@ export default function Interview() {
 
   const toggleVoiceInput = () => {
     if (listening) {
+      // User pressed stop — mark manual stop so onend doesn't restart
+      manualStopRef.current = true;
       recognitionRef.current?.stop();
       setListening(false);
     } else {
-      recognitionRef.current?.start();
+      // User pressed start — seed confirmed buffer with existing text
+      manualStopRef.current = false;
+      confirmedTranscriptRef.current = answer ? answer.trimEnd() + ' ' : '';
+      try {
+        recognitionRef.current?.start();
+      } catch (_e) {
+        // Already running — ignore
+      }
       setListening(true);
     }
   };
@@ -652,10 +703,10 @@ export default function Interview() {
                         <Button
                           onClick={toggleVoiceInput}
                           variant={listening ? "destructive" : "secondary"}
-                          className="flex items-center gap-2"
+                          className={`flex items-center gap-2 ${listening ? 'animate-pulse ring-2 ring-red-400/50' : ''}`}
                         >
                           {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                          {listening ? 'Stop Voice' : 'Voice Input'}
+                          {listening ? '🔴 Listening... (Stop)' : '🎤 Voice Input'}
                         </Button>
 
                         <Button
