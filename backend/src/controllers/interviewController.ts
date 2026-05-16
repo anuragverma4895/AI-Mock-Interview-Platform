@@ -17,7 +17,7 @@ const MAX_QUESTIONS = 10;
 
 export const startInterview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { resumeId, duration } = req.body;
+    const { resumeId, duration, jobRole, interviewType, difficulty } = req.body;
 
     let resumeData = null;
     if (resumeId) {
@@ -31,13 +31,26 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       }
     }
 
-    const firstCategory = QUESTION_CATEGORIES[0];
+    // Determine categories based on interview type
+    let categories = QUESTION_CATEGORIES;
+    if (interviewType === 'technical') {
+      categories = ['DSA', 'SystemDesign', 'DB', 'Project', 'DSA'];
+    } else if (interviewType === 'hr') {
+      categories = ['HR', 'Project', 'HR', 'Project', 'HR'];
+    }
+
+    const firstCategory = categories[0];
+    const firstDifficulty = difficulty || 'easy';
     const firstQuestion = await generateInterviewQuestion(
       firstCategory,
-      'easy',
+      firstDifficulty,
       [],
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name)
+      resumeData?.projects?.map(p => p.name),
+      jobRole,
+      interviewType,
+      resumeData?.experience,
+      resumeData?.projects
     );
 
     const interview = new Interview({
@@ -115,6 +128,7 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     const conversationHistory = interview.transcript.map(t => ({
       role: t.answer ? 'user' : 'assistant',
       content: t.answer || t.question,
+      question: t.question,
       timestamp: new Date(t.timestamp)
     }));
 
@@ -126,7 +140,11 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       difficulty,
       conversationHistory,
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name)
+      resumeData?.projects?.map(p => p.name),
+      undefined, // jobRole (not stored yet, could be added)
+      undefined, // interviewType
+      resumeData?.experience,
+      resumeData?.projects
     );
 
     interview.questions.push({

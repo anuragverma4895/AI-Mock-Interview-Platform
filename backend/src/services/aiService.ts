@@ -9,6 +9,9 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 
 const USE_AI = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);
 
+// ═══════════════════════════════════════════════════════════════════
+// FALLBACK QUESTION BANK (used only when AI is unavailable)
+// ═══════════════════════════════════════════════════════════════════
 const QUESTION_BANK = {
   DSA: [
     { question: "Can you explain the difference between an array and a linked list?", difficulty: "easy" },
@@ -149,42 +152,66 @@ export interface AnswerEvaluation {
   followUpQuestion?: string;
 }
 
-/**
- * Generic AI completion helper using native fetch for Gemini with retry logic
- */
-async function getAICompletion(prompt: string, systemPrompt: string = "You are Alex, a friendly technical interviewer."): Promise<string> {
+// ═══════════════════════════════════════════════════════════════════
+// GEMINI API INTEGRATION (real-time, no SDK, native fetch)
+// ═══════════════════════════════════════════════════════════════════
+
+// Use the latest Gemini model
+const GEMINI_MODEL = 'gemini-flash-latest';
+
+async function getAICompletion(prompt: string, systemPrompt: string = "You are Alex, a professional and friendly technical interviewer at a top tech company."): Promise<string> {
   const callAI = async (bail: (error: Error) => void, attempt: number) => {
     console.log(`AI attempt ${attempt}`);
 
-    // Try Gemini First using native fetch (no dependency needed)
+    // Try Gemini first
     if (process.env.GEMINI_API_KEY) {
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }]
-          })
-        });
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }],
+              generationConfig: {
+                temperature: 0.8,
+                topP: 0.95,
+                maxOutputTokens: 2048,
+              },
+            }),
+          }
+        );
 
         if (!response.ok) {
+          const errorBody = await response.text();
+          console.error(`Gemini API HTTP ${response.status}:`, errorBody);
           const error = new Error(`Gemini API error: ${response.status}`);
           if (response.status >= 500) throw error; // Retry on server errors
-          bail(error); // Don't retry on client errors
+          bail(error); // Don't retry 4xx
+          return ''; // Unreachable but satisfies TS
         }
 
         const data: any = await response.json();
         const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!result) throw new Error('Empty response from Gemini');
+        if (!result) {
+          console.error('Empty Gemini response:', JSON.stringify(data));
+          throw new Error('Empty response from Gemini');
+        }
         return result;
       } catch (error: any) {
-        console.error('Gemini API Error:', error);
-        if (error.message.includes('API error')) throw error; // Retry
-        // If network error, try OpenAI
+        console.error('Gemini API Error:', error.message);
+        if (error.message.includes('API error')) {
+          if (error.message.includes('403') || error.message.includes('401')) {
+            bail(error); // Key issue — don't retry
+            return '';
+          }
+          throw error; // Retry 5xx
+        }
+        // Network errors — fall through to OpenAI
       }
     }
 
-    // Try OpenAI Second
+    // Try OpenAI as fallback
     if (openai) {
       try {
         const completion = await openai.chat.completions.create({
@@ -204,6 +231,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
           throw error; // Retry
         }
         bail(error); // Don't retry other errors
+        return '';
       }
     }
 
@@ -225,12 +253,20 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// QUESTION GENERATION — Real-time, resume-aware, context-aware
+// ═══════════════════════════════════════════════════════════════════
+
 export const generateInterviewQuestion = async (
   category: string,
   difficulty: string,
   conversationHistory: any[] = [],
   resumeSkills?: string[],
-  projectNames?: string[]
+  projectNames?: string[],
+  jobRole?: string,
+  interviewType?: string,
+  experience?: Array<{ company: string; role: string; duration: string }>,
+  projectDescriptions?: Array<{ name: string; description: string }>
 ): Promise<GeneratedQuestion> => {
   if (!USE_AI) {
     const q = selectQuestion(category, difficulty, conversationHistory);
@@ -243,20 +279,61 @@ export const generateInterviewQuestion = async (
   }
 
   try {
-    const prompt = `Generate a ${difficulty} level interview question for the category: ${category}. 
-    ${resumeSkills ? `Base it on these skills: ${resumeSkills.join(', ')}.` : ''}
-    ${projectNames ? `Base it on these projects: ${projectNames.join(', ')}.` : ''}
-    Response format: Only return the question text.`;
+    // Build the previously-asked questions list to avoid repetition
+    const previousQuestions = conversationHistory
+      .filter(h => h.role === 'assistant' || h.question)
+      .map(h => h.content || h.question)
+      .filter(Boolean);
 
-    const response = await getAICompletion(prompt);
-    
+    const prompt = `You are conducting a real mock interview for a ${jobRole || 'software developer'} position.
+
+CATEGORY: ${category}
+DIFFICULTY: ${difficulty}
+INTERVIEW TYPE: ${interviewType || 'technical'}
+
+${resumeSkills?.length ? `CANDIDATE'S SKILLS (from resume): ${resumeSkills.join(', ')}` : ''}
+${projectDescriptions?.length ? `CANDIDATE'S PROJECTS:\n${projectDescriptions.map(p => `- ${p.name}: ${p.description}`).join('\n')}` : projectNames?.length ? `CANDIDATE'S PROJECTS: ${projectNames.join(', ')}` : ''}
+${experience?.length ? `CANDIDATE'S EXPERIENCE:\n${experience.map(e => `- ${e.role} at ${e.company} (${e.duration})`).join('\n')}` : ''}
+
+${previousQuestions.length > 0 ? `ALREADY ASKED (DO NOT REPEAT):\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}` : ''}
+
+INSTRUCTIONS:
+- Generate ONE ${difficulty}-level interview question for the ${category} category
+- The question MUST be personalized to the candidate's resume, skills, and projects if available
+- For ${category === 'Project' ? 'project questions: ask about specific projects from their resume' : category === 'HR' ? 'HR questions: ask behavioral/situational questions relevant to their experience level' : category === 'DSA' ? 'DSA questions: relate to technologies they use (e.g., if they know React, ask about virtual DOM diffing algorithms)' : category === 'SystemDesign' ? 'system design: ask them to design something related to projects they have built' : category === 'DB' ? 'database questions: relate to the databases/ORMs they have used' : 'technical questions relevant to their stack'}
+- Make it sound natural — like a real interviewer asking, not a textbook question
+- Do NOT repeat any previously asked question
+- Question should test real understanding, not just definitions
+
+Respond in this EXACT JSON format:
+{
+  "question": "Your interview question here",
+  "idealAnswer": "A brief 2-3 sentence ideal answer outline"
+}`;
+
+    const response = await getAICompletion(prompt, 'You are Alex, a senior technical interviewer. Output ONLY valid JSON, no markdown, no explanation.');
+
+    // Parse JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]);
+      return {
+        question: data.question || 'Tell me about your technical experience.',
+        category,
+        difficulty,
+        idealAnswer: data.idealAnswer || 'A comprehensive answer with practical examples.'
+      };
+    }
+
+    // If not JSON, use the raw text as the question
     return {
-      question: response || selectQuestion(category, difficulty, conversationHistory).question,
+      question: response.trim().replace(/^["']|["']$/g, ''),
       category,
       difficulty,
-      idealAnswer: "Expected answer with practical examples"
+      idealAnswer: 'A comprehensive answer with practical examples.'
     };
   } catch (error) {
+    console.error('Question generation failed, using fallback:', error);
     const q = selectQuestion(category, difficulty, conversationHistory);
     return {
       question: q.question,
@@ -266,6 +343,10 @@ export const generateInterviewQuestion = async (
     };
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// ANSWER EVALUATION — Real-time, detailed AI feedback
+// ═══════════════════════════════════════════════════════════════════
 
 export const evaluateAnswer = async (
   question: string,
@@ -280,47 +361,61 @@ export const evaluateAnswer = async (
   }
 
   try {
-    const prompt = `Question: ${question}
-    Candidate's Answer: ${answer}
-    Category: ${category}
-    
-    Evaluate the answer and provide:
-    1. A score (1-5)
-    2. Constructive feedback
-    3. 2-3 specific strengths
-    4. 2-3 areas for improvement
-    5. A concise ideal answer
-    6. A relevant follow-up question
-    
-    Return the response as a JSON object with this structure:
-    {
-      "score": number,
-      "feedback": "string",
-      "strengths": ["string"],
-      "improvements": ["string"],
-      "idealAnswer": "string",
-      "followUpQuestion": "string"
-    }`;
+    const prompt = `You are evaluating a candidate's answer in a real mock interview.
+
+QUESTION: ${question}
+CANDIDATE'S ANSWER: ${answer}
+CATEGORY: ${category}
+DIFFICULTY: ${difficulty}
+${idealAnswer ? `IDEAL ANSWER OUTLINE: ${idealAnswer}` : ''}
+
+EVALUATION CRITERIA:
+- Technical accuracy and depth of knowledge
+- Use of practical examples and real-world scenarios
+- Communication clarity and structure
+- Relevance to the question asked
+- For ${difficulty} difficulty, expect ${difficulty === 'easy' ? 'basic understanding' : difficulty === 'medium' ? 'solid understanding with examples' : 'deep expertise with edge cases and trade-offs'}
+
+Score from 1 to 5:
+1 = Very weak / irrelevant
+2 = Below average / vague
+3 = Average / acceptable
+4 = Good / solid understanding
+5 = Excellent / comprehensive
+
+Provide your evaluation as ONLY this JSON (no markdown, no extra text):
+{
+  "score": <number 1-5>,
+  "feedback": "<2-3 sentence overall assessment>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "improvements": ["<improvement 1>", "<improvement 2>"],
+  "idealAnswer": "<3-4 sentence ideal answer>",
+  "followUpQuestion": "<a deeper follow-up question based on their answer>"
+}`;
 
     const responseText = await getAICompletion(prompt, "You are a professional technical interviewer AI. Output ONLY valid JSON.");
-    
+
     // Parse JSON safely
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     const data = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
 
     return {
       score: clampScore(data.score),
-      feedback: data.feedback || "Evaluation completed from your answer.",
-      strengths: Array.isArray(data.strengths) ? data.strengths : [],
-      improvements: Array.isArray(data.improvements) ? data.improvements : [],
-      idealAnswer: data.idealAnswer || idealAnswer || "A comprehensive technical answer.",
-      followUpQuestion: data.followUpQuestion || "Tell me more."
+      feedback: data.feedback || "Evaluation completed.",
+      strengths: Array.isArray(data.strengths) ? data.strengths.slice(0, 3) : ['Answer was submitted.'],
+      improvements: Array.isArray(data.improvements) ? data.improvements.slice(0, 3) : ['Add more detail.'],
+      idealAnswer: data.idealAnswer || idealAnswer || "A comprehensive technical answer with examples.",
+      followUpQuestion: data.followUpQuestion || "Can you elaborate on that?"
     };
   } catch (error) {
-    console.error('Evaluation Error:', error);
+    console.error('AI Evaluation Error, using local fallback:', error);
     return evaluateAnswerLocally(question, answer, category, idealAnswer);
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// FOLLOW-UP QUESTIONS — Context-aware deep-dive
+// ═══════════════════════════════════════════════════════════════════
 
 export const generateFollowUpQuestion = async (
   previousQuestion: string,
@@ -331,19 +426,30 @@ export const generateFollowUpQuestion = async (
   if (!USE_AI) return "Can you explain that in more detail?";
 
   try {
-    const prompt = `The candidate just answered: "${previousAnswer}" to the question: "${previousQuestion}".
-    Generate a natural, deep-dive follow-up question in the ${category} domain. 
-    Output ONLY the question text.`;
-    
+    const prompt = `In a mock interview, the candidate was asked: "${previousQuestion}"
+They answered: "${previousAnswer}"
+
+Generate ONE natural follow-up question that:
+- Digs deeper into their answer
+- Tests if they truly understand the concept
+- Relates to the ${category} domain
+- Sounds like a real interviewer probing further
+
+Output ONLY the follow-up question text, nothing else.`;
+
     return await getAICompletion(prompt);
   } catch (error) {
     return "Can you explain your thought process behind that?";
   }
 };
 
+// ═══════════════════════════════════════════════════════════════════
+// GREETING & CLOSING — Personalized
+// ═══════════════════════════════════════════════════════════════════
+
 export const getGreeting = async (candidateName?: string): Promise<string> => {
   const name = candidateName?.trim() || 'there';
-  return `Hi ${name}! Welcome to your mock interview. I'm Alex, your AI interviewer. Let's get started.`;
+  return `Hi ${name}! Welcome to your mock interview. I'm Alex, your AI interviewer. Let's get started — remember, this is a safe space to practice, so take your time with each answer.`;
 };
 
 export const getClosingMessage = async (
@@ -351,14 +457,38 @@ export const getClosingMessage = async (
   strongAreas: string[],
   improvements: string[]
 ): Promise<string> => {
-  if (finalScore >= 4) {
-    return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up and you'll do amazing in real interviews!`;
-  } else if (finalScore >= 3) {
-    return `Good effort! You have a solid foundation. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
-  } else {
-    return `Thank you for completing the interview! Keep practicing and don't give up. Every interview is a learning opportunity. All the best!`;
+  if (!USE_AI) {
+    if (finalScore >= 4) {
+      return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up and you'll do amazing in real interviews!`;
+    } else if (finalScore >= 3) {
+      return `Good effort! You have a solid foundation. Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly. Best of luck!`;
+    } else {
+      return `Thank you for completing the interview! Keep practicing and don't give up. Every interview is a learning opportunity. All the best!`;
+    }
+  }
+
+  try {
+    const prompt = `A candidate just finished a mock interview with a score of ${finalScore.toFixed(1)}/5.
+Strong areas: ${strongAreas.join(', ') || 'none identified'}
+Areas to improve: ${improvements.join(', ') || 'none identified'}
+
+Write a brief, encouraging closing message (2-3 sentences) as the interviewer "Alex". Be specific about what they did well and what to work on. Be motivating but honest.
+Output ONLY the message text.`;
+
+    return await getAICompletion(prompt);
+  } catch {
+    if (finalScore >= 4) {
+      return `Great job! You showed excellent skills in ${strongAreas[0] || 'technical knowledge'}. Keep it up!`;
+    } else if (finalScore >= 3) {
+      return `Good effort! Focus on ${improvements[0] || 'practicing more'} and you'll improve quickly.`;
+    }
+    return `Thank you for completing the interview! Keep practicing — every session makes you stronger.`;
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// FINAL REPORT GENERATION
+// ═══════════════════════════════════════════════════════════════════
 
 export const generateFinalReport = async (
   questions: any[],
