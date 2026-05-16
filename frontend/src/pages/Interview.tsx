@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewAPI, demoAPI } from '../services/api';
 import { Interview as InterviewData, AnswerEvaluation } from '../types';
+import { useBodyLanguageAnalysis } from '../hooks/useBodyLanguageAnalysis';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -60,6 +61,9 @@ export default function Interview() {
   const fullMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingTimeRef = useRef(0);
   const endingInterviewRef = useRef(false);
+
+  // Body language analysis (MediaPipe)
+  const { initialize: initBodyAnalysis, startAnalysis: startBodyAnalysis, stopAnalysis: stopBodyAnalysis } = useBodyLanguageAnalysis();
 
   useEffect(() => {
     loadInterview();
@@ -152,6 +156,12 @@ export default function Interview() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+      }
+
+      // Initialize body language analysis and start tracking
+      await initBodyAnalysis();
+      if (videoRef.current) {
+        startBodyAnalysis(videoRef.current);
       }
 
       // Start full interview recording automatically
@@ -370,11 +380,16 @@ export default function Interview() {
 
     const finalRecordingTime = recordingTimeRef.current;
     const recordingBlob = await stopFullRecording();
+
+    // Stop body language analysis and get results
+    const bodyLanguageData = stopBodyAnalysis();
+    console.log('[BodyLanguage] Final results:', bodyLanguageData);
+
     stopCamera();
     speechSynthesis.cancel();
 
     try {
-      const res = await interviewAPI.endInterview(id!);
+      const res = await interviewAPI.endInterview(id!, undefined, bodyLanguageData);
       setClosingMessage(res.data.closingMessage);
 
       // Auto-upload recording to Cloudinary
