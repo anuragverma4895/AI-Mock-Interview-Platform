@@ -105,7 +105,7 @@ export default function Analytics() {
         </div>
 
         <div className="rounded-lg border border-slate-200/70 bg-white/80 p-6 shadow-sm backdrop-blur-md dark:border-slate-800/70 dark:bg-slate-900/80">
-          <h3 className="text-xl font-bold mb-4">Recent Interview History</h3>
+          <h3 className="text-xl font-bold mb-4">Past Mock Interviews</h3>
           {analytics?.recentInterviews && analytics.recentInterviews.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full">

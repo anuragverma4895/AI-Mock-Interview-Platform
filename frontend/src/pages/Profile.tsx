@@ -28,8 +28,10 @@ import {
   Globe,
   GlobeLock,
   Clock,
+  BarChart3,
 } from "lucide-react"
-import { authAPI, demoAPI } from "../services/api"
+import { authAPI, demoAPI, analyticsAPI } from "../services/api"
+import { Analytics as AnalyticsData } from "../types"
 
 interface Recording {
   _id: string
@@ -55,9 +57,11 @@ export default function Profile() {
   const [recordingsLoading, setRecordingsLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [playingVideo, setPlayingVideo] = useState<string | null>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
 
   useEffect(() => {
     loadRecordings()
+    loadAnalytics()
   }, [])
 
   const loadRecordings = async () => {
@@ -68,6 +72,16 @@ export default function Profile() {
       console.error('Error loading recordings:', error)
     } finally {
       setRecordingsLoading(false)
+    }
+  }
+
+  const loadAnalytics = async () => {
+    if (!user?.id) return
+    try {
+      const res = await analyticsAPI.getUserAnalytics(user.id)
+      setAnalytics(res.data)
+    } catch (error) {
+      console.error('Error loading analytics:', error)
     }
   }
 
@@ -211,7 +225,7 @@ export default function Profile() {
                   <p className="text-slate-500 mb-4 capitalize dark:text-slate-400">{user?.role || 'Interviewer'}</p>
                   <div className="flex justify-center gap-2">
                     <Badge variant="secondary" className="capitalize">{user?.role || 'candidate'}</Badge>
-                    <Badge className="bg-emerald-500">{recordings.length} recordings</Badge>
+                    <Badge className="bg-emerald-500">{analytics?.totalInterviews || 0} interviews</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -280,8 +294,20 @@ export default function Profile() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">{recordings.length}</p>
-                        <p className="text-xs text-indigo-100">recordings</p>
+                        <p className="text-2xl font-bold">{analytics?.totalInterviews || 0}</p>
+                        <p className="text-xs text-indigo-100">interviews</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Average score</p>
+                        <p className="text-2xl font-bold text-emerald-600">{analytics?.averageScore || 0}/5</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Needs improvement</p>
+                        <p className="mt-1 text-sm font-medium">
+                          {analytics?.weakAreas?.length ? analytics.weakAreas.join(', ') : 'Complete more interviews'}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -396,6 +422,15 @@ export default function Profile() {
                                 Publish
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/interview-result/${rec._id}`)}
+                              className="text-xs"
+                            >
+                              <BarChart3 className="mr-1 h-3.5 w-3.5" />
+                              View Analysis
+                            </Button>
                             <Button
                               size="sm"
                               variant="destructive"

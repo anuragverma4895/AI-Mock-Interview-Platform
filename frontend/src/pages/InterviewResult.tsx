@@ -23,6 +23,26 @@ export default function InterviewResult() {
     loadInterview();
   }, []);
 
+  useEffect(() => {
+    if (loading || interview?.recordingUrl || interview?.status !== 'completed') return;
+
+    let attempts = 0;
+    const interval = window.setInterval(async () => {
+      attempts += 1;
+      try {
+        const res = await interviewAPI.getInterview(id!);
+        setInterview(res.data);
+        if (res.data.recordingUrl || attempts >= 8) {
+          window.clearInterval(interval);
+        }
+      } catch (error) {
+        if (attempts >= 8) window.clearInterval(interval);
+      }
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [loading, interview?.recordingUrl, interview?.status, id]);
+
   const loadInterview = async () => {
     try {
       const res = await interviewAPI.getInterview(id!);
@@ -144,7 +164,7 @@ export default function InterviewResult() {
               </div>
             ) : (
               <div className="bg-slate-100 p-8 rounded-2xl border border-slate-200 text-center text-slate-600">
-                No saved recording is available for this interview. The full answer analysis is shown below.
+                Recording is still being saved or is not available for this interview. The full answer analysis is shown below.
               </div>
             )}
           </div>

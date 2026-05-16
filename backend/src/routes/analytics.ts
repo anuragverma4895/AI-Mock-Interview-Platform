@@ -110,7 +110,7 @@ router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, r
       }
     }
 
-    const recentInterviews = interviews.slice(0, 5).map(i => ({
+    const recentInterviews = interviews.map(i => ({
       id: i._id,
       date: i.completedAt,
       finalScore: i.finalScore,
