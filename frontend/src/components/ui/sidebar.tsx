@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/Logo"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -20,21 +21,16 @@ const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         )}
         {...props}
       >
-        <div className="flex h-16 items-center border-b px-4">
+        <div className={cn("flex h-16 items-center border-b px-4", isCollapsed ? "justify-center" : "justify-between")}>
+          {!isCollapsed && <Logo size="sm" />}
           <Button
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            className="h-8 w-8"
+            className="h-8 w-8 shrink-0"
           >
             <MenuIcon className="h-4 w-4" />
           </Button>
-          {!isCollapsed && (
-            <div className="ml-4 flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
-              <span className="text-lg font-bold">InterviewAI</span>
-            </div>
-          )}
         </div>
         <ScrollArea className="flex-1 px-3 py-4">
           <nav className="space-y-2">
