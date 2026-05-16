@@ -608,12 +608,14 @@ export default function Interview() {
                   >
                     <div className="bg-white/10 rounded-2xl p-5 sm:p-6 border border-white/20 mb-6">
                       <div className="flex items-start space-x-3 mb-4">
-                        <MessageCircle className="h-6 w-6 text-blue-400 mt-1" />
-                        <div className="flex-1">
-                          <p className="text-white text-lg leading-relaxed mb-4">
-                            {currentQuestion?.question}
-                          </p>
-                          <div className="flex flex-wrap gap-3">
+                        <MessageCircle className="h-6 w-6 text-blue-400 mt-1 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="max-h-[200px] overflow-y-auto pr-2">
+                            <p className="text-white text-lg leading-relaxed mb-4 whitespace-pre-wrap">
+                              {currentQuestion?.question}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-3 mt-2">
                             <Badge variant="secondary" className="bg-blue-500/20 text-blue-200 border-blue-400/30">
                               {currentQuestion?.category}
                             </Badge>

@@ -299,6 +299,8 @@ ${previousQuestions.length > 0 ? `ALREADY ASKED (DO NOT REPEAT):\n${previousQues
 
 INSTRUCTIONS:
 - Generate ONE ${difficulty}-level interview question for the ${category} category
+- Keep the question SHORT, CLEAR, and DIRECT. Maximum 1-2 sentences.
+- Use simple, easy-to-understand language. Do not ask overly complex, wordy, or multi-part questions.
 - The question MUST be personalized to the candidate's resume, skills, and projects if available
 - For ${category === 'Project' ? 'project questions: ask about specific projects from their resume' : category === 'HR' ? 'HR questions: ask behavioral/situational questions relevant to their experience level' : category === 'DSA' ? 'DSA questions: relate to technologies they use (e.g., if they know React, ask about virtual DOM diffing algorithms)' : category === 'SystemDesign' ? 'system design: ask them to design something related to projects they have built' : category === 'DB' ? 'database questions: relate to the databases/ORMs they have used' : 'technical questions relevant to their stack'}
 - Make it sound natural — like a real interviewer asking, not a textbook question
