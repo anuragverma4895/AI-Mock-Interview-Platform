@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewAPI } from '../services/api';
 import { Interview } from '../types';
@@ -18,41 +18,53 @@ export default function InterviewResult() {
   const navigate = useNavigate();
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recordingLoading, setRecordingLoading] = useState(false);
+
+  const loadInterview = useCallback(async () => {
+    try {
+      const res = await interviewAPI.getInterview(id!);
+      setInterview(res.data);
+      return res.data;
+    } catch (error) {
+      console.error('Error loading interview:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     loadInterview();
-  }, []);
+  }, [loadInterview]);
 
   useEffect(() => {
     if (loading || interview?.recordingUrl || interview?.status !== 'completed') return;
 
+    setRecordingLoading(true);
     let attempts = 0;
+    const maxAttempts = 30; // Poll for up to 60 seconds
     const interval = window.setInterval(async () => {
       attempts += 1;
       try {
         const res = await interviewAPI.getInterview(id!);
         setInterview(res.data);
-        if (res.data.recordingUrl || attempts >= 8) {
+        if (res.data.recordingUrl || attempts >= maxAttempts) {
           window.clearInterval(interval);
+          setRecordingLoading(false);
         }
       } catch (error) {
-        if (attempts >= 8) window.clearInterval(interval);
+        if (attempts >= maxAttempts) {
+          window.clearInterval(interval);
+          setRecordingLoading(false);
+        }
       }
     }, 2000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      setRecordingLoading(false);
+    };
   }, [loading, interview?.recordingUrl, interview?.status, id]);
-
-  const loadInterview = async () => {
-    try {
-      const res = await interviewAPI.getInterview(id!);
-      setInterview(res.data);
-    } catch (error) {
-      console.error('Error loading interview:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Video URL comes directly from Cloudinary (recordingUrl field)
   const videoUrl = interview?.recordingUrl || null;
@@ -158,13 +170,34 @@ export default function InterviewResult() {
               <div className="bg-white/60 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
                 <video controls className="w-full max-w-4xl mx-auto rounded-2xl shadow-2xl border border-white/30">
                   <source src={videoUrl} type="video/webm" />
+                  <source src={videoUrl.replace(/\.webm$/, '.mp4')} type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
                 <p className="text-slate-600 mt-4 text-center font-medium">Watch your responses to identify areas for improvement</p>
               </div>
+            ) : recordingLoading ? (
+              <div className="bg-blue-50 p-8 rounded-2xl border border-blue-200 text-center">
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-blue-700 font-semibold text-lg">Saving your recording...</span>
+                </div>
+                <p className="text-blue-600">This may take a minute for longer interviews. Please wait.</p>
+              </div>
             ) : (
-              <div className="bg-slate-100 p-8 rounded-2xl border border-slate-200 text-center text-slate-600">
-                Recording is still being saved or is not available for this interview. The full answer analysis is shown below.
+              <div className="bg-slate-100 p-8 rounded-2xl border border-slate-200 text-center">
+                <p className="text-slate-600 mb-4">Recording is not available for this interview. The full answer analysis is shown below.</p>
+                <button
+                  onClick={async () => {
+                    setRecordingLoading(true);
+                    const data = await loadInterview();
+                    if (!data?.recordingUrl) {
+                      setTimeout(() => setRecordingLoading(false), 1000);
+                    }
+                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg transform hover:scale-105 transition-all duration-300"
+                >
+                  Retry Loading Recording
+                </button>
               </div>
             )}
           </div>

@@ -20,7 +20,7 @@ export const uploadVideoToCloudinary = async (
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const folder = 'interview-recordings';
 
-  // Build the signature string
+  // Build the signature string (params must be alphabetical)
   const signatureString = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`;
   const signature = crypto.createHash('sha1').update(signatureString).digest('hex');
 

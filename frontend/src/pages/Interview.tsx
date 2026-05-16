@@ -381,6 +381,7 @@ export default function Interview() {
       if (recordingBlob && recordingBlob.size > 0) {
         setUploadingRecording(true);
         try {
+          console.log(`Uploading recording (${(recordingBlob.size / 1024 / 1024).toFixed(2)} MB)...`);
           await demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime);
           console.log('Recording uploaded successfully!');
         } catch (uploadErr) {
@@ -399,10 +400,11 @@ export default function Interview() {
         setRecordingSaveError(true);
       }
 
-      setTimeout(() => navigate(`/interview-result/${id}`), 1500);
+      // Redirect only AFTER upload completes (success or failure)
+      setTimeout(() => navigate(`/interview-result/${id}`), 2000);
     } catch (error) {
       console.error('Error ending interview:', error);
-      navigate(`/interview-result/${id}`);
+      setTimeout(() => navigate(`/interview-result/${id}`), 1000);
     }
   };
 
