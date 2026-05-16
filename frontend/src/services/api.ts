@@ -92,7 +92,10 @@ export const demoAPI = {
     }
 
     const formData = new FormData();
-    formData.append('recording', video, `interview-${interviewId}.webm`);
+    // Re-wrap the blob with a clean video/webm MIME type
+    // (MediaRecorder may produce types like "video/webm;codecs=vp9,opus" which confuse multer)
+    const cleanBlob = new Blob([video], { type: 'video/webm' });
+    formData.append('recording', cleanBlob, `interview-${interviewId}.webm`);
     formData.append('duration', String(duration));
 
     return api.post(`/demo/upload-recording/${interviewId}`, formData, {

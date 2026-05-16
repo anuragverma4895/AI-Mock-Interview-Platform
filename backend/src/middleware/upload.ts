@@ -44,13 +44,16 @@ export const upload = multer({
 });
 
 const videoFileFilter = (req: Request, file: any, cb: any) => {
-  const allowedTypes = ['video/webm', 'video/mp4', 'video/avi', 'video/mov', 'video/quicktime'];
-  const mimeType = String(file.mimetype || '').split(';')[0].trim().toLowerCase();
+  const rawMime = String(file.mimetype || '');
+  const mimeType = rawMime.split(';')[0].trim().toLowerCase();
 
-  if (allowedTypes.includes(mimeType)) {
+  console.log(`[videoUpload] file: ${file.originalname}, raw mime: "${rawMime}", parsed: "${mimeType}"`);
+
+  // Accept any video/* type, plus application/octet-stream (browser blob uploads)
+  if (mimeType.startsWith('video/') || mimeType === 'application/octet-stream') {
     cb(null, true);
   } else {
-    cb(new Error('Invalid video file type. Only WebM, MP4, AVI, and MOV are allowed.'));
+    cb(new Error(`Invalid video file type "${mimeType}". Only video files are allowed.`));
   }
 };
 
