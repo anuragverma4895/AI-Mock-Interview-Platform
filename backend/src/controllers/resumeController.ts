@@ -74,7 +74,7 @@ export const analyzeResume = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const analysis = analyzeResumeSuitability(resume.parsedData, role);
+    const analysis = await analyzeResumeSuitability(resume.parsedData, role);
 
     res.json({
       resumeId: resume._id,
