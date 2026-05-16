@@ -17,17 +17,28 @@ import Settings from './pages/Settings';
 import DemoPage from './pages/DemoPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { token } = useAuthStore();
+  const { token, checkToken, logout } = useAuthStore();
+
+  useEffect(() => {
+    // On mount, validate the token — if expired, logout immediately
+    checkToken().then((valid) => {
+      if (!valid && token) logout();
+    });
+  }, []);
+
   if (!token) return <Navigate to="/login" />;
   return <>{children}</>;
 };
 
 function App() {
-  const { checkToken } = useAuthStore();
+  const { checkToken, startAutoLogout, token } = useAuthStore();
 
   useEffect(() => {
     checkToken();
-  }, [checkToken]);
+    if (token) {
+      startAutoLogout();
+    }
+  }, [checkToken, startAutoLogout, token]);
 
   return (
     <ErrorBoundary>

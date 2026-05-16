@@ -22,6 +22,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Auto-logout on 401 (expired / invalid token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const store = useAuthStore.getState();
+      if (store.token) {
+        // Token was set but server rejected it — force logout
+        store.logout();
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authAPI = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
