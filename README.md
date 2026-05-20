@@ -187,31 +187,42 @@ flowchart TD
 ## Project Structure
 
 ```
-ai-interview-bot/
-├── backend/
+AI-Mock-Interview-Platform/
+├── backend/                  # Express Backend Service
 │   ├── src/
-│   │   ├── config/         # Database configuration
-│   │   ├── controllers/    # Route controllers
-│   │   ├── middleware/     # Auth & upload middleware
-│   │   ├── models/         # Mongoose models
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic (AI, Resume Parser, Video)
-│   │   └── index.ts        # Main server file
-│   ├── uploads/            # File uploads directory
+│   │   ├── config/           # Database and Cloudinary configuration
+│   │   ├── controllers/      # Route controllers (auth, interview, resume, video)
+│   │   ├── middleware/       # Auth validation and Multer upload middleware
+│   │   ├── models/           # Mongoose schemas (User, Resume, Interview)
+│   │   ├── routes/           # Express router endpoints
+│   │   ├── services/         # Core logic (AI prompting, resume parsing, Cloudinary)
+│   │   ├── types/            # TypeScript type definitions
+│   │   ├── utils/            # Shared helper functions
+│   │   └── index.ts          # Main Express server bootstrapper
+│   ├── uploads/              # Local storage for file uploads
 │   ├── package.json
 │   └── tsconfig.json
-├── frontend/
+├── frontend/                 # React Frontend Client (Vite + TypeScript)
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── store/          # Zustand stores
-│   │   ├── services/       # API services
-│   │   ├── types/          # TypeScript types
-│   │   └── App.tsx         # Main app component
+│   │   ├── components/       # Reusable React UI elements (Visual hooks, Loader)
+│   │   ├── hooks/            # Custom React hooks (useBodyLanguageAnalysis)
+│   │   ├── lib/              # Monaco Editor & library integrations
+│   │   ├── pages/            # View components (Dashboard, Interview, Result, ResumeUpload)
+│   │   ├── services/         # Frontend API communication wrappers
+│   │   ├── store/            # Client state management (Zustand)
+│   │   ├── types/            # TypeScript schemas & custom definitions
+│   │   ├── App.tsx           # Client router and page wrapper
+│   │   ├── index.css         # Styling system & Tailwind CSS entry
+│   │   └── main.tsx          # Client entrypoint
 │   ├── package.json
 │   └── vite.config.ts
-├── SPEC.md                 # Technical specification
-└── README.md               # This file
+├── START_HERE.md             # Core roadmap & onboarding guide
+├── QUICK_START.md            # Fast local environment setup guide
+├── PROJECT_SUMMARY.md        # Feature checklists & overview
+├── SPEC.md                   # Technical specification & system API outline
+├── README.md                 # Project summary and system flow diagram (This file)
+├── render.yaml               # Cloud deployment blueprint configuration
+└── package.json              # Workspace manifest configuration
 ```
 
 ## Setup Instructions
