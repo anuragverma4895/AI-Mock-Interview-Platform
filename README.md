@@ -19,81 +19,105 @@ The platform is designed with a highly integrated, multi-modal system architectu
 ```mermaid
 flowchart TD
     %% Custom Styling
-    classDef client fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#f8fafc
-    classDef server fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc
-    classDef db fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
-    classDef ext fill:#4c1d95,stroke:#8b5cf6,stroke-width:2px,color:#f8fafc
-    classDef process fill:#0f172a,stroke:#475569,stroke-width:1px,color:#94a3b8
+    classDef client fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc
+    classDef server fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc
+    classDef db fill:#020617,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
+    classDef ext fill:#0f172a,stroke:#a855f7,stroke-width:2px,color:#f8fafc
 
-    %% Core Components
-    subgraph UI ["1. USER INTERACTION & FRONTEND (React)"]
-        direction TB
-        A1["Dashboard & Profile Management"]:::client
-        A2["Resume Upload Dropzone"]:::client
-        A3["Lobby & Interview Setup Room"]:::client
-        A4["Active Interview Board ('Alex')"]:::client
-        A5["Results Analytics Suite"]:::client
+    subgraph PHASE1 ["PHASE 1: Resume Upload & Virtual Recruiter Suitability Analysis"]
+        direction LR
+        P1_FE["ResumeUpload.tsx<br>React File Dropzone"]:::client
+        P1_Ctrl["resumeController.ts<br>Express Upload Endpoint"]:::server
+        P1_Parser["resumeParser.ts<br>pdf-parse and mammoth"]:::server
+        P1_Gemini["Gemini Flash API<br>Suitability Check"]:::ext
+        P1_DB["MongoDB Resume Collection<br>Skills, Gaps and Score"]:::db
+
+        P1_FE -->|"1. Upload File"| P1_Ctrl
+        P1_Ctrl -->|"2. Extract Text"| P1_Parser
+        P1_Parser -->|"3. Suitability Call"| P1_Gemini
+        P1_Gemini -->|"4. Score and Gaps JSON"| P1_Parser
+        P1_Parser -->|"5. Save parsed resume"| P1_DB
     end
 
-    subgraph API_GATE ["2. EXPRESS CONTROLLERS (Node.js API)"]
-        direction TB
-        B1["authController.ts (JWT & Hashing)"]:::server
-        B2["resumeController.ts (Upload Handles)"]:::server
-        B3["interviewController.ts (Session Manager)"]:::server
-        B4["videoController.ts (Blob Processing)"]:::server
+    subgraph PHASE2 ["PHASE 2: Lobby Configuration & Personalized Setup"]
+        direction LR
+        P2_FE["Dashboard and Lobby UI<br>Role, Difficulty, Toggle Video"]:::client
+        P2_Ctrl["interviewController.ts<br>Express Session Start"]:::server
+        P2_AI["aiService.ts<br>Interview AI Engine"]:::server
+        P2_Gemini["Gemini Flash API<br>Resume-Aware Q1 Generation"]:::ext
+        P2_DB["MongoDB Interview Collection<br>Create Stateful Pending Session"]:::db
+
+        P2_FE -->|"6. Config and Start Session"| P2_Ctrl
+        P2_Ctrl -->|"7. Fetch Resume Profile"| P2_AI
+        P2_AI -->|"8. Generate personalized Q1"| P2_Gemini
+        P2_Gemini -->|"9. Return Q1 or 31 bank"| P2_AI
+        P2_AI -->|"10. Persist pending session"| P2_DB
     end
 
-    subgraph CORE_LOGIC ["3. CORE SERVICES (Backend Logic)"]
-        direction TB
-        C1["resumeParser.ts (pdf-parse / mammoth)"]:::server
-        C2["aiService.ts (Question Gen & Evaluator)"]:::server
-        C3["videoService.ts & cloudinaryService.ts"]:::server
+    subgraph PHASE3 ["PHASE 3: Active Multi-Modal Q&A Loop ('Alex')"]
+        direction LR
+        P3_FE["Interview.tsx<br>React AV Canvas Room"]:::client
+        P3_TTS["Web Speech TTS<br>Narrate Question"]:::client
+        P3_STT["Web Speech STT<br>Continuous Speech-to-Text"]:::client
+        P3_MP["MediaPipe CV Tracker<br>Eye Contact and Posture"]:::client
+        P3_Ctrl["interviewController.ts<br>Answer Submission"]:::server
+        P3_AI["aiService.ts<br>Evaluation and Response Router"]:::server
+        P3_Gemini["Gemini Flash API<br>Grades and Contextual Follow-Up Q"]:::ext
+        P3_DB["MongoDB Interview Collection<br>Append QA Transcript"]:::db
+
+        P3_FE -->|"12. Speak Question"| P3_TTS
+        P3_FE -->|"13. Transcribe Answer"| P3_STT
+        P3_FE -->|"14. Capture Behavioral CV"| P3_MP
+        P3_STT -->|"15a. Submit Text response"| P3_Ctrl
+        P3_MP -->|"15b. Submit CV metrics"| P3_Ctrl
+        P3_Ctrl -->|"16. Process Evaluation"| P3_AI
+        P3_AI -->|"17. Grade response"| P3_Gemini
+        P3_Gemini -->|"18. Strengths and follow-up Q"| P3_AI
+        P3_AI -->|"19. Commit QA Details"| P3_DB
+        P3_DB -->|"20. Return feedback and next question"| P3_FE
+        P3_FE -.->|"21. Loop questions 2 to 10"| P3_FE
     end
 
-    subgraph DATA_CLOUD ["4. PERSISTENCE & CLOUD SERVICES"]
-        direction TB
-        D1[("MongoDB Database (Mongoose)")]:::db
-        D2["Gemini Flash API (gemini-flash-latest)"]:::ext
-        D3["Cloudinary Asset Storage API"]:::ext
+    subgraph PHASE4 ["PHASE 4: Session Finalization & Video Archiving"]
+        direction LR
+        P4_FE["WebRTC Compilation<br>Stop MediaRecorder, Build WebM"]:::client
+        P4_Ctrl["videoController.ts<br>Chunked Video Uploader"]:::server
+        P4_Cloudinary["cloudinaryService.ts<br>Cloud Storage Driver"]:::server
+        P4_CloudAPI["Cloudinary Storage<br>Secure CDN Host"]:::ext
+        P4_IntCtrl["interviewController.ts<br>Express Session End"]:::server
+        P4_DB["MongoDB Interview Collection<br>Update Status to Completed"]:::db
+
+        P4_FE -->|"23. Stream WebM Chunks"| P4_Ctrl
+        P4_Ctrl -->|"24. Push to Cloud CDN"| P4_Cloudinary
+        P4_Cloudinary -->|"25. Secure Archiving"| P4_CloudAPI
+        P4_CloudAPI -->|"26. Return HTTPS URL"| P4_Cloudinary
+        P4_Cloudinary -->|"27. Register Video URL"| P4_IntCtrl
+        P4_IntCtrl -->|"28. Mark completed session"| P4_DB
     end
 
-    %% Step-by-Step Multi-Phase Linear Connections
-    A2 -->|1. Upload File| B2
-    B2 -->|2. Extract Text| C1
-    C1 -->|3. Run Suitability Prompt| D2
-    D2 -->|4. Save Score & Resume| D1
-    D1 -->|5. Reload Stats| A1
+    subgraph PHASE5 ["PHASE 5: Performance Review Dashboard & Replay Review"]
+        direction LR
+        P5_FE["InterviewResult.tsx<br>React Dashboard Room"]:::client
+        P5_Charts["Recharts Visuals<br>Radar, Trajectory Plots"]:::client
+        P5_Player["Cloudinary Player<br>Synchronized Replay"]:::client
+        P5_Ctrl["interviewController.ts<br>Fetch Session Metrics"]:::server
+        P5_DB["MongoDB Collections<br>Retrieve Historical Data"]:::db
+        P5_CloudAPI2["Cloudinary CDN<br>Stream Recorded Session"]:::ext
 
-    A3 -->|6. Start Interview Session| B3
-    B3 -->|7. Load Skills Profile| D1
-    B3 -->|8. Generate Personalized Q1| C2
-    C2 -->|9. Prompt for Resume Q| D2
-    C2 -.->|Fallback if Offline| C2
-    B3 -->|10. Return Q1 & Audio Setup| A4
+        P5_FE -->|"30. Render Dashboard UI"| P5_Charts
+        P5_FE -->|"31. Fetch Performance Data"| P5_Ctrl
+        P5_Ctrl -->|"32. Query Records"| P5_DB
+        P5_DB -->|"33. Return Analytics JSON"| P5_Ctrl
+        P5_Ctrl -->|"34. Load Visuals"| P5_FE
+        P5_FE -->|"35. Play Video Replay"| P5_Player
+        P5_CloudAPI2 -->|"36. Stream Playback"| P5_Player
+    end
 
-    A4 -->|11. Narrate via Browser TTS| A4
-    A4 -->|12. Record Webcam WebRTC Stream| A4
-    A4 -->|13. Track Eyes/Head with MediaPipe| A4
-    A4 -->|14. Transcribe Voice using Speech STT| A4
-    A4 -->|15. Submit Answer| B3
-    B3 -->|16. Grade accuracy: Score 1-5| C2
-    C2 -->|17. Evaluate Answer Depth| D2
-    C2 -->|18. Return Scores & Follow-up Q| A4
-    A4 -->|19. Loop Questions 2 to 10| A4
-
-    A4 -->|20. Complete Session & WebM Blob compiled| A4
-    A4 -->|21. Send MediaPipe averages & Finalize| B3
-    B3 -->|22. Create encouraging ending summary| D2
-    B3 -->|23. Save Transcript & status completed| D1
-    A4 -->|24. Stream WebM Chunks| B4
-    B4 -->|25. Host securely| C3
-    C3 -->|26. Archive Stream| D3
-    D3 -->|27. Save URL references| D1
-
-    A5 -->|28. GET Session Analytics| B3
-    B3 -->|29. Retrieve session details| D1
-    A5 -->|30. Render Radar Charts & Video| A5
-```
+    %% Phase-to-Phase Chronological Flows
+    P1_DB -->|"11. Load Stats to Dashboard"| P2_FE
+    P2_DB -->|"22. Redirect to Room"| P3_FE
+    P3_FE -->|"29. Complete Session and WebM compiled"| P4_FE
+    P4_DB -->|"37. Redirect Candidate"| P5_FE
 
 ---
 
