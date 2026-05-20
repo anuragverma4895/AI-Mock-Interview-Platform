@@ -118,6 +118,7 @@ flowchart TD
     P2_DB -->|"22. Redirect to Room"| P3_FE
     P3_FE -->|"29. Complete Session and WebM compiled"| P4_FE
     P4_DB -->|"37. Redirect Candidate"| P5_FE
+```
 
 ---
 
