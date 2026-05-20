@@ -76,7 +76,7 @@ flowchart TD
     A4 -->|13. Track Eyes/Head with MediaPipe| A4
     A4 -->|14. Transcribe Voice using Speech STT| A4
     A4 -->|15. Submit Answer| B3
-    B3 -->|16. Grade accuracy (Score 1-5)| C2
+    B3 -->|16. Grade accuracy: Score 1-5| C2
     C2 -->|17. Evaluate Answer Depth| D2
     C2 -->|18. Return Scores & Follow-up Q| A4
     A4 -->|19. Loop Questions 2 to 10| A4
@@ -84,7 +84,7 @@ flowchart TD
     A4 -->|20. Complete Session & WebM Blob compiled| A4
     A4 -->|21. Send MediaPipe averages & Finalize| B3
     B3 -->|22. Create encouraging ending summary| D2
-    B3 -->|23. Save Transcript & status = completed| D1
+    B3 -->|23. Save Transcript & status completed| D1
     A4 -->|24. Stream WebM Chunks| B4
     B4 -->|25. Host securely| C3
     C3 -->|26. Archive Stream| D3
