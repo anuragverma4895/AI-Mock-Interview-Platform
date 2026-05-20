@@ -186,46 +186,115 @@ flowchart TD
 
 ## Project Structure
 
+This folder tree represents the actual set of files tracked in Git and pushed to GitHub:
+
 ```
 AI-Mock-Interview-Platform/
-├── backend/                  # Express Backend Service
+├── backend/                             # Express Backend Service
 │   ├── src/
-│   │   ├── config/           # Database and Cloudinary configuration
-│   │   ├── controllers/      # Route controllers (auth, interview, resume, video)
-│   │   ├── middleware/       # Auth validation and Multer upload middleware
-│   │   ├── models/           # Mongoose schemas (User, Resume, Interview)
-│   │   ├── routes/           # Express router endpoints
-│   │   ├── services/         # Core logic (AI prompting, resume parsing, Cloudinary)
-│   │   ├── types/            # TypeScript type definitions
-│   │   ├── utils/            # Shared helper functions
-│   │   └── index.ts          # Main Express server bootstrapper
-│   ├── uploads/              # Local storage for resume uploads
-│   ├── .env.example          # Template for backend environment variables
-│   ├── package.json          # Backend dependencies and scripts
-│   └── tsconfig.json         # Backend TypeScript configuration
-├── frontend/                 # React Frontend Client (Vite + TypeScript)
+│   │   ├── config/                      # Database & config entrypoint
+│   │   │   ├── db.ts
+│   │   │   └── index.ts
+│   │   ├── controllers/                 # Express controllers for routes
+│   │   │   ├── authController.ts
+│   │   │   ├── interviewController.ts
+│   │   │   ├── resumeController.ts
+│   │   │   └── videoController.ts
+│   │   ├── middleware/                  # Endpoint routers validation & upload rules
+│   │   │   ├── auth.ts
+│   │   │   ├── errorHandler.ts
+│   │   │   ├── fileValidation.ts
+│   │   │   ├── upload.ts
+│   │   │   └── validation.ts
+│   │   ├── models/                      # Mongoose models schema
+│   │   │   ├── Interview.ts
+│   │   │   ├── Resume.ts
+│   │   │   └── User.ts
+│   │   ├── routes/                      # API routing endpoints
+│   │   │   ├── analytics.ts
+│   │   │   ├── auth.ts
+│   │   │   ├── demo.ts
+│   │   │   ├── interview.ts
+│   │   │   ├── resume.ts
+│   │   │   └── video.ts
+│   │   ├── services/                    # Business core logic
+│   │   │   ├── aiService.ts
+│   │   │   ├── cloudinaryService.ts
+│   │   │   ├── resumeParser.ts
+│   │   │   └── videoService.ts
+│   │   ├── types/                       # Custom TypeScript types
+│   │   │   ├── declarations.d.ts
+│   │   │   └── file-type.d.ts
+│   │   ├── utils/                       # DB helpers
+│   │   │   └── dropDuplicateIndex.ts
+│   │   └── index.ts                     # Express app main listener
+│   ├── uploads/                         # PDF resume uploads directory (tracked samples)
+│   ├── .env.example
+│   ├── package.json
+│   ├── package-lock.json
+│   └── tsconfig.json
+├── frontend/                            # React Client (Vite + TypeScript)
 │   ├── src/
-│   │   ├── components/       # Reusable React UI elements (Visual hooks, Loader)
-│   │   ├── hooks/            # Custom React hooks (useBodyLanguageAnalysis)
-│   │   ├── lib/              # Monaco Editor & library integrations
-│   │   ├── pages/            # View components (Dashboard, Interview, Result, ResumeUpload)
-│   │   ├── services/         # Frontend API communication wrappers
-│   │   ├── store/            # Client state management (Zustand)
-│   │   ├── types/            # TypeScript schemas & custom definitions
-│   │   ├── App.tsx           # Client router and page wrapper
-│   │   ├── index.css         # Styling system & Tailwind CSS entry
-│   │   └── main.tsx          # Client entrypoint
-│   ├── index.html            # Main HTML wrapper
-│   ├── postcss.config.js     # CSS post-processing setup
-│   ├── tailwind.config.js    # Tailwind utility config
-│   ├── package.json          # Frontend dependencies and scripts
-│   ├── tsconfig.json         # Frontend TypeScript config
-│   └── vite.config.ts        # Vite configuration
-├── .gitignore                # Git ignored patterns
-├── SPEC.md                   # Technical specification & system API outline
-├── README.md                 # Project summary and system flow diagram (This file)
-├── render.yaml               # Cloud deployment blueprint configuration
-└── package.json              # Workspace package manifest configuration
+│   │   ├── components/                  # Premium visual elements and canvas elements
+│   │   │   ├── 3d/                      # Three.js / Canvas setups
+│   │   │   │   ├── AnimatedCanvas.tsx
+│   │   │   │   └── BackgroundScene.tsx
+│   │   │   ├── ui/                      # Base visual elements (buttons, inputs)
+│   │   │   │   ├── badge.tsx, button.tsx, card.tsx, input.tsx, label.tsx,
+│   │   │   │   └── progress.tsx, scroll-area.tsx, sidebar.tsx, switch.tsx, textarea.tsx
+│   │   │   ├── AnimatedCard3D.tsx
+│   │   │   ├── AnimationHelpers.tsx
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   ├── Logo.tsx
+│   │   │   ├── ParticleEffect.tsx
+│   │   │   ├── ScrollAnimations.tsx
+│   │   │   ├── SmoothScrollProvider.tsx
+│   │   │   ├── ThemeToggle.tsx
+│   │   │   ├── VideoPlayer.tsx
+│   │   │   └── theme-provider.tsx
+│   │   ├── hooks/                       # Custom hooks (facial expression tracker)
+│   │   │   └── useBodyLanguageAnalysis.ts
+│   │   ├── lib/                         # Monaco & scroll helper functions
+│   │   │   ├── smoothScroll.ts
+│   │   │   └── utils.ts
+│   │   ├── pages/                       # Screen views and dashboard boards
+│   │   │   ├── Analytics.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── DemoPage.tsx
+│   │   │   ├── Interview.tsx
+│   │   │   ├── InterviewResult.tsx
+│   │   │   ├── InterviewSetup.tsx
+│   │   │   ├── LandingPage.tsx
+│   │   │   ├── LiveCodingEditor.tsx
+│   │   │   ├── Login.tsx
+│   │   │   ├── Profile.tsx
+│   │   │   ├── Register.tsx
+│   │   │   ├── ResumeUpload.tsx
+│   │   │   ├── Settings.tsx
+│   │   │   └── VideoLibrary.tsx
+│   │   ├── services/                    # Axios clients and core endpoints API
+│   │   │   └── api.ts
+│   │   ├── store/                       # Zustand auth persistence state
+│   │   │   └── authStore.ts
+│   │   ├── types/                       # Client TS types
+│   │   │   └── index.ts
+│   │   ├── App.tsx                      # Frontend router & page wrapper
+│   │   ├── index.css                    # Entry tailwind styling rules
+│   │   ├── main.tsx                     # React client bootstrap entry
+│   │   └── vite-env.d.ts
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── .gitignore
+├── package.json                         # Workspace monorepo root package file
+├── render.yaml                          # Render hosting configurations
+├── SPEC.md                              # Backend specification reference
+└── README.md                            # Comprehensive README & Flow diagram (This file)
 ```
 
 ## Setup Instructions
