@@ -199,9 +199,10 @@ AI-Mock-Interview-Platform/
 │   │   ├── types/            # TypeScript type definitions
 │   │   ├── utils/            # Shared helper functions
 │   │   └── index.ts          # Main Express server bootstrapper
-│   ├── uploads/              # Local storage for file uploads
-│   ├── package.json
-│   └── tsconfig.json
+│   ├── uploads/              # Local storage for resume uploads
+│   ├── .env.example          # Template for backend environment variables
+│   ├── package.json          # Backend dependencies and scripts
+│   └── tsconfig.json         # Backend TypeScript configuration
 ├── frontend/                 # React Frontend Client (Vite + TypeScript)
 │   ├── src/
 │   │   ├── components/       # Reusable React UI elements (Visual hooks, Loader)
@@ -214,15 +215,17 @@ AI-Mock-Interview-Platform/
 │   │   ├── App.tsx           # Client router and page wrapper
 │   │   ├── index.css         # Styling system & Tailwind CSS entry
 │   │   └── main.tsx          # Client entrypoint
-│   ├── package.json
-│   └── vite.config.ts
-├── START_HERE.md             # Core roadmap & onboarding guide
-├── QUICK_START.md            # Fast local environment setup guide
-├── PROJECT_SUMMARY.md        # Feature checklists & overview
+│   ├── index.html            # Main HTML wrapper
+│   ├── postcss.config.js     # CSS post-processing setup
+│   ├── tailwind.config.js    # Tailwind utility config
+│   ├── package.json          # Frontend dependencies and scripts
+│   ├── tsconfig.json         # Frontend TypeScript config
+│   └── vite.config.ts        # Vite configuration
+├── .gitignore                # Git ignored patterns
 ├── SPEC.md                   # Technical specification & system API outline
 ├── README.md                 # Project summary and system flow diagram (This file)
 ├── render.yaml               # Cloud deployment blueprint configuration
-└── package.json              # Workspace manifest configuration
+└── package.json              # Workspace package manifest configuration
 ```
 
 ## Setup Instructions
