@@ -1,20 +1,20 @@
-# AI Mock Interview Platform - Complete Full Stack Application
+# AI Mock Interview Platform
 
-A professional AI-powered interview platform with real-time video recording, live coding environment, and intelligent question generation.
+A full-stack AI-powered interview preparation platform with real-time video recording, live coding environment, intelligent question generation, and detailed performance analytics.
 
 ## Features
 
-- **AI-Powered Interviews**: Dynamic question generation based on resume data
-- **Video Recording**: WebRTC-based real-time webcam and microphone recording
-- **Live Coding Environment**: Monaco Editor with multi-language support (JS, Python, C++)
-- **Body Language Analysis**: Face detection and engagement metrics
-- **Resume Parsing**: PDF/DOCX parsing to extract skills, projects, and experience
-- **Analytics Dashboard**: Score trends, weak areas, and performance tracking
-- **Transcript & Replay**: Full interview transcript with Q&A review
+- **AI-Powered Interviews** — Dynamic question generation using the OpenAI API, personalized from your uploaded resume
+- **Video Recording** — WebRTC-based real-time webcam and microphone capture, stored on Cloudinary CDN
+- **Live Coding Environment** — Monaco Editor with multi-language support (JavaScript, Python, C++)
+- **Body Language Analysis** — MediaPipe-based face detection tracking eye contact, head pose, and engagement metrics
+- **Resume Parsing** — PDF and DOCX parsing to extract skills, projects, and work experience
+- **Analytics Dashboard** — Score trends, weak area identification, radar charts, and performance tracking
+- **Transcript & Replay** — Full interview transcript with Q&A review and synchronized video playback
 
 ## System Architecture & Data Flow
 
-The platform is designed with a highly integrated, multi-modal system architecture. Below is the complete step-by-step execution flowchart showing how all client sub-systems, Express controllers, database models, and cloud APIs interact in real-time.
+The platform is designed with a highly integrated, multi-modal system architecture. The flowchart below shows how all client sub-systems, Express controllers, database models, and cloud APIs interact in real-time across five distinct phases.
 
 ```mermaid
 flowchart TD
@@ -29,13 +29,13 @@ flowchart TD
         P1_FE["ResumeUpload.tsx<br>React File Dropzone"]:::client
         P1_Ctrl["resumeController.ts<br>Express Upload Endpoint"]:::server
         P1_Parser["resumeParser.ts<br>pdf-parse and mammoth"]:::server
-        P1_Gemini["Gemini Flash API<br>Suitability Check"]:::ext
+        P1_AI["OpenAI API<br>Suitability Check"]:::ext
         P1_DB["MongoDB Resume Collection<br>Skills, Gaps and Score"]:::db
 
         P1_FE -->|"1. Upload File"| P1_Ctrl
         P1_Ctrl -->|"2. Extract Text"| P1_Parser
-        P1_Parser -->|"3. Suitability Call"| P1_Gemini
-        P1_Gemini -->|"4. Score and Gaps JSON"| P1_Parser
+        P1_Parser -->|"3. Suitability Call"| P1_AI
+        P1_AI -->|"4. Score and Gaps JSON"| P1_Parser
         P1_Parser -->|"5. Save parsed resume"| P1_DB
     end
 
@@ -43,26 +43,26 @@ flowchart TD
         direction LR
         P2_FE["Dashboard and Lobby UI<br>Role, Difficulty, Toggle Video"]:::client
         P2_Ctrl["interviewController.ts<br>Express Session Start"]:::server
-        P2_AI["aiService.ts<br>Interview AI Engine"]:::server
-        P2_Gemini["Gemini Flash API<br>Resume-Aware Q1 Generation"]:::ext
+        P2_AI_Svc["aiService.ts<br>Interview AI Engine"]:::server
+        P2_OpenAI["OpenAI API<br>Resume-Aware Q1 Generation"]:::ext
         P2_DB["MongoDB Interview Collection<br>Create Stateful Pending Session"]:::db
 
         P2_FE -->|"6. Config and Start Session"| P2_Ctrl
-        P2_Ctrl -->|"7. Fetch Resume Profile"| P2_AI
-        P2_AI -->|"8. Generate personalized Q1"| P2_Gemini
-        P2_Gemini -->|"9. Return Q1 or 31 bank"| P2_AI
-        P2_AI -->|"10. Persist pending session"| P2_DB
+        P2_Ctrl -->|"7. Fetch Resume Profile"| P2_AI_Svc
+        P2_AI_Svc -->|"8. Generate personalized Q1"| P2_OpenAI
+        P2_OpenAI -->|"9. Return Q1 or fallback bank"| P2_AI_Svc
+        P2_AI_Svc -->|"10. Persist pending session"| P2_DB
     end
 
-    subgraph PHASE3 ["PHASE 3: Active Multi-Modal Q&A Loop ('Alex')"]
+    subgraph PHASE3 ["PHASE 3: Active Multi-Modal Q&A Loop"]
         direction LR
         P3_FE["Interview.tsx<br>React AV Canvas Room"]:::client
         P3_TTS["Web Speech TTS<br>Narrate Question"]:::client
         P3_STT["Web Speech STT<br>Continuous Speech-to-Text"]:::client
-        P3_MP["MediaPipe CV Tracker<br>Eye Contact and Posture"]:::client
+        P3_MP["MediaPipe Vision<br>Eye Contact and Posture"]:::client
         P3_Ctrl["interviewController.ts<br>Answer Submission"]:::server
-        P3_AI["aiService.ts<br>Evaluation and Response Router"]:::server
-        P3_Gemini["Gemini Flash API<br>Grades and Contextual Follow-Up Q"]:::ext
+        P3_AI_Svc["aiService.ts<br>Evaluation and Response Router"]:::server
+        P3_OpenAI["OpenAI API<br>Grades and Contextual Follow-Up Q"]:::ext
         P3_DB["MongoDB Interview Collection<br>Append QA Transcript"]:::db
 
         P3_FE -->|"12. Speak Question"| P3_TTS
@@ -70,10 +70,10 @@ flowchart TD
         P3_FE -->|"14. Capture Behavioral CV"| P3_MP
         P3_STT -->|"15a. Submit Text response"| P3_Ctrl
         P3_MP -->|"15b. Submit CV metrics"| P3_Ctrl
-        P3_Ctrl -->|"16. Process Evaluation"| P3_AI
-        P3_AI -->|"17. Grade response"| P3_Gemini
-        P3_Gemini -->|"18. Strengths and follow-up Q"| P3_AI
-        P3_AI -->|"19. Commit QA Details"| P3_DB
+        P3_Ctrl -->|"16. Process Evaluation"| P3_AI_Svc
+        P3_AI_Svc -->|"17. Grade response"| P3_OpenAI
+        P3_OpenAI -->|"18. Strengths and follow-up Q"| P3_AI_Svc
+        P3_AI_Svc -->|"19. Commit QA Details"| P3_DB
         P3_DB -->|"20. Return feedback and next question"| P3_FE
         P3_FE -.->|"21. Loop questions 2 to 10"| P3_FE
     end
@@ -83,7 +83,7 @@ flowchart TD
         P4_FE["WebRTC Compilation<br>Stop MediaRecorder, Build WebM"]:::client
         P4_Ctrl["videoController.ts<br>Chunked Video Uploader"]:::server
         P4_Cloudinary["cloudinaryService.ts<br>Cloud Storage Driver"]:::server
-        P4_CloudAPI["Cloudinary Storage<br>Secure CDN Host"]:::ext
+        P4_CloudAPI["Cloudinary CDN<br>Secure Cloud Storage"]:::ext
         P4_IntCtrl["interviewController.ts<br>Express Session End"]:::server
         P4_DB["MongoDB Interview Collection<br>Update Status to Completed"]:::db
 
@@ -115,74 +115,111 @@ flowchart TD
 
     %% Phase-to-Phase Chronological Flows
     P1_DB -->|"11. Load Stats to Dashboard"| P2_FE
-    P2_DB -->|"22. Redirect to Room"| P3_FE
-    P3_FE -->|"29. Complete Session and WebM compiled"| P4_FE
-    P4_DB -->|"37. Redirect Candidate"| P5_FE
+    P2_DB -->|"22. Redirect to Interview Room"| P3_FE
+    P3_FE -->|"29. Session Complete - WebM compiled"| P4_FE
+    P4_DB -->|"37. Redirect to Results"| P5_FE
 ```
 
 ---
 
-### Step-by-Step Detailed Execution Flow (kya aur kaise chalega)
+## Step-by-Step Execution Flow
 
-#### Phase 1: Authentication & Onboarding
-1. **User Sign-up/Login:** The candidate hits the registration page. Hashing is done using `bcrypt` on the backend inside `authController.ts` and user profiles are created in `User` MongoDB model. All following backend communication is validated via **JSON Web Tokens (JWT)**.
-2. **Resume Upload:** The candidate uploads their resume (PDF or DOCX format) via `ResumeUpload.tsx`.
-3. **Parsing & Text Extraction:** The Express API endpoint `/api/resume/upload` receives the file. Inside `resumeParser.ts`, it automatically detects the extension and parses the raw text (`pdf-parse` for PDF, `mammoth` for DOCX).
-4. **Intelligent Recruiter Check:** The parser formats the raw data (skills, projects, experience keywords) and queries the **Gemini API** (`gemini-flash-latest`). Gemini calculates a **Suitability Score (0-100)**, identifies specific matched skills, flags critical missing requirements for the target role, and provides tailored profile enhancement tips.
-5. **Database Storage:** The parsed text and analysis results are committed to MongoDB under the `Resume` model, which is linked directly to the `User`. The user dashboard reloads automatically to showcase these metrics.
+### Phase 1: Authentication & Onboarding
 
-#### Phase 2: Start Interview & Context Selection
-6. **Lobby Customization:** The user selects their target role, interview duration, difficulty (Easy, Medium, Hard), and toggles the Video Recording checkbox. They then click **Start Interview**.
-7. **Initiating Session:** The frontend issues a `POST /api/interview/start` call to the server. `interviewController.ts` creates a stateful `Interview` document in MongoDB with a `pending` status.
-8. **AI-Powered Question 1 Generation:** In the backend, `aiService.ts` checks if the user has a saved resume. If yes, it fetches the candidate's skills and projects from the `Resume` model. It calls the **Gemini API** with a rich prompt containing the resume profile, difficulty level, and target role to generate a highly personalized **Question 1** (e.g., if they list React on their resume, it generates a React-specific question). If Gemini is offline, it cleanly falls back to selecting an unseen question from a robust **31+ Question Bank** across categories: DSA, System Design, DB, HR, and Project.
-9. **Delivering Session Lobby:** The question is returned to the client browser, redirecting the user to `Interview.tsx`.
+1. **User Sign-up / Login:** The candidate visits the registration page. Passwords are hashed using `bcrypt` inside `authController.ts` and user profiles are created in the `User` MongoDB model. All subsequent backend communication is protected via **JSON Web Tokens (JWT)**.
 
-#### Phase 3: Active Multi-Modal Q&A Loop
-10. **Activating AV Streams & Live AI Tracker (WebRTC + MediaPipe):** 
-    * The camera and microphone are activated using **WebRTC** (`navigator.mediaDevices.getUserMedia`).
-    * The frontend automatically hooks up a **`MediaRecorder`** instance, capturing a high-fidelity video stream in the background.
-    * A custom React hook `useBodyLanguageAnalysis` boots up **MediaPipe** on the canvas, measuring live parameters such as **eye contact frequency**, **face orientation** (detecting off-screen distraction), and **facial pose confidence**.
-11. **Narration (TTS):** The browser's **Web Speech Synthesis API** reads the generated question aloud, acting as the voice of the AI interviewer "Alex".
-12. **Speech-to-Text Transcription:** The candidate responds. They can type their answer, or toggle **Voice Input** which uses the browser's built-in continuous **Web Speech Recognition API (`webkitSpeechRecognition`)** to transcribe spoken words into the text box in real-time.
-13. **Submitting & Evaluation:** The user clicks **Submit Answer** sending the response to `POST /api/interview/submit-answer`.
-    * **AI Evaluation Engine:** `aiService.ts` prompts the Gemini API to grade the candidate's depth of knowledge, communication structure, accuracy, and use of practical examples.
-    * **Grading Output:** The API returns a secure JSON package containing:
-      * **Score:** 1 to 5 scale.
-      * **Overall Feedback:** A detailed assessment of their answer.
-      * **Strengths:** 2-3 specific elements they explained correctly.
-      * **Improvements:** Actionable notes on missing parameters.
-      * **Follow-up Question:** A deeper, context-aware follow-up question based *specifically* on what the candidate just answered.
-    * **Local Fallback Mode:** If Gemini is unavailable, a local tokenization service analyzes the word overlap with ideal answer templates, adjusting scores for structural details, examples, and minimum length (15+ words).
-14. **Looping:** The candidate receives immediate color-coded feedback on screen, then clicks **Next Question** to load the follow-up or the next core question. This loop repeats for up to 10 questions.
+2. **Resume Upload:** The candidate uploads their resume (PDF or DOCX) via `ResumeUpload.tsx`.
 
-#### Phase 4: Ending and Video Archiving
-15. **Halt Capture:** The interview ends (10 questions complete, manual termination, or timer expires). 
-    * The **WebRTC MediaRecorder** is halted, compiling all background chunks into a single, high-fidelity WebM video blob.
-    * The **MediaPipe** vision loop is stopped, consolidating tracking metrics into averaged scores.
-16. **Session Finalization:** The frontend triggers `POST /api/interview/end` sending the compiled body language averages. The server calls Gemini to construct an encouraging, personalized closing message summarizing key highlights, sets the status to `completed`, and updates the Mongoose `Interview` model.
-17. **Cloud Video Upload:** In the background, the frontend streams the WebM video blob via the `/api/video/upload-chunk` API. `cloudinaryService.ts` uploads the file securely to a **Cloudinary** cloud bucket, returning a secure URL and Public ID that are committed to the interview record in MongoDB.
+3. **Parsing & Text Extraction:** The Express API endpoint `POST /api/resume/upload` receives the file. Inside `resumeParser.ts`, the file extension is detected automatically — `pdf-parse` handles PDFs and `mammoth` handles DOCX files.
 
-#### Phase 5: Dashboard Analytics & Performance Review
-18. **Interactive Results Page:** The candidate is redirected to `InterviewResult.tsx`. 
-19. **Performance Assessment:** The page fetches the interview record. Recharts visualizes historical performance, radar maps for category scores, and body language compliance metrics.
-20. **Replay Player:** The candidate can review their complete question-by-question transcript alongside their graded feedback and play back their recorded session directly using the integrated Cloudinary video player.
+4. **AI Suitability Check:** The extracted raw text (skills, projects, experience) is sent to the **OpenAI API**. The model returns a structured JSON response containing a **Suitability Score (0–100)**, matched skills, critical skill gaps for the target role, and personalized profile enhancement tips.
+
+5. **Database Storage:** The parsed data and AI analysis results are committed to MongoDB under the `Resume` model, linked directly to the `User`. The dashboard reloads automatically to display these metrics.
+
+### Phase 2: Interview Configuration & Session Start
+
+6. **Lobby Customization:** The user selects their target role, interview duration, difficulty level (Easy, Medium, or Hard), and optionally enables Video Recording. They then click **Start Interview**.
+
+7. **Session Initialization:** The frontend sends `POST /api/interview/start`. `interviewController.ts` creates a stateful `Interview` document in MongoDB with a `pending` status.
+
+8. **AI-Powered Question 1 Generation:** In the backend, `aiService.ts` checks whether the user has a saved resume. If yes, it fetches the candidate's skills and projects from the `Resume` model and constructs a rich prompt (including the resume profile, difficulty level, and target role) to generate a **highly personalized first question** via the **OpenAI API** (e.g., if React is listed on the resume, a React-specific question is generated). If the API is unavailable, the service falls back to a **31+ question bank** spanning DSA, System Design, Databases, HR, and Project-based categories.
+
+9. **Session Delivery:** The generated question is returned to the browser, redirecting the user to the Interview room (`Interview.tsx`).
+
+### Phase 3: Active Multi-Modal Q&A Loop
+
+10. **AV Streams & Body Language Tracking:** The camera and microphone are activated via **WebRTC** (`navigator.mediaDevices.getUserMedia`). A `MediaRecorder` instance begins capturing the video stream in the background. A custom React hook, `useBodyLanguageAnalysis`, initializes **MediaPipe** on a canvas element to track live behavioral parameters: **eye contact frequency**, **head orientation** (detecting off-screen distraction), and **facial pose confidence**.
+
+11. **Question Narration (TTS):** The browser's **Web Speech Synthesis API** reads the generated question aloud, acting as the voice of the AI interviewer.
+
+12. **Speech-to-Text Transcription:** The candidate responds by typing, or by toggling **Voice Input** which activates the browser's built-in **Web Speech Recognition API** (`webkitSpeechRecognition`) to transcribe spoken words into the answer text field in real-time.
+
+13. **Answer Submission & Evaluation:** The user clicks **Submit Answer**, sending the response to `POST /api/interview/submit-answer`.
+    - `aiService.ts` prompts the **OpenAI API** to evaluate the answer across dimensions: depth of knowledge, communication structure, technical accuracy, and use of practical examples.
+    - The API returns a structured JSON response containing:
+      - **Score:** A 1–5 scale rating.
+      - **Overall Feedback:** A detailed assessment of the answer.
+      - **Strengths:** 2–3 specific elements the candidate explained well.
+      - **Areas for Improvement:** Actionable notes on missing or weak points.
+      - **Follow-up Question:** A deeper, context-aware question based on what the candidate just answered.
+    - **Fallback Mode:** If the OpenAI API is unavailable, a local tokenization service analyzes word overlap against ideal answer templates, scoring based on structural completeness, use of examples, and minimum response length.
+
+14. **Question Loop:** The candidate receives immediate color-coded feedback on screen, then clicks **Next Question** to proceed to the follow-up or the next core question. This loop continues for up to 10 questions.
+
+### Phase 4: Session End & Video Archiving
+
+15. **Stop Capture:** The interview ends when 10 questions are complete, when the user manually ends the session, or when the timer expires.
+    - The `MediaRecorder` is stopped, compiling all buffered chunks into a single WebM video blob.
+    - The MediaPipe vision loop halts, consolidating all tracking metrics into averaged behavioral scores.
+
+16. **Session Finalization:** The frontend triggers `POST /api/interview/end`, sending the body language averages to the server. The server calls the OpenAI API to generate a personalized closing summary, sets the interview status to `completed`, and updates the `Interview` document in MongoDB.
+
+17. **Cloud Video Upload:** The WebM blob is streamed to the backend via `POST /api/video/upload-chunk`. `cloudinaryService.ts` uploads the file to **Cloudinary**, which returns a secure HTTPS URL and a Public ID. These are saved to the interview record in MongoDB.
+
+### Phase 5: Analytics Dashboard & Replay
+
+18. **Results Page:** The candidate is redirected to `InterviewResult.tsx`.
+
+19. **Performance Visualization:** The page fetches the complete interview record and renders interactive Recharts visualizations — radar charts for category scores, score trajectory plots, and body language compliance metrics.
+
+20. **Video Replay:** The candidate can review their complete Q&A transcript alongside graded feedback, and play back their recorded session directly via the integrated Cloudinary video player.
 
 ---
 
 ## Tech Stack
 
 ### Frontend
-- React 18 + TypeScript
-- Tailwind CSS
-- Zustand (State Management)
-- Monaco Editor (Code Editor)
-- WebRTC (Video/Audio)
+| Technology | Purpose |
+|---|---|
+| React 18 + TypeScript | Core UI framework |
+| Vite | Build tool and dev server |
+| Tailwind CSS | Utility-first styling |
+| Zustand | Global state management |
+| React Router DOM v6 | Client-side routing |
+| Framer Motion | Animations and transitions |
+| Radix UI | Accessible headless components |
+| Monaco Editor | In-browser code editor |
+| Recharts | Performance analytics charts |
+| Axios | HTTP client |
+| MediaPipe Tasks Vision | Real-time face and body tracking |
+| WebRTC (browser API) | Camera/microphone capture and recording |
+| Web Speech API (browser) | Text-to-speech (TTS) and speech-to-text (STT) |
 
 ### Backend
-- Node.js + Express
-- MongoDB (Mongoose)
-- JWT Authentication
-- OpenAI API (LLM Integration)
+| Technology | Purpose |
+|---|---|
+| Node.js + Express | REST API server |
+| TypeScript | Type-safe backend code |
+| MongoDB + Mongoose | Database and ODM |
+| JSON Web Tokens (JWT) | Authentication |
+| bcryptjs | Password hashing |
+| OpenAI API (GPT) | AI question generation and answer evaluation |
+| Cloudinary | Cloud video storage and streaming |
+| multer | File upload handling |
+| pdf-parse + mammoth | Resume parsing (PDF and DOCX) |
+| socket.io | Real-time communication |
+| helmet | HTTP security headers |
+| express-validator | Input validation |
 
 ## Project Structure
 
@@ -297,139 +334,161 @@ AI-Mock-Interview-Platform/
 └── README.md                            # Comprehensive README & Flow diagram (This file)
 ```
 
-## Setup Instructions
+## Setup & Installation
 
 ### Prerequisites
-- Node.js 18+
-- MongoDB (local or Atlas)
-- OpenAI API Key
 
-### Backend Setup
+- **Node.js** v18 or higher
+- **MongoDB** (local instance or MongoDB Atlas)
+- **OpenAI API Key** — [platform.openai.com](https://platform.openai.com)
+- **Cloudinary Account** — [cloudinary.com](https://cloudinary.com) (free tier is sufficient)
 
-1. Navigate to backend directory:
+### 1. Clone the Repository
+
 ```bash
-cd backend
+git clone https://github.com/your-username/AI-Mock-Interview-Platform.git
+cd AI-Mock-Interview-Platform
 ```
 
-2. Install dependencies:
+### 2. Backend Setup
+
 ```bash
+cd backend
 npm install
 ```
 
-3. Create `.env` file:
+Create a `.env` file in the `backend/` directory (use `.env.example` as a template):
+
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/ai-interview
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
 NODE_ENV=development
 OPENAI_API_KEY=your-openai-api-key-here
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 ```
 
-4. Start the backend server:
+Start the backend development server:
+
 ```bash
 npm run dev
 ```
 
-The server will run at `http://localhost:5000`
+The backend API will be available at `http://localhost:5000`.
 
-### Frontend Setup
+### 3. Frontend Setup
 
-1. Navigate to frontend directory:
 ```bash
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Start the development server:
-```bash
 npm run dev
 ```
 
-The application will run at `http://localhost:3000`
+The frontend development server will be available at `http://localhost:5173`.
+
+### 4. Run Both Concurrently (from the root)
+
+```bash
+npm run dev
+```
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Register a new user |
+| `POST` | `/api/auth/login` | Login and receive a JWT |
+| `GET` | `/api/auth/me` | Get the currently authenticated user |
 
 ### Resume
-- `POST /api/resume/upload` - Upload resume (multipart/form-data)
-- `GET /api/resume/:id` - Get resume by ID
-- `GET /api/resume/user/:userId` - Get user's resumes
-- `DELETE /api/resume/:id` - Delete resume
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/resume/upload` | Upload a resume (multipart/form-data) |
+| `GET` | `/api/resume/:id` | Get a resume by ID |
+| `GET` | `/api/resume/user/:userId` | Get all resumes for a user |
+| `DELETE` | `/api/resume/:id` | Delete a resume |
 
 ### Interview
-- `POST /api/interview/start` - Start new interview
-- `GET /api/interview/next-question/:interviewId` - Get next question
-- `POST /api/interview/submit-answer/:interviewId` - Submit answer
-- `POST /api/interview/end/:interviewId` - End interview
-- `GET /api/interview/:id` - Get interview details
-- `GET /api/interview/user/:userId` - Get user's interviews
-- `GET /api/interview/transcript/:id` - Get transcript
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/interview/start` | Start a new interview session |
+| `GET` | `/api/interview/next-question/:interviewId` | Get the next question |
+| `POST` | `/api/interview/submit-answer/:interviewId` | Submit an answer for evaluation |
+| `POST` | `/api/interview/end/:interviewId` | End the interview session |
+| `GET` | `/api/interview/:id` | Get interview details |
+| `GET` | `/api/interview/user/:userId` | Get all interviews for a user |
+| `GET` | `/api/interview/transcript/:id` | Get the full interview transcript |
 
 ### Video
-- `POST /api/video/upload-chunk` - Upload video chunk
-- `POST /api/video/finalize` - Finalize video
-- `GET /api/video/:id` - Get video info
-- `GET /api/video/:id/download` - Download video
-- `POST /api/video/analyze-body-language` - Analyze body language
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/video/upload-chunk` | Upload a video chunk |
+| `POST` | `/api/video/finalize` | Finalize and commit the video |
+| `GET` | `/api/video/:id` | Get video metadata |
+| `GET` | `/api/video/:id/download` | Download the recorded video |
+| `POST` | `/api/video/analyze-body-language` | Submit body language metrics |
 
 ### Analytics
-- `GET /api/analytics/:userId` - Get user analytics
-- `GET /api/analytics/interview/:id` - Get interview analytics
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/analytics/:userId` | Get analytics summary for a user |
+| `GET` | `/api/analytics/interview/:id` | Get analytics for a specific interview |
 
-## Environment Variables
+## Environment Variables Reference
 
-### Backend (.env)
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/ai-interview
-JWT_SECRET=your-secret-key
-OPENAI_API_KEY=sk-your-api-key
-```
+### Backend (`backend/.env`)
 
-### Customization Variables
-```env
-{{INTERVIEW_DURATION}} = 45 minutes
-{{ROLE}} = "Full Stack Developer"
-{{DIFFICULTY}} = "Mixed"
-{{MAX_QUESTIONS}} = 15
-```
+| Variable | Required | Description |
+|---|---|---|
+| `PORT` | Yes | Port for the Express server (default: `5000`) |
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Secret key for signing JWTs |
+| `NODE_ENV` | No | `development` or `production` |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for question generation and evaluation |
+| `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
 
 ## Deployment
 
-### Frontend (Vercel)
-1. Push code to GitHub
-2. Import project on Vercel
-3. Set build command: `npm run build`
-4. Set output directory: `dist`
-5. Deploy
+### Frontend — Vercel
 
-### Backend (Render/Railway)
-1. Connect GitHub repository
-2. Set environment variables
+1. Push code to GitHub.
+2. Import the project on [vercel.com](https://vercel.com).
+3. Set the **root directory** to `frontend`.
+4. Build command: `npm run build`
+5. Output directory: `dist`
+6. Deploy.
+
+### Backend — Render
+
+1. Connect your GitHub repository on [render.com](https://render.com).
+2. Select **Web Service** and set the **root directory** to `backend`.
 3. Build command: `npm run build`
 4. Start command: `npm start`
+5. Add all environment variables in the Render dashboard.
 
-### Database (MongoDB Atlas)
-1. Create free tier cluster
-2. Get connection string
-3. Add to backend environment variables
+A `render.yaml` configuration file is included in the repository root for one-click deployment.
 
-## Security Features
+### Database — MongoDB Atlas
 
-- JWT authentication for protected routes
-- Password hashing with bcrypt
-- CORS configuration
-- Helmet for HTTP security headers
-- File type validation for uploads
-- Input validation
+1. Create a free-tier cluster on [mongodb.com/atlas](https://www.mongodb.com/atlas).
+2. Add your server's IP to the Atlas IP Access List.
+3. Copy the connection string and set it as `MONGODB_URI` in your backend environment.
+
+## Security
+
+- **JWT Authentication** — All protected routes require a valid Bearer token
+- **Password Hashing** — All passwords are hashed with `bcrypt` before storage
+- **CORS Configuration** — Restricted to allowed origins
+- **Helmet** — Sets secure HTTP response headers
+- **File Type Validation** — Resume uploads are validated for allowed MIME types
+- **Input Validation** — All API inputs are validated with `express-validator`
+
+---
 
 ## License
 
