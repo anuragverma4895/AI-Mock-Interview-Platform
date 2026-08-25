@@ -40,7 +40,7 @@ export default function Analytics() {
       <nav className="border-b border-slate-200/60 bg-white/80 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/80">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-bold">AI Mock Interview Platform - Analytics</h1>
+            <h1 className="text-xl font-bold">PrepVerse - Analytics</h1>
             <div className="flex items-center gap-3">
               <ThemeToggle />
               <button

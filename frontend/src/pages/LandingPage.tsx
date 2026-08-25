@@ -171,7 +171,7 @@ export default function LandingPage() {
 
             <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
               Practice with AI-powered interviewers, get real-time feedback, and boost your confidence.
-              Join thousands of developers who landed their dream jobs with InterviewAI.
+              Join thousands of developers who landed their dream jobs with PrepVerse.
             </p>
 
             <motion.div
@@ -217,7 +217,7 @@ export default function LandingPage() {
                         <Bot className="h-7 w-7 text-white" />
                       </div>
                       <div>
-                        <p className="font-semibold">InterviewAI</p>
+                        <p className="font-semibold">Interview AI</p>
                         <p className="text-sm text-slate-500">AI Interviewer</p>
                       </div>
                     </div>
@@ -380,7 +380,7 @@ function example() {
               Loved by Developers Worldwide
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300">
-              Join thousands of developers who transformed their careers with InterviewAI.
+              Join thousands of developers who transformed their careers with PrepVerse.
             </p>
           </motion.div>
 
@@ -495,7 +495,7 @@ function example() {
           </div>
 
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
-            <p>&copy; 2026 InterviewAI. All rights reserved.</p>
+            <p>&copy; 2026 PrepVerse. All rights reserved.</p>
           </div>
         </div>
       </footer>

@@ -561,7 +561,7 @@ export default function Interview() {
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
               <span className="text-xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                InterviewAI
+                PrepVerse
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -934,7 +934,7 @@ export default function Interview() {
                       <div className="font-semibold text-xs mb-1">
                         <span className="inline-flex items-center gap-1">
                           {msg.type === 'ai' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                          {msg.type === 'ai' ? 'InterviewAI' : 'You'}
+                          {msg.type === 'ai' ? 'Interview AI' : 'You'}
                         </span>
                       </div>
                       {msg.text}

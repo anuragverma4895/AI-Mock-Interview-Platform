@@ -1,4 +1,4 @@
-import { Target } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface LogoProps {
@@ -14,20 +14,20 @@ export function Logo({ size = "md", showText = true, className }: LogoProps) {
     <div className={cn("flex items-center", isSmall ? "space-x-2" : "space-x-3", className)}>
       <div
         className={cn(
-          "rounded-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 dark:from-slate-700 dark:via-slate-600 dark:to-slate-800 border border-emerald-300 dark:border-slate-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 dark:shadow-slate-900/40 hover:scale-105 transition-transform duration-300",
+          "rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-violet-600 dark:from-indigo-600 dark:via-purple-600 dark:to-violet-700 border border-indigo-300/50 dark:border-purple-400/30 flex items-center justify-center shadow-lg shadow-indigo-500/30 dark:shadow-purple-900/40 hover:scale-110 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300",
           isSmall ? "h-8 w-8" : "h-10 w-10"
         )}
       >
-        <Target className={cn("text-white dark:text-slate-200", isSmall ? "h-5 w-5" : "h-6 w-6")} />
+        <Sparkles className={cn("text-white drop-shadow-sm", isSmall ? "h-5 w-5" : "h-6 w-6")} />
       </div>
       {showText && (
         <span
           className={cn(
-            "font-bold bg-gradient-to-r from-emerald-700 via-teal-600 to-cyan-700 dark:from-slate-200 dark:via-slate-300 dark:to-white bg-clip-text text-transparent tracking-tight",
+            "font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 dark:from-indigo-300 dark:via-purple-300 dark:to-violet-200 bg-clip-text text-transparent tracking-tight",
             isSmall ? "text-lg" : "text-2xl"
           )}
         >
-          InterviewAI
+          PrepVerse
         </span>
       )}
     </div>

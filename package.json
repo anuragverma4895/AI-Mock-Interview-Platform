@@ -1,7 +1,7 @@
 {
-  "name": "ai-mock-interview-platform",
+  "name": "prepverse",
   "version": "1.0.0",
-  "description": "AI Mock Interview Platform - Full Stack",
+  "description": "PrepVerse - AI Interview Preparation Platform",
   "scripts": {
     "install:backend": "cd backend && npm install --include=dev",
     "install:frontend": "cd frontend && npm install --include=dev",
