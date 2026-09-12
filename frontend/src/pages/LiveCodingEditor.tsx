@@ -49,7 +49,8 @@ export default function LiveCodingEditor() {
         if (cancelled) return
         const data = res.data.codingSession
         setSession(data)
-        setCode(data.challenge.starterCode[languagePref || 'javascript'] || '// Start coding here')
+        const codes = data.challenge.starterCodes || {};
+        setCode(codes[languagePref || 'javascript'] || data.challenge.starterCode || '// Start coding here')
         setTimeLeft(data.timeLimit)
       } catch (err: any) {
         if (cancelled) return
@@ -85,10 +86,11 @@ export default function LiveCodingEditor() {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value
     setLanguage(newLang)
-    if (challenge && challenge.starterCode && challenge.starterCode[newLang]) {
-      setCode(challenge.starterCode[newLang])
+    const codes = challenge?.starterCodes || {}
+    if (codes[newLang]) {
+      setCode(codes[newLang])
     } else {
-      setCode('// Language not supported by this challenge')
+      setCode('// Start coding here')
     }
   }
 
@@ -101,7 +103,8 @@ export default function LiveCodingEditor() {
       const startRes = await codingAPI.start(undefined, language, customChallenge)
       const data = startRes.data.codingSession
       setSession(data)
-      setCode(data.challenge.starterCode[language] || '// Start coding here')
+      const codes = data.challenge.starterCodes || {};
+      setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
       setTimeLeft(data.timeLimit)
       setOutput('✨ AI Challenge Generated!\n')
       setTestResults([])
@@ -147,9 +150,8 @@ export default function LiveCodingEditor() {
   }
 
   const resetCode = () => {
-    if (challenge && challenge.starterCode) {
-      setCode(challenge.starterCode[language] || '// Start coding here')
-    }
+    const codes = challenge?.starterCodes || {}
+    setCode(codes[language] || challenge?.starterCode || '// Start coding here')
     setOutput('')
     setTestResults([])
   }
@@ -254,14 +256,15 @@ export default function LiveCodingEditor() {
                   {challenge?.description || 'No description available.'}
                 </p>
 
-                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg mb-4">
-                  <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Example:</h4>
-                  <div className="font-mono text-sm space-y-1">
-                    <div><span className="text-blue-600">Input:</span> nums = [2,7,11,15], target = 9</div>
-                    <div><span className="text-green-600">Output:</span> [0,1]</div>
-                    <div><span className="text-slate-500">Explanation:</span> Because nums[0] + nums[1] == 9</div>
+                {challenge?.testCases && challenge.testCases.length > 0 && (
+                  <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg mb-4">
+                    <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Example:</h4>
+                    <div className="font-mono text-sm space-y-1">
+                      <div><span className="text-blue-600">Input:</span> {challenge.testCases[0].input}</div>
+                      <div><span className="text-green-600">Output:</span> {challenge.testCases[0].expectedOutput}</div>
+                    </div>
                   </div>
-                </div>
+                )}
 
 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">

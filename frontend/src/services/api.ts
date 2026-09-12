@@ -138,7 +138,8 @@ export interface CodingChallenge {
   category?: string;
   timeLimit: number;
   language: string;
-  starterCode: Record<string, string>;
+  starterCode: string;
+  starterCodes: Record<string, string>;
   testCases: CodingTestCase[];
 }
 

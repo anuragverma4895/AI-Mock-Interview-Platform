@@ -23,6 +23,7 @@ export interface ICodingChallenge {
   timeLimit: number;
   language: string;
   starterCode: string;
+  starterCodes?: Record<string, string>;
   testCases: ICodingTestCase[];
 }
 
@@ -121,6 +122,10 @@ const interviewSchema = new Schema<IInterview>(
       timeLimit: Number,
       language: String,
       starterCode: String,
+      starterCodes: {
+        type: Schema.Types.Mixed,
+        default: {},
+      },
       testCases: [
         {
           input: String,

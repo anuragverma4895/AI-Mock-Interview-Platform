@@ -40,6 +40,7 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
         timeLimit: challenge.timeLimit,
         language: language || challenge.language,
         starterCode: challenge.starterCode,
+        starterCodes: challenge.starterCodes || {},
         testCases: challenge.testCases,
       },
       duration: Math.ceil(challenge.timeLimit / 60),
