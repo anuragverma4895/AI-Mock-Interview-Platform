@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
-import { codingAPI } from "../services/api"
+import { codingAPI, CodingChallenge, CodingTestResult } from "../services/api"
 
 export default function LiveCodingEditor() {
   const navigate = useNavigate()
@@ -32,7 +32,7 @@ export default function LiveCodingEditor() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [testResults, setTestResults] = useState<Array<{ passed: boolean; input: string; expected: string; actual: string }>>([])
   const [timeLeft, setTimeLeft] = useState(30 * 60)
-  const [editorReady, setEditorReady] = useState(false)
+
   const [session, setSession] = useState<{ id: string; challenge: CodingChallenge; timeLimit: number; language: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -202,7 +202,7 @@ export default function LiveCodingEditor() {
               </CardHeader>
               <CardContent>
                 <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-4">
-                  {challenge.description}
+                  {challenge?.description || 'No description available.'}
                 </p>
 
                 <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-lg mb-4">
