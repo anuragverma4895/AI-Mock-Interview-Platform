@@ -24,7 +24,8 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
       }
       challenge = found;
     } else {
-      challenge = listChallenges()[0];
+      const challenges = listChallenges();
+      challenge = challenges[Math.floor(Math.random() * challenges.length)];
     }
 
     const interview = new Interview({

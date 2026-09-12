@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   Loader2,
   Wand2,
+  Shuffle,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
 import { codingAPI, CodingChallenge, CodingTestResult } from "../services/api"
@@ -115,6 +116,24 @@ export default function LiveCodingEditor() {
     }
   }
 
+  const nextRandomChallenge = async () => {
+    setIsGenerating(true)
+    try {
+      const res = await codingAPI.start(undefined, language)
+      const data = res.data.codingSession
+      setSession(data)
+      const codes = data.challenge.starterCodes || {};
+      setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
+      setTimeLeft(data.timeLimit)
+      setOutput('✨ New Random Challenge Loaded!\n')
+      setTestResults([])
+    } catch (err: any) {
+      setOutput(`Error: ${err?.response?.data?.message || 'Failed to load challenge'}\n`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const runCode = async () => {
     if (!session) return
     setIsRunning(true)
@@ -195,6 +214,16 @@ export default function LiveCodingEditor() {
           </div>
 
           <div className="flex items-center space-x-4">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={nextRandomChallenge}
+              disabled={isGenerating}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-none"
+            >
+              <Shuffle className="h-4 w-4" />
+              <span className="hidden sm:inline">Next Random</span>
+            </Button>
             <Button
               size="sm"
               variant="outline"
