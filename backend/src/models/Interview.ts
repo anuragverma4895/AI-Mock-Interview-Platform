@@ -11,12 +11,39 @@ export interface IInterviewQuestion {
   idealAnswer?: string;
 }
 
+export interface ICodingTestCase {
+  input: string;
+  expectedOutput: string;
+}
+
+export interface ICodingChallenge {
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  timeLimit: number;
+  language: string;
+  starterCode: string;
+  testCases: ICodingTestCase[];
+}
+
+export interface ICodingTestResult {
+  passed: boolean;
+  input: string;
+  expected: string;
+  actual: string;
+}
+
 export interface IInterview extends Document {
   userId: mongoose.Types.ObjectId;
   resumeId?: mongoose.Types.ObjectId;
+  interviewType: 'technical' | 'hr' | 'combine' | 'coding';
   status: 'pending' | 'in_progress' | 'completed';
   questions: IInterviewQuestion[];
   currentQuestionIndex: number;
+  codingChallenge?: ICodingChallenge;
+  codingResults?: ICodingTestResult[];
+  codingPassedCount?: number;
+  codingTotalCount?: number;
   transcript: Array<{
     question: string;
     answer: string;
@@ -51,6 +78,12 @@ const interviewSchema = new Schema<IInterview>(
       type: Schema.Types.ObjectId,
       ref: 'Resume',
     },
+    interviewType: {
+      type: String,
+      enum: ['technical', 'hr', 'combine', 'coding'],
+      default: 'technical',
+      index: true,
+    },
     status: {
       type: String,
       enum: ['pending', 'in_progress', 'completed'],
@@ -75,6 +108,39 @@ const interviewSchema = new Schema<IInterview>(
       },
     ],
     currentQuestionIndex: {
+      type: Number,
+      default: 0,
+    },
+    codingChallenge: {
+      title: String,
+      description: String,
+      difficulty: {
+        type: String,
+        enum: ['easy', 'medium', 'hard'],
+      },
+      timeLimit: Number,
+      language: String,
+      starterCode: String,
+      testCases: [
+        {
+          input: String,
+          expectedOutput: String,
+        },
+      ],
+    },
+    codingResults: [
+      {
+        passed: Boolean,
+        input: String,
+        expected: String,
+        actual: String,
+      },
+    ],
+    codingPassedCount: {
+      type: Number,
+      default: 0,
+    },
+    codingTotalCount: {
       type: Number,
       default: 0,
     },

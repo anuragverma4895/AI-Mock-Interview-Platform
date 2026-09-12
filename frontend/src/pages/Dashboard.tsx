@@ -34,7 +34,8 @@ import {
   Target,
   Award,
   Clock,
-  Star
+  Star,
+  Code2
 } from "lucide-react"
 
 export default function Dashboard() {
@@ -170,6 +171,9 @@ export default function Dashboard() {
           <SidebarItem icon={<Play />} onClick={() => navigate('/interview')}>
             {!sidebarCollapsed && "Start Interview"}
           </SidebarItem>
+          <SidebarItem icon={<Code2 />} onClick={() => navigate('/coding')}>
+            {!sidebarCollapsed && "Coding Practice"}
+          </SidebarItem>
           <SidebarItem icon={<FileText />} onClick={() => navigate('/resume')}>
             {!sidebarCollapsed && "Resume Analysis"}
           </SidebarItem>
@@ -203,6 +207,14 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-3">
                 <ThemeToggle />
+                <Button
+                  onClick={() => navigate('/coding')}
+                  variant="outline"
+                  className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300"
+                >
+                  <Code2 className="mr-2 h-4 w-4" />
+                  Coding Practice
+                </Button>
                 <Button
                   onClick={() => navigate('/interview')}
                   className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"

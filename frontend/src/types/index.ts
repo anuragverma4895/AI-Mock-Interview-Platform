@@ -32,9 +32,27 @@ export interface Interview {
   _id: string;
   userId: string;
   resumeId?: string;
+  interviewType: 'technical' | 'hr' | 'combine' | 'coding';
   status: 'pending' | 'in_progress' | 'completed';
   questions: InterviewQuestion[];
   currentQuestionIndex: number;
+  codingChallenge?: {
+    title: string;
+    description: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    timeLimit: number;
+    language: string;
+    starterCode: string;
+    testCases: Array<{ input: string; expectedOutput: string }>;
+  };
+  codingResults?: Array<{
+    passed: boolean;
+    input: string;
+    expected: string;
+    actual: string;
+  }>;
+  codingPassedCount?: number;
+  codingTotalCount?: number;
   transcript: Array<{ question: string; answer: string; timestamp: string }>;
   videoPath?: string;
   recordingUrl?: string;

@@ -12,6 +12,7 @@ import ResumeUpload from './pages/ResumeUpload';
 import Analytics from './pages/Analytics';
 import InterviewResult from './pages/InterviewResult';
 import InterviewSetup from './pages/InterviewSetup';
+import LiveCodingEditor from './pages/LiveCodingEditor';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import DemoPage from './pages/DemoPage';
@@ -70,6 +71,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Interview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coding"
+            element={
+              <ProtectedRoute>
+                <LiveCodingEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coding/:challengeId"
+            element={
+              <ProtectedRoute>
+                <LiveCodingEditor />
               </ProtectedRoute>
             }
           />

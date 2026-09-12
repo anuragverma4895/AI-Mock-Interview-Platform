@@ -11,6 +11,9 @@ import {
   MessageSquare,
   Sparkles,
   Video,
+  Code2,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 
 export default function InterviewResult() {
@@ -148,10 +151,16 @@ export default function InterviewResult() {
             </div>
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 p-8 rounded-2xl text-center shadow-lg border border-emerald-200/50 transform hover:scale-105 transition-all duration-300">
               <div className="text-5xl font-black bg-gradient-to-r from-emerald-600 to-emerald-800 bg-clip-text text-transparent mb-2">
-                {interview?.questions.length || 0}
+                {interview?.interviewType === 'coding'
+                  ? `${interview.codingPassedCount || 0}/${interview.codingTotalCount || 0}`
+                  : (interview?.questions.length || 0)}
               </div>
-              <div className="text-emerald-700 font-semibold text-lg">Questions Answered</div>
-              <div className="text-emerald-500 text-sm mt-1">Total Questions</div>
+              <div className="text-emerald-700 font-semibold text-lg">
+                {interview?.interviewType === 'coding' ? 'Tests Passed' : 'Questions Answered'}
+              </div>
+              <div className="text-emerald-500 text-sm mt-1">
+                {interview?.interviewType === 'coding' ? 'Total test cases' : 'Total Questions'}
+              </div>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl text-center shadow-lg border border-purple-200/50 transform hover:scale-105 transition-all duration-300">
               <div className="text-5xl font-black bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent mb-2">
@@ -266,6 +275,62 @@ export default function InterviewResult() {
                   </ul>
                 </div>
               )}
+            </div>
+          )}
+
+          {interview?.interviewType === 'coding' && interview.codingResults && (
+            <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-8 rounded-2xl mb-8 border border-emerald-200/50 shadow-lg">
+              <h3 className="text-2xl font-bold mb-6 text-emerald-800 flex items-center gap-3">
+                <Code2 className="h-7 w-7 text-emerald-700" /> Coding Challenge Results
+              </h3>
+              {interview.codingChallenge && (
+                <div className="bg-white/60 p-6 rounded-xl mb-6 border border-emerald-200/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-bold text-emerald-900 text-lg">{interview.codingChallenge.title}</h4>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                      interview.codingChallenge.difficulty === 'easy' ? 'bg-yellow-100 text-yellow-700' :
+                      interview.codingChallenge.difficulty === 'medium' ? 'bg-orange-100 text-orange-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {interview.codingChallenge.difficulty}
+                    </span>
+                  </div>
+                  <p className="text-emerald-800 text-sm mb-3">{interview.codingChallenge.description}</p>
+                  <div className="flex items-center gap-4 text-xs text-emerald-700">
+                    <span>Language: {interview.codingChallenge.language}</span>
+                    <span>Test Cases: {interview.codingResults.length}</span>
+                    <span>Passed: {interview.codingPassedCount || 0}/{interview.codingTotalCount || 0}</span>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-4">
+                {interview.codingResults.map((result, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-xl border-2 ${
+                      result.passed
+                        ? 'bg-white/60 border-emerald-300'
+                        : 'bg-white/40 border-red-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-slate-800">Test Case {index + 1}</span>
+                      {result.passed ? (
+                        <CheckCircle className="h-5 w-5 text-emerald-600" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div><span className="font-medium text-slate-700">Input:</span> <code className="text-slate-600">{result.input}</code></div>
+                      <div><span className="font-medium text-slate-700">Expected:</span> <code className="text-slate-600">{result.expected}</code></div>
+                      {!result.passed && (
+                        <div><span className="font-medium text-slate-700">Actual:</span> <code className="text-red-600">{result.actual}</code></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

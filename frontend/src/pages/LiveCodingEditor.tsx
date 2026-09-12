@@ -1,5 +1,6 @@
 import { motion } from "framer-motion"
-import { useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,104 +13,108 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Zap
+  Zap,
+  ArrowLeft,
+  Loader2,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
-
-interface CodingChallenge {
-  id: string
-  title: string
-  description: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  timeLimit: number
-  language: string
-  starterCode: string
-  testCases: Array<{
-    input: string
-    expectedOutput: string
-  }>
-}
+import { codingAPI } from "../services/api"
 
 export default function LiveCodingEditor() {
-  const [code, setCode] = useState(`function twoSum(nums, target) {
-    // Write your solution here
-    // Example: nums = [2,7,11,15], target = 9
-    // Return indices of two numbers that add up to target
+  const navigate = useNavigate()
+  const location = useLocation()
+  const challengeId = location.state?.challengeId || null
+  const languagePref = location.state?.language || null
 
-    return [];
-}`)
+  const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
-  const [testResults, setTestResults] = useState<Array<{ passed: boolean, input: string, expected: string, actual: string }>>([])
-  const [timeLeft] = useState(30 * 60) // 30 minutes
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [testResults, setTestResults] = useState<Array<{ passed: boolean; input: string; expected: string; actual: string }>>([])
+  const [timeLeft, setTimeLeft] = useState(30 * 60)
+  const [editorReady, setEditorReady] = useState(false)
+  const [session, setSession] = useState<{ id: string; challenge: CodingChallenge; timeLimit: number; language: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const editorRef = useRef<any>(null)
 
-  const challenge: CodingChallenge = {
-    id: 'two-sum',
-    title: 'Two Sum',
-    description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.',
-    difficulty: 'easy',
-    timeLimit: 30,
-    language: 'javascript',
-    starterCode: code,
-    testCases: [
-      { input: '[2,7,11,15], 9', expectedOutput: '[0,1]' },
-      { input: '[3,2,4], 6', expectedOutput: '[1,2]' },
-      { input: '[3,3], 6', expectedOutput: '[0,1]' }
-    ]
-  }
+  useEffect(() => {
+    let cancelled = false
+    const init = async () => {
+      try {
+        const res = await codingAPI.start(challengeId || undefined, languagePref || undefined)
+        if (cancelled) return
+        const data = res.data.codingSession
+        setSession(data)
+        setCode(data.challenge.starterCode)
+        setTimeLeft(data.timeLimit)
+      } catch (err: any) {
+        if (cancelled) return
+        setError(err?.response?.data?.message || 'Failed to start coding session')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    init()
+    return () => {
+      cancelled = true
+    }
+  }, [challengeId, languagePref])
+
+  // Countdown timer for the coding session
+  useEffect(() => {
+    if (!session) return
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          handleSubmit()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session])
+
+  const challenge = session?.challenge
 
   const runCode = async () => {
+    if (!session) return
     setIsRunning(true)
     setOutput('Running tests...\n')
+    setError(null)
 
     try {
-      const solution = new Function(`${code}; return typeof twoSum === "function" ? twoSum : null;`)()
-      if (!solution) {
-        setOutput('Error: define a function named twoSum.\n')
-        setTestResults([])
-        return
-      }
+      const res = await codingAPI.submit(session.id, code)
+      const results: CodingTestResult[] = res.data.results
+      const passedCount = res.data.passedCount
+      const totalCount = res.data.totalCount
 
-      const results = challenge.testCases.map((testCase, index) => {
-        try {
-          const args = new Function(`return [${testCase.input}];`)()
-          const actualValue = solution(...args)
-          const actual = JSON.stringify(actualValue)
-          const expected = JSON.stringify(JSON.parse(testCase.expectedOutput))
-          const passed = actual === expected
-
-          setOutput(prev => prev + `Test ${index + 1}: ${passed ? 'PASS' : 'FAIL'}\n`)
-
-          return {
-            passed,
-            input: testCase.input,
-            expected: testCase.expectedOutput,
-            actual
-          }
-        } catch (error) {
-          const actual = error instanceof Error ? error.message : 'Execution error'
-          setOutput(prev => prev + `Test ${index + 1}: FAIL\n`)
-          return {
-            passed: false,
-            input: testCase.input,
-            expected: testCase.expectedOutput,
-            actual,
-          }
-        }
+      let out = ''
+      results.forEach((r, index) => {
+        out += `Test ${index + 1}: ${r.passed ? 'PASS' : 'FAIL'}\n`
       })
-
+      out += `\n${passedCount}/${totalCount} tests passed. Final score: ${res.data.finalScore.toFixed(1)}/5\n`
+      setOutput(out)
       setTestResults(results)
-    } catch (error) {
-      setOutput(`Error: ${error instanceof Error ? error.message : 'Unable to run code'}\n`)
+    } catch (err: any) {
+      setOutput(`Error: ${err?.response?.data?.message || 'Unable to run code'}\n`)
       setTestResults([])
     } finally {
       setIsRunning(false)
+      setIsSubmitting(false)
     }
   }
 
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    await runCode()
+  }
+
   const resetCode = () => {
-    setCode(challenge.starterCode)
+    if (challenge) setCode(challenge.starterCode)
     setOutput('')
     setTestResults([])
   }
@@ -130,6 +135,15 @@ export default function LiveCodingEditor() {
       >
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-1"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <Code className="h-5 w-5 text-white" />
             </div>
@@ -138,7 +152,7 @@ export default function LiveCodingEditor() {
                 Live Coding Challenge
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                {challenge.title}
+                {challenge?.title || 'Loading...'}
               </p>
             </div>
           </div>
@@ -149,13 +163,29 @@ export default function LiveCodingEditor() {
               <span className="font-mono">{formatTime(timeLeft)}</span>
             </div>
             <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
-              {challenge.difficulty}
+              {challenge?.difficulty || '...'}
             </Badge>
           </div>
         </div>
       </motion.header>
 
-      <div className="max-w-7xl mx-auto p-6">
+      {error && (
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300">
+            {error}
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="max-w-7xl mx-auto p-6 flex items-center justify-center min-h-[calc(100vh-120px)]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-slate-300">Starting coding session...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel - Challenge Description */}
           <motion.div
@@ -184,17 +214,17 @@ export default function LiveCodingEditor() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">Easy</div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 capitalize">{challenge?.difficulty}</div>
                     <div className="text-sm text-blue-700 dark:text-blue-300">Difficulty</div>
                   </div>
                   <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">30min</div>
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{Math.ceil((challenge?.timeLimit || 0) / 60)}min</div>
                     <div className="text-sm text-green-700 dark:text-green-300">Time Limit</div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">3</div>
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{challenge?.testCases?.length || 0}</div>
                     <div className="text-sm text-purple-700 dark:text-purple-300">Test Cases</div>
                   </div>
                 </div>
@@ -287,7 +317,7 @@ export default function LiveCodingEditor() {
                 <div className="h-[500px] border rounded-lg overflow-hidden">
                   <Editor
                     height="100%"
-                    language="javascript"
+                    language={session?.language || 'javascript'}
                     value={code}
                     onChange={(value) => setCode(value || '')}
                     onMount={(editor) => {
@@ -329,6 +359,7 @@ export default function LiveCodingEditor() {
           </motion.div>
         </div>
       </div>
-    </div>
+    )}
+  </div>
   )
 }

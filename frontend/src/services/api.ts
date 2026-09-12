@@ -125,4 +125,51 @@ export const demoAPI = {
   getPublicDemos: () => api.get('/demo/public'),
 };
 
+export interface CodingTestCase {
+  input: string;
+  expectedOutput: string;
+}
+
+export interface CodingChallenge {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  timeLimit: number;
+  language: string;
+  starterCode: string;
+  testCases: CodingTestCase[];
+}
+
+export interface CodingTestResult {
+  passed: boolean;
+  input: string;
+  expected: string;
+  actual: string;
+}
+
+export interface CodingSession {
+  _id: string;
+  codingChallenge?: CodingChallenge;
+  codingResults?: CodingTestResult[];
+  codingPassedCount?: number;
+  codingTotalCount?: number;
+  finalScore?: number;
+  completedAt?: string;
+  startedAt?: string;
+}
+
+export const codingAPI = {
+  getChallenges: () => api.get<CodingChallenge[]>('/coding/challenges'),
+  start: (challengeId?: string, language?: string) =>
+    api.post<{ codingSession: { id: string; challenge: CodingChallenge; timeLimit: number; language: string } }>(
+      '/coding/start',
+      { challengeId, language }
+    ),
+  submit: (interviewId: string, code: string) =>
+    api.post(`/coding/submit/${interviewId}`, { code }),
+  getSessions: () => api.get<CodingSession[]>('/coding/sessions'),
+  getSession: (interviewId: string) => api.get<CodingSession>(`/coding/sessions/${interviewId}`),
+};
+
 export default api;

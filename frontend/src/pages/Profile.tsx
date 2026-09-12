@@ -29,8 +29,10 @@ import {
   GlobeLock,
   Clock,
   BarChart3,
+  Code2,
+  CheckCircle2
 } from "lucide-react"
-import { authAPI, demoAPI, analyticsAPI } from "../services/api"
+import { authAPI, demoAPI, analyticsAPI, codingAPI } from "../services/api"
 import { Analytics as AnalyticsData } from "../types"
 
 interface Recording {
@@ -43,10 +45,24 @@ interface Recording {
   completedAt: string
 }
 
+interface CodingSession {
+  _id: string
+  codingChallenge?: {
+    title: string
+    difficulty: 'easy' | 'medium' | 'hard'
+    language: string
+    testCases: Array<{ input: string; expectedOutput: string }>
+  }
+  codingPassedCount?: number
+  codingTotalCount?: number
+  finalScore?: number
+  completedAt?: string
+}
+
 export default function Profile() {
   const { user, setUser, logout } = useAuthStore()
   const navigate = useNavigate()
-  
+
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -55,6 +71,8 @@ export default function Profile() {
   })
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [recordingsLoading, setRecordingsLoading] = useState(true)
+  const [codingSessions, setCodingSessions] = useState<CodingSession[]>([])
+  const [codingLoading, setCodingLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [playingVideo, setPlayingVideo] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -62,6 +80,7 @@ export default function Profile() {
   useEffect(() => {
     loadRecordings()
     loadAnalytics()
+    loadCodingSessions()
   }, [])
 
   const loadRecordings = async () => {
@@ -82,6 +101,17 @@ export default function Profile() {
       setAnalytics(res.data)
     } catch (error) {
       console.error('Error loading analytics:', error)
+    }
+  }
+
+  const loadCodingSessions = async () => {
+    try {
+      const res = await codingAPI.getSessions()
+      setCodingSessions(res.data)
+    } catch (error) {
+      console.error('Error loading coding sessions:', error)
+    } finally {
+      setCodingLoading(false)
     }
   }
 
@@ -169,6 +199,9 @@ export default function Profile() {
           <SidebarItem icon={<Play />} onClick={() => navigate('/interview')}>
             Start Interview
           </SidebarItem>
+          <SidebarItem icon={<Code2 />} onClick={() => navigate('/coding')}>
+            Coding Practice
+          </SidebarItem>
           <SidebarItem icon={<FileText />} onClick={() => navigate('/resume')}>
             Resume Analysis
           </SidebarItem>
@@ -241,16 +274,16 @@ export default function Profile() {
                       <form onSubmit={handleUpdateProfile} className="space-y-4">
                         <div className="space-y-2">
                           <Label>Full Name</Label>
-                          <Input 
-                            value={formData.name} 
-                            onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                          <Input
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           />
                         </div>
                         <div className="space-y-2">
                           <Label>Professional Role</Label>
-                          <Input 
-                            value={formData.role} 
-                            onChange={(e) => setFormData({...formData, role: e.target.value})} 
+                          <Input
+                            value={formData.role}
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                           />
                         </div>
                         <Button type="submit" disabled={loading} className="w-full bg-indigo-600">
@@ -474,6 +507,108 @@ export default function Profile() {
                           </motion.div>
                         )}
                       </AnimatePresence>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Coding Practice Sessions Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="border-0 shadow-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <Code2 className="h-5 w-5 text-indigo-500" />
+                      Coding Practice Sessions
+                    </CardTitle>
+                    <Badge variant="secondary">{codingSessions.length} sessions</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {codingLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : codingSessions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                        <Code2 className="h-8 w-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">No Coding Sessions Yet</h3>
+                      <p className="text-slate-500 mb-4 dark:text-slate-400">Complete a coding challenge to see your results here.</p>
+                      <Button onClick={() => navigate('/coding')} className="bg-gradient-to-r from-indigo-600 to-purple-600">
+                        <Code2 className="mr-2 h-4 w-4" />
+                        Start Coding Practice
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {codingSessions.map((session) => {
+                        const passed = session.codingPassedCount || 0
+                        const total = session.codingTotalCount || 0
+                        const score = typeof session.finalScore === 'number' ? session.finalScore.toFixed(1) : 'N/A'
+                        const challenge = session.codingChallenge
+                        return (
+                          <motion.div
+                            key={session._id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-lg transition-all"
+                          >
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">
+                              <Code2 className="h-6 w-6 text-white" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-sm">{challenge?.title || 'Coding Session'}</span>
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-xs capitalize ${challenge?.difficulty === 'easy'
+                                      ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : challenge?.difficulty === 'medium'
+                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                    }`}
+                                >
+                                  {challenge?.difficulty}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                                <span className="flex items-center gap-1">
+                                  <Award className="h-3 w-3" />
+                                  Score: {score}/5
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {passed}/{total} passed
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {session.completedAt ? formatDate(session.completedAt) : 'In progress'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/interview-result/${session._id}`)}
+                                className="text-xs"
+                              >
+                                <BarChart3 className="mr-1 h-3.5 w-3.5" />
+                                View Analysis
+                              </Button>
+                            </div>
+                          </motion.div>
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
