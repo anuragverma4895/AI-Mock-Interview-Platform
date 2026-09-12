@@ -2,18 +2,27 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
 import { getChallenge, listChallenges, CodingChallenge } from '../utils/codingChallenges';
+import { evaluateCode } from './aiService';
 
 export const startCoding = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { challengeId, language } = req.body;
+    const { challengeId, language, customChallenge } = req.body;
 
-    let challenge: CodingChallenge | undefined;
-    if (challengeId) {
-      challenge = getChallenge(challengeId);
-      if (!challenge) {
+    let challenge: CodingChallenge;
+    
+    if (customChallenge) {
+      challenge = {
+        ...customChallenge,
+        id: 'custom-' + Date.now(),
+        timeLimit: customChallenge.timeLimit || 1800,
+      };
+    } else if (challengeId) {
+      const found = getChallenge(challengeId);
+      if (!found) {
         res.status(404).json({ message: 'Coding challenge not found' });
         return;
       }
+      challenge = found;
     } else {
       challenge = listChallenges()[0];
     }
@@ -84,43 +93,17 @@ export const submitCoding = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    const results: Array<{ passed: boolean; input: string; expected: string; actual: string }> = [];
+    // Default to the language the session was started with, but allow override on submission
+    const evalLanguage = req.body.language || challenge.language;
+    const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
 
-    for (const testCase of challenge.testCases) {
-      let passed = false;
-      let actual = '';
+    const { results, passedCount, totalCount } = await evaluateCode(
+      code,
+      evalLanguage,
+      challenge.testCases,
+      fnName
+    );
 
-      try {
-        const args = new Function(`return [${testCase.input}];`)();
-        const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
-        const solution = new Function(
-          `${code}; return typeof ${fnName} === "function" ? ${fnName} : null;`
-        )();
-
-        if (typeof solution !== 'function') {
-          actual = 'Error: define a function named ' + fnName;
-        } else {
-          const actualValue = solution(...args);
-          const actualStr = JSON.stringify(actualValue);
-          const expectedStr = JSON.stringify(JSON.parse(testCase.expectedOutput));
-          passed = actualStr === expectedStr;
-          actual = actualStr;
-        }
-      } catch (error: any) {
-        actual = error instanceof Error ? error.message : 'Execution error';
-        passed = false;
-      }
-
-      results.push({
-        passed,
-        input: testCase.input,
-        expected: testCase.expectedOutput,
-        actual,
-      });
-    }
-
-    const passedCount = results.filter((r) => r.passed).length;
-    const totalCount = results.length;
 
     interview.codingResults = results as any;
     interview.codingPassedCount = passedCount;
@@ -164,7 +147,18 @@ export const getUserCodingSessions = async (req: AuthRequest, res: Response): Pr
 };
 
 export const listCodingChallenges = async (req: Request, res: Response): Promise<void> => {
-  res.json(listChallenges());
+  const { difficulty, category } = req.query;
+  let challenges = listChallenges();
+
+  if (difficulty) {
+    challenges = challenges.filter(c => c.difficulty === difficulty);
+  }
+  
+  if (category) {
+    challenges = challenges.filter(c => c.category === category);
+  }
+
+  res.json(challenges);
 };
 
 export const getCodingSession = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -182,5 +176,18 @@ export const getCodingSession = async (req: AuthRequest, res: Response): Promise
   } catch (error) {
     console.error('Error fetching coding session:', error);
     res.status(500).json({ message: 'Error fetching coding session', error: String(error) });
+  }
+};
+
+import { generateCodingChallenge } from './aiService';
+
+export const generateChallenge = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { difficulty, language, context } = req.body;
+    const challenge = await generateCodingChallenge(difficulty, language, context);
+    res.status(200).json(challenge);
+  } catch (error) {
+    console.error('Error generating AI coding challenge:', error);
+    res.status(500).json({ message: 'Error generating challenge', error: String(error) });
   }
 };

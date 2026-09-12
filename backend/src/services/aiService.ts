@@ -536,3 +536,257 @@ export const generateFinalReport = async (
   
   return report;
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// CODE EVALUATION — Gemini-powered multi-language code assessment
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CodeTestResult {
+  passed: boolean;
+  input: string;
+  expected: string;
+  actual: string;
+}
+
+export const evaluateCode = async (
+  code: string,
+  language: string,
+  testCases: Array<{ input: string; expectedOutput: string }>,
+  functionName: string
+): Promise<{ results: CodeTestResult[]; passedCount: number; totalCount: number }> => {
+  if (!USE_AI) {
+    // Fallback: if no AI, try JS-only evaluation (legacy behavior)
+    if (language === 'javascript') {
+      return evaluateJavaScriptLocally(code, testCases, functionName);
+    }
+    // For non-JS languages without AI, return error
+    return {
+      results: testCases.map((tc) => ({
+        passed: false,
+        input: tc.input,
+        expected: tc.expectedOutput,
+        actual: 'AI service unavailable — cannot evaluate ' + language + ' code',
+      })),
+      passedCount: 0,
+      totalCount: testCases.length,
+    };
+  }
+
+  try {
+    const testCaseStr = testCases
+      .map((tc, i) => `Test ${i + 1}: Input: ${tc.input} → Expected Output: ${tc.expectedOutput}`)
+      .join('\n');
+
+    const prompt = `You are a precise code evaluator. Evaluate the following ${language} code against the given test cases.
+
+LANGUAGE: ${language}
+FUNCTION/ENTRY POINT: ${functionName}
+
+CODE:
+\`\`\`${language}
+${code}
+\`\`\`
+
+TEST CASES:
+${testCaseStr}
+
+INSTRUCTIONS:
+- Mentally trace through the code for EACH test case
+- Determine the ACTUAL output the code would produce
+- Compare with the expected output
+- Be STRICT: the output must match exactly (same type, same values, same order)
+- For arrays/lists, order matters unless the problem states otherwise
+- Handle edge cases properly
+
+Respond in this EXACT JSON format (no markdown, no explanation):
+{
+  "results": [
+    {"passed": true/false, "input": "...", "expected": "...", "actual": "..."},
+    ...
+  ]
+}`;
+
+    const response = await getAICompletion(
+      prompt,
+      'You are a strict code evaluator. Output ONLY valid JSON. No markdown, no code fences, no explanation.'
+    );
+
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]);
+      const results: CodeTestResult[] = (data.results || []).map((r: any, i: number) => ({
+        passed: !!r.passed,
+        input: r.input || testCases[i]?.input || '',
+        expected: r.expected || testCases[i]?.expectedOutput || '',
+        actual: r.actual || 'Unknown',
+      }));
+
+      return {
+        results,
+        passedCount: results.filter((r) => r.passed).length,
+        totalCount: results.length,
+      };
+    }
+
+    throw new Error('Failed to parse AI evaluation response');
+  } catch (error) {
+    console.error('AI code evaluation failed:', error);
+    // Fallback for JavaScript
+    if (language === 'javascript') {
+      return evaluateJavaScriptLocally(code, testCases, functionName);
+    }
+    return {
+      results: testCases.map((tc) => ({
+        passed: false,
+        input: tc.input,
+        expected: tc.expectedOutput,
+        actual: 'Evaluation error — please try again',
+      })),
+      passedCount: 0,
+      totalCount: testCases.length,
+    };
+  }
+};
+
+/** Local JavaScript evaluation (no AI needed) */
+function evaluateJavaScriptLocally(
+  code: string,
+  testCases: Array<{ input: string; expectedOutput: string }>,
+  functionName: string
+): { results: CodeTestResult[]; passedCount: number; totalCount: number } {
+  const results: CodeTestResult[] = [];
+
+  for (const testCase of testCases) {
+    let passed = false;
+    let actual = '';
+
+    try {
+      const args = new Function(`return [${testCase.input}];`)();
+      const fnName = functionName.replace(/\s+/g, '');
+      const solution = new Function(
+        `${code}; return typeof ${fnName} === "function" ? ${fnName} : null;`
+      )();
+
+      if (typeof solution !== 'function') {
+        actual = 'Error: define a function named ' + fnName;
+      } else {
+        const actualValue = solution(...args);
+        const actualStr = JSON.stringify(actualValue);
+        const expectedStr = JSON.stringify(JSON.parse(testCase.expectedOutput));
+        passed = actualStr === expectedStr;
+        actual = actualStr;
+      }
+    } catch (error: any) {
+      actual = error instanceof Error ? error.message : 'Execution error';
+      passed = false;
+    }
+
+    results.push({
+      passed,
+      input: testCase.input,
+      expected: testCase.expectedOutput,
+      actual,
+    });
+  }
+
+  return {
+    results,
+    passedCount: results.filter((r) => r.passed).length,
+    totalCount: results.length,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AI-GENERATED CODING QUESTIONS — for mid-interview coding challenges
+// ═══════════════════════════════════════════════════════════════════
+
+export interface GeneratedCodingChallenge {
+  title: string;
+  description: string;
+  difficulty: string;
+  starterCode: Record<string, string>;
+  testCases: Array<{ input: string; expectedOutput: string }>;
+}
+
+export const generateCodingChallenge = async (
+  difficulty: string = 'medium',
+  language: string = 'javascript',
+  context?: string
+): Promise<GeneratedCodingChallenge> => {
+  if (!USE_AI) {
+    // Return a hardcoded fallback
+    return {
+      title: 'Reverse Array',
+      description: 'Write a function that reverses an array of integers.',
+      difficulty: 'easy',
+      starterCode: {
+        javascript: 'function reverseArray(arr) {\n  // Your code here\n  return [];\n}',
+        python: 'def reverseArray(arr):\n    # Your code here\n    return []',
+        java: 'class Solution {\n    public int[] reverseArray(int[] arr) {\n        return new int[]{};\n    }\n}',
+        c: 'void reverseArray(int* arr, int size) {\n    // Your code here\n}',
+        cpp: '#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<int> reverseArray(vector<int>& arr) {\n        return {};\n    }\n};',
+      },
+      testCases: [
+        { input: '[1,2,3,4,5]', expectedOutput: '[5,4,3,2,1]' },
+        { input: '[1]', expectedOutput: '[1]' },
+      ],
+    };
+  }
+
+  try {
+    const prompt = `Generate a coding challenge for a technical interview.
+
+DIFFICULTY: ${difficulty}
+PRIMARY LANGUAGE: ${language}
+${context ? `CONTEXT: ${context}` : ''}
+
+INSTRUCTIONS:
+- Create a clear, concise coding problem (like a LeetCode problem)
+- Include a brief description (2-3 sentences max)
+- Provide starter code in ALL 5 languages: javascript, python, java, c, cpp
+- Include 2-3 test cases with clear input/output
+- Make the problem appropriate for the ${difficulty} difficulty level
+- Function names should be the same across all languages (camelCase)
+
+Respond in this EXACT JSON format (no markdown, no explanation):
+{
+  "title": "Problem Title",
+  "description": "Problem description...",
+  "difficulty": "${difficulty}",
+  "starterCode": {
+    "javascript": "function solve(...) { }",
+    "python": "def solve(...):\\n    pass",
+    "java": "class Solution {\\n    public ... solve(...) { }\\n}",
+    "c": "... solve(...) { }",
+    "cpp": "class Solution {\\npublic:\\n    ... solve(...) { }\\n};"
+  },
+  "testCases": [
+    {"input": "...", "expectedOutput": "..."},
+    ...
+  ]
+}`;
+
+    const response = await getAICompletion(
+      prompt,
+      'You are a coding challenge generator. Output ONLY valid JSON. No markdown.'
+    );
+
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]);
+      return {
+        title: data.title || 'Coding Challenge',
+        description: data.description || 'Solve this coding problem.',
+        difficulty: data.difficulty || difficulty,
+        starterCode: data.starterCode || { [language]: '// Your code here' },
+        testCases: data.testCases || [],
+      };
+    }
+
+    throw new Error('Failed to parse AI challenge response');
+  } catch (error) {
+    console.error('AI challenge generation failed:', error);
+    throw new Error('Failed to generate coding challenge');
+  }
+};
+

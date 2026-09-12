@@ -6,6 +6,7 @@ import {
   getUserCodingSessions,
   listCodingChallenges,
   getCodingSession,
+  generateChallenge,
 } from '../services/codingService';
 
 const router = Router();
@@ -16,6 +17,7 @@ router.get('/challenges', listCodingChallenges);
 // Authenticated coding endpoints
 router.post('/start', auth, startCoding);
 router.post('/submit/:interviewId', auth, submitCoding);
+router.post('/generate', auth, generateChallenge);
 router.get('/sessions', auth, getUserCodingSessions);
 router.get('/sessions/:interviewId', auth, getCodingSession);
 

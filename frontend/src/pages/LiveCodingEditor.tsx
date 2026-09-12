@@ -16,6 +16,7 @@ import {
   Zap,
   ArrowLeft,
   Loader2,
+  Wand2,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
 import { codingAPI, CodingChallenge, CodingTestResult } from "../services/api"
@@ -30,6 +31,8 @@ export default function LiveCodingEditor() {
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [language, setLanguage] = useState(languagePref || 'javascript')
   const [testResults, setTestResults] = useState<Array<{ passed: boolean; input: string; expected: string; actual: string }>>([])
   const [timeLeft, setTimeLeft] = useState(30 * 60)
 
@@ -46,7 +49,7 @@ export default function LiveCodingEditor() {
         if (cancelled) return
         const data = res.data.codingSession
         setSession(data)
-        setCode(data.challenge.starterCode)
+        setCode(data.challenge.starterCode[languagePref || 'javascript'] || '// Start coding here')
         setTimeLeft(data.timeLimit)
       } catch (err: any) {
         if (cancelled) return
@@ -79,6 +82,36 @@ export default function LiveCodingEditor() {
 
   const challenge = session?.challenge
 
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLang = e.target.value
+    setLanguage(newLang)
+    if (challenge && challenge.starterCode && challenge.starterCode[newLang]) {
+      setCode(challenge.starterCode[newLang])
+    } else {
+      setCode('// Language not supported by this challenge')
+    }
+  }
+
+  const generateAIChallenge = async () => {
+    setIsGenerating(true)
+    try {
+      const diff = challenge?.difficulty || 'medium'
+      const res = await codingAPI.generateChallenge(diff, language)
+      const customChallenge = res.data
+      const startRes = await codingAPI.start(undefined, language, customChallenge)
+      const data = startRes.data.codingSession
+      setSession(data)
+      setCode(data.challenge.starterCode[language] || '// Start coding here')
+      setTimeLeft(data.timeLimit)
+      setOutput('✨ AI Challenge Generated!\n')
+      setTestResults([])
+    } catch (err: any) {
+      setOutput(`Error: ${err?.response?.data?.message || 'Failed to generate challenge'}\n`)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const runCode = async () => {
     if (!session) return
     setIsRunning(true)
@@ -86,7 +119,7 @@ export default function LiveCodingEditor() {
     setError(null)
 
     try {
-      const res = await codingAPI.submit(session.id, code)
+      const res = await codingAPI.submit(session.id, code, language)
       const results: CodingTestResult[] = res.data.results
       const passedCount = res.data.passedCount
       const totalCount = res.data.totalCount
@@ -114,7 +147,9 @@ export default function LiveCodingEditor() {
   }
 
   const resetCode = () => {
-    if (challenge) setCode(challenge.starterCode)
+    if (challenge && challenge.starterCode) {
+      setCode(challenge.starterCode[language] || '// Start coding here')
+    }
     setOutput('')
     setTestResults([])
   }
@@ -158,11 +193,25 @@ export default function LiveCodingEditor() {
           </div>
 
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-300">
-              <Clock className="h-4 w-4" />
-              <span className="font-mono">{formatTime(timeLeft)}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={generateAIChallenge}
+              disabled={isGenerating}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white border-none"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+              <span className="hidden sm:inline">Generate AI Challenge</span>
+            </Button>
+            <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700">
+              <Clock className="h-4 w-4 text-indigo-500" />
+              <span className="font-mono font-medium">{formatTime(timeLeft)}</span>
             </div>
-            <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">
+            <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 shadow-sm">
               {challenge?.difficulty || '...'}
             </Badge>
           </div>
@@ -288,6 +337,17 @@ export default function LiveCodingEditor() {
                     Code Editor
                   </CardTitle>
                   <div className="flex gap-2">
+                    <select
+                      value={language}
+                      onChange={handleLanguageChange}
+                      className="text-sm rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                    >
+                      <option value="javascript">JavaScript</option>
+                      <option value="python">Python</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                      <option value="c">C</option>
+                    </select>
                     <Button
                       size="sm"
                       variant="outline"
@@ -317,7 +377,7 @@ export default function LiveCodingEditor() {
                 <div className="h-[500px] border rounded-lg overflow-hidden">
                   <Editor
                     height="100%"
-                    language={session?.language || 'javascript'}
+                    language={language}
                     value={code}
                     onChange={(value) => setCode(value || '')}
                     onMount={(editor) => {
