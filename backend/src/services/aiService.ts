@@ -597,6 +597,7 @@ INSTRUCTIONS:
 - Be STRICT: the output must match exactly (same type, same values, same order)
 - For arrays/lists, order matters unless the problem states otherwise
 - Handle edge cases properly
+- NOTE FOR TREES/LINKED LISTS: The testcases are provided as serialized arrays (e.g. [1,2,3]). The code evaluates actual TreeNode/ListNode objects. You MUST mentally map the arrays to the data structures and evaluate the code conceptually to output the correct serialized expected answer.
 
 Respond in this EXACT JSON format (no markdown, no explanation):
 {

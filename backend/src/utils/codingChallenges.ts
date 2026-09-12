@@ -130,11 +130,11 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
 
   challenge('merge-two-sorted-lists', 'Merge Two Sorted Lists', 'You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list by splicing together the nodes. Return the head of the merged linked list.', 'easy', 'Linked List', 30,
     {
-      javascript: `function mergeTwoLists(list1, list2) {\n  // Merge two sorted arrays and return the result\n  return [];\n}`,
-      python: `def mergeTwoLists(list1, list2):\n    # Merge two sorted lists and return the result\n    return []`,
-      java: `class Solution {\n    public int[] mergeTwoLists(int[] list1, int[] list2) {\n        // Merge two sorted arrays\n        return new int[]{};\n    }\n}`,
-      c: `#include <stdlib.h>\n\nint* mergeTwoLists(int* list1, int l1Size, int* list2, int l2Size, int* returnSize) {\n    *returnSize = 0;\n    return NULL;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<int> mergeTwoLists(vector<int>& list1, vector<int>& list2) {\n        return {};\n    }\n};`,
+      javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val, next) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.next = (next===undefined ? null : next)\n * }\n */\n/**\n * @param {ListNode} list1\n * @param {ListNode} list2\n * @return {ListNode}\n */\nvar mergeTwoLists = function(list1, list2) {\n    \n};`,
+      python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:\n        pass`,
+      java: `/**\n * Definition for singly-linked list.\n * public class ListNode {\n *     int val;\n *     ListNode next;\n *     ListNode() {}\n *     ListNode(int val) { this.val = val; }\n *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n * }\n */\nclass Solution {\n    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {\n        \n    }\n}`,
+      c: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     struct ListNode *next;\n * };\n */\nstruct ListNode* mergeTwoLists(struct ListNode* list1, struct ListNode* list2) {\n    \n}`,
+      cpp: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     ListNode *next;\n *     ListNode() : val(0), next(nullptr) {}\n *     ListNode(int x) : val(x), next(nullptr) {}\n *     ListNode(int x, ListNode *next) : val(x), next(next) {}\n * };\n */\nclass Solution {\npublic:\n    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {\n        \n    }\n};`,
     },
     [
       { input: '[1,2,4], [1,3,4]', expectedOutput: '[1,1,2,3,4,4]' },
@@ -186,13 +186,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('max-depth-binary-tree', 'Maximum Depth of Binary Tree', 'Given a binary tree represented as an array (level-order), return its maximum depth. The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.', 'easy', 'Trees', 25,
+  challenge('max-depth-binary-tree', 'Maximum Depth of Binary Tree', 'Given the root of a binary tree, return its maximum depth. A binary tree\'s maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.', 'easy', 'Trees', 25,
     {
-      javascript: `function maxDepth(root) {\n  // root is an array representing a binary tree in level-order\n  // null represents empty nodes\n  // Return the maximum depth\n  return 0;\n}`,
-      python: `def maxDepth(root):\n    # root is a list representing a binary tree in level-order\n    # None represents empty nodes\n    # Return the maximum depth\n    return 0`,
-      java: `class Solution {\n    public int maxDepth(Integer[] root) {\n        // Level-order array, null for empty nodes\n        return 0;\n    }\n}`,
-      c: `int maxDepth(int* root, int rootSize) {\n    // Level-order array, -1 for empty nodes\n    return 0;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    int maxDepth(vector<int>& root) {\n        // Level-order, -1 for null\n        return 0;\n    }\n};`,
+      javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {number}\n */\nvar maxDepth = function(root) {\n    \n};`,
+      python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def maxDepth(self, root: Optional[TreeNode]) -> int:\n        pass`,
+      java: `/**\n * Definition for a binary tree node.\n * public class TreeNode {\n *     int val;\n *     TreeNode left;\n *     TreeNode right;\n *     TreeNode() {}\n *     TreeNode(int val) { this.val = val; }\n *     TreeNode(int val, TreeNode left, TreeNode right) {\n *         this.val = val;\n *         this.left = left;\n *         this.right = right;\n *     }\n * }\n */\nclass Solution {\n    public int maxDepth(TreeNode root) {\n        \n    }\n}`,
+      c: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     struct TreeNode *left;\n *     struct TreeNode *right;\n * };\n */\nint maxDepth(struct TreeNode* root) {\n    \n}`,
+      cpp: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode() : val(0), left(nullptr), right(nullptr) {}\n *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n * };\n */\nclass Solution {\npublic:\n    int maxDepth(TreeNode* root) {\n        \n    }\n};`,
     },
     [
       { input: '[3,9,20,null,null,15,7]', expectedOutput: '3' },
@@ -230,13 +230,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('linked-list-cycle', 'Linked List Cycle', 'Given an array of values representing a linked list and a pos integer indicating where the tail connects to (0-indexed, -1 if no cycle), determine if the linked list has a cycle in it.', 'easy', 'Linked List', 25,
+  challenge('linked-list-cycle', 'Linked List Cycle', 'Given head, the head of a linked list, determine if the linked list has a cycle in it. There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the next pointer. Return true if there is a cycle in the linked list. Otherwise, return false.', 'easy', 'Linked List', 25,
     {
-      javascript: `function hasCycle(values, pos) {\n  // values: array of node values, pos: tail connects to index (-1 = no cycle)\n  // Return true if cycle exists\n  return false;\n}`,
-      python: `def hasCycle(values, pos):\n    # values: list of node values, pos: tail connects to index (-1 = no cycle)\n    # Return True if cycle exists\n    return False`,
-      java: `class Solution {\n    public boolean hasCycle(int[] values, int pos) {\n        return false;\n    }\n}`,
-      c: `#include <stdbool.h>\n\nbool hasCycle(int* values, int valuesSize, int pos) {\n    return false;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    bool hasCycle(vector<int>& values, int pos) {\n        return false;\n    }\n};`,
+      javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val) {\n *     this.val = val;\n *     this.next = null;\n * }\n */\n/**\n * @param {ListNode} head\n * @return {boolean}\n */\nvar hasCycle = function(head) {\n    \n};`,
+      python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, x):\n#         self.val = x\n#         self.next = None\n\nclass Solution:\n    def hasCycle(self, head: Optional[ListNode]) -> bool:\n        pass`,
+      java: `/**\n * Definition for singly-linked list.\n * class ListNode {\n *     int val;\n *     ListNode next;\n *     ListNode(int x) {\n *         val = x;\n *         next = null;\n *     }\n * }\n */\npublic class Solution {\n    public boolean hasCycle(ListNode head) {\n        \n    }\n}`,
+      c: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     struct ListNode *next;\n * };\n */\nbool hasCycle(struct ListNode *head) {\n    \n}`,
+      cpp: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     ListNode *next;\n *     ListNode(int x) : val(x), next(NULL) {}\n * };\n */\nclass Solution {\npublic:\n    bool hasCycle(ListNode *head) {\n        \n    }\n};`,
     },
     [
       { input: '[3,2,0,-4], 1', expectedOutput: 'true' },
@@ -450,13 +450,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('binary-tree-level-order', 'Binary Tree Level Order Traversal', 'Given a binary tree represented as an array (level-order with nulls), return the level order traversal of its nodes values grouped by level.', 'medium', 'Trees', 35,
+  challenge('binary-tree-level-order', 'Binary Tree Level Order Traversal', 'Given the root of a binary tree, return the level order traversal of its nodes\' values. (i.e., from left to right, level by level).', 'medium', 'Trees', 35,
     {
-      javascript: `function levelOrder(root) {\n  // root is level-order array with null for empty nodes\n  // Return array of arrays grouped by level\n  return [];\n}`,
-      python: `def levelOrder(root):\n    # root is level-order list with None for empty nodes\n    # Return list of lists grouped by level\n    return []`,
-      java: `import java.util.*;\n\nclass Solution {\n    public List<List<Integer>> levelOrder(Integer[] root) {\n        return new ArrayList<>();\n    }\n}`,
-      c: `#include <stdlib.h>\n\nint** levelOrder(int* root, int rootSize, int* returnSize, int** returnColumnSizes) {\n    *returnSize = 0;\n    return NULL;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<vector<int>> levelOrder(vector<int>& root) {\n        return {};\n    }\n};`,
+      javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {number[][]}\n */\nvar levelOrder = function(root) {\n    \n};`,
+      python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:\n        pass`,
+      java: `/**\n * Definition for a binary tree node.\n * public class TreeNode {\n *     int val;\n *     TreeNode left;\n *     TreeNode right;\n *     TreeNode() {}\n *     TreeNode(int val) { this.val = val; }\n *     TreeNode(int val, TreeNode left, TreeNode right) {\n *         this.val = val;\n *         this.left = left;\n *         this.right = right;\n *     }\n * }\n */\nclass Solution {\n    public List<List<Integer>> levelOrder(TreeNode root) {\n        \n    }\n}`,
+      c: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     struct TreeNode *left;\n *     struct TreeNode *right;\n * };\n */\nint** levelOrder(struct TreeNode* root, int* returnSize, int** returnColumnSizes) {\n    *returnSize = 0;\n    return NULL;\n}`,
+      cpp: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode() : val(0), left(nullptr), right(nullptr) {}\n *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n * };\n */\nclass Solution {\npublic:\n    vector<vector<int>> levelOrder(TreeNode* root) {\n        return {};\n    }\n};`,
     },
     [
       { input: '[3,9,20,null,null,15,7]', expectedOutput: '[[3],[9,20],[15,7]]' },
@@ -464,13 +464,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('validate-bst', 'Validate Binary Search Tree', 'Given a binary tree represented as an array (level-order with nulls), determine if it is a valid binary search tree. A valid BST has all left subtree values less than the node, and all right subtree values greater.', 'medium', 'Trees', 35,
+  challenge('validate-bst', 'Validate Binary Search Tree', 'Given the root of a binary tree, determine if it is a valid binary search tree (BST). A valid BST has all left subtree values less than the node, and all right subtree values greater.', 'medium', 'Trees', 35,
     {
-      javascript: `function isValidBST(root) {\n  // root is level-order array, null for empty nodes\n  // Return true if valid BST\n  return false;\n}`,
-      python: `def isValidBST(root):\n    # root is level-order list, None for empty\n    # Return True if valid BST\n    return False`,
-      java: `class Solution {\n    public boolean isValidBST(Integer[] root) {\n        return false;\n    }\n}`,
-      c: `#include <stdbool.h>\n\nbool isValidBST(int* root, int rootSize) {\n    return false;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    bool isValidBST(vector<int>& root) {\n        return false;\n    }\n};`,
+      javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {boolean}\n */\nvar isValidBST = function(root) {\n    \n};`,
+      python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def isValidBST(self, root: Optional[TreeNode]) -> bool:\n        pass`,
+      java: `/**\n * Definition for a binary tree node.\n * public class TreeNode {\n *     int val;\n *     TreeNode left;\n *     TreeNode right;\n *     TreeNode() {}\n *     TreeNode(int val) { this.val = val; }\n *     TreeNode(int val, TreeNode left, TreeNode right) {\n *         this.val = val;\n *         this.left = left;\n *         this.right = right;\n *     }\n * }\n */\nclass Solution {\n    public boolean isValidBST(TreeNode root) {\n        \n    }\n}`,
+      c: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     struct TreeNode *left;\n *     struct TreeNode *right;\n * };\n */\nbool isValidBST(struct TreeNode* root) {\n    \n}`,
+      cpp: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode() : val(0), left(nullptr), right(nullptr) {}\n *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}\n *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}\n * };\n */\nclass Solution {\npublic:\n    bool isValidBST(TreeNode* root) {\n        \n    }\n};`,
     },
     [
       { input: '[2,1,3]', expectedOutput: 'true' },
@@ -626,13 +626,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('merge-k-sorted-lists', 'Merge K Sorted Lists', 'You are given an array of k sorted arrays. Merge all the arrays into one sorted array and return it.', 'hard', 'Heap', 45,
+  challenge('merge-k-sorted-lists', 'Merge K Sorted Lists', 'You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list and return it.', 'hard', 'Heap', 45,
     {
-      javascript: `function mergeKLists(lists) {\n  // Merge k sorted arrays into one sorted array\n  return [];\n}`,
-      python: `def mergeKLists(lists):\n    # Merge k sorted lists into one sorted list\n    return []`,
-      java: `import java.util.*;\n\nclass Solution {\n    public int[] mergeKLists(int[][] lists) {\n        return new int[]{};\n    }\n}`,
-      c: `#include <stdlib.h>\n\nint* mergeKLists(int** lists, int listsSize, int* listSizes, int* returnSize) {\n    *returnSize = 0;\n    return NULL;\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<int> mergeKLists(vector<vector<int>>& lists) {\n        return {};\n    }\n};`,
+      javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val, next) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.next = (next===undefined ? null : next)\n * }\n */\n/**\n * @param {ListNode[]} lists\n * @return {ListNode}\n */\nvar mergeKLists = function(lists) {\n    \n};`,
+      python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        pass`,
+      java: `/**\n * Definition for singly-linked list.\n * public class ListNode {\n *     int val;\n *     ListNode next;\n *     ListNode() {}\n *     ListNode(int val) { this.val = val; }\n *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n * }\n */\nclass Solution {\n    public ListNode mergeKLists(ListNode[] lists) {\n        \n    }\n}`,
+      c: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     struct ListNode *next;\n * };\n */\nstruct ListNode* mergeKLists(struct ListNode** lists, int listsSize) {\n    \n}`,
+      cpp: `/**\n * Definition for singly-linked list.\n * struct ListNode {\n *     int val;\n *     ListNode *next;\n *     ListNode() : val(0), next(nullptr) {}\n *     ListNode(int x) : val(x), next(nullptr) {}\n *     ListNode(int x, ListNode *next) : val(x), next(next) {}\n * };\n */\nclass Solution {\npublic:\n    ListNode* mergeKLists(vector<ListNode*>& lists) {\n        \n    }\n};`,
     },
     [
       { input: '[[1,4,5],[1,3,4],[2,6]]', expectedOutput: '[1,1,2,3,4,4,5,6]' },
@@ -684,13 +684,13 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('serialize-deserialize-bt', 'Serialize and Deserialize Binary Tree', 'Design an algorithm to serialize a binary tree to a string and deserialize the string back to a tree. The tree is given as a level-order array. Your serialized string should be able to reconstruct the original array.', 'hard', 'Trees', 50,
+  challenge('serialize-deserialize-bt', 'Serialize and Deserialize Binary Tree', 'Design an algorithm to serialize and deserialize a binary tree. There is no restriction on how your serialization/deserialization algorithm should work. You just need to ensure that a binary tree can be serialized to a string and this string can be deserialized to the original tree structure.', 'hard', 'Trees', 50,
     {
-      javascript: `function serialize(root) {\n  // Convert array tree to string\n  return "";\n}\n\nfunction deserialize(data) {\n  // Convert string back to array tree\n  return [];\n}`,
-      python: `def serialize(root):\n    # Convert list tree to string\n    return ""\n\ndef deserialize(data):\n    # Convert string back to list tree\n    return []`,
-      java: `class Codec {\n    public String serialize(Integer[] root) {\n        return "";\n    }\n    public Integer[] deserialize(String data) {\n        return new Integer[]{};\n    }\n}`,
-      c: `#include <stdlib.h>\n#include <string.h>\n\nchar* serialize(int* root, int rootSize) {\n    return "";\n}\n\nint* deserialize(char* data, int* returnSize) {\n    *returnSize = 0;\n    return NULL;\n}`,
-      cpp: `#include <string>\n#include <vector>\nusing namespace std;\n\nclass Codec {\npublic:\n    string serialize(vector<int>& root) {\n        return "";\n    }\n    vector<int> deserialize(string data) {\n        return {};\n    }\n};`,
+      javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val) {\n *     this.val = val;\n *     this.left = this.right = null;\n * }\n */\n\n/**\n * Encodes a tree to a single string.\n *\n * @param {TreeNode} root\n * @return {string}\n */\nvar serialize = function(root) {\n    \n};\n\n/**\n * Decodes your encoded data to tree.\n *\n * @param {string} data\n * @return {TreeNode}\n */\nvar deserialize = function(data) {\n    \n};`,
+      python: `# Definition for a binary tree node.\n# class TreeNode(object):\n#     def __init__(self, x):\n#         self.val = x\n#         self.left = None\n#         self.right = None\n\nclass Codec:\n\n    def serialize(self, root):\n        """Encodes a tree to a single string.\n        \n        :type root: TreeNode\n        :rtype: str\n        """\n        pass\n\n    def deserialize(self, data):\n        """Decodes your encoded data to tree.\n        \n        :type data: str\n        :rtype: TreeNode\n        """\n        pass`,
+      java: `/**\n * Definition for a binary tree node.\n * public class TreeNode {\n *     int val;\n *     TreeNode left;\n *     TreeNode right;\n *     TreeNode(int x) { val = x; }\n * }\n */\npublic class Codec {\n\n    // Encodes a tree to a single string.\n    public String serialize(TreeNode root) {\n        \n    }\n\n    // Decodes your encoded data to tree.\n    public TreeNode deserialize(String data) {\n        \n    }\n}`,
+      c: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     struct TreeNode *left;\n *     struct TreeNode *right;\n * };\n */\n/** Encodes a tree to a single string. */\nchar* serialize(struct TreeNode* root) {\n    \n}\n\n/** Decodes your encoded data to tree. */\nstruct TreeNode* deserialize(char* data) {\n    \n}`,
+      cpp: `/**\n * Definition for a binary tree node.\n * struct TreeNode {\n *     int val;\n *     TreeNode *left;\n *     TreeNode *right;\n *     TreeNode(int x) : val(x), left(NULL), right(NULL) {}\n * };\n */\nclass Codec {\npublic:\n\n    // Encodes a tree to a single string.\n    string serialize(TreeNode* root) {\n        \n    }\n\n    // Decodes your encoded data to tree.\n    TreeNode* deserialize(string data) {\n        \n    }\n};`,
     },
     [
       { input: '[1,2,3,null,null,4,5]', expectedOutput: '[1,2,3,null,null,4,5]' },
