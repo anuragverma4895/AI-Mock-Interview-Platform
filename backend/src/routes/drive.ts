@@ -1,14 +1,10 @@
 import { Router, Response } from 'express';
 import fs from 'fs/promises';
-import crypto from 'crypto';
 import { auth, AuthRequest } from '../middleware/auth';
 import config from '../config';
 import User from '../models/User';
 import Interview from '../models/Interview';
 import {
-  generateDriveAuthUrl,
-  exchangeDriveCode,
-  encryptToken,
   getDriveClientForUser,
   getOrCreateRecordingsFolder,
   uploadVideoToDrive,
@@ -49,104 +45,6 @@ router.get('/status', auth, async (req: AuthRequest, res: Response): Promise<voi
  * Initiates Google Drive OAuth flow.
  * The user must already be authenticated in the application.
  */
-router.get('/connect', auth, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!config.googleClientId || !config.googleClientSecret) {
-      res.status(500).json({ message: 'Google OAuth is not configured' });
-      return;
-    }
-
-    // Generate CSRF state containing the user ID (encrypted)
-    const statePayload = JSON.stringify({
-      userId: req.user?.id,
-      nonce: crypto.randomBytes(16).toString('hex'),
-    });
-    const state = encryptToken(statePayload);
-
-    // Store state in HTTP-only cookie (5 minutes)
-    res.cookie('drive_oauth_state', state, {
-      httpOnly: true,
-      secure: config.nodeEnv === 'production',
-      sameSite: 'lax',
-      maxAge: 5 * 60 * 1000,
-      path: '/',
-    });
-
-    const authUrl = generateDriveAuthUrl(state);
-    res.json({ authUrl });
-  } catch (error) {
-    console.error('Drive connect error:', error);
-    res.status(500).json({ message: 'Failed to initiate Drive connection' });
-  }
-});
-
-/**
- * GET /api/drive/callback
- * Handles the Google Drive OAuth callback.
- * Exchanges the authorization code for tokens and stores the encrypted refresh token.
- */
-router.get('/callback', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { code, state, error: oauthError } = req.query;
-
-    if (oauthError) {
-      console.error('Drive OAuth error:', oauthError);
-      res.redirect(`${config.frontendUrl}/settings?drive_error=denied`);
-      return;
-    }
-
-    if (!code || typeof code !== 'string') {
-      res.redirect(`${config.frontendUrl}/settings?drive_error=missing_code`);
-      return;
-    }
-
-    // CSRF validation
-    const savedState = req.cookies?.drive_oauth_state;
-    if (!state || !savedState || state !== savedState) {
-      console.error('Drive OAuth state mismatch — possible CSRF');
-      res.redirect(`${config.frontendUrl}/settings?drive_error=invalid_state`);
-      return;
-    }
-
-    // Clear the state cookie
-    res.clearCookie('drive_oauth_state', { path: '/' });
-
-    // Exchange code for tokens
-    const { refreshToken } = await exchangeDriveCode(code);
-
-    // Encrypt the refresh token before storing
-    const encryptedToken = encryptToken(refreshToken);
-
-    // The state contains the user ID — decrypt it
-    // Since the state is the encrypted statePayload, we need to find the user
-    // For the callback we need to extract user from the state
-    let userId: string;
-    try {
-      const { decryptToken } = await import('../services/googleDriveService');
-      const statePayload = JSON.parse(decryptToken(savedState));
-      userId = statePayload.userId;
-    } catch {
-      res.redirect(`${config.frontendUrl}/settings?drive_error=invalid_state`);
-      return;
-    }
-
-    // Update user with Drive credentials
-    await User.findByIdAndUpdate(userId, {
-      googleDriveConnected: true,
-      googleDriveRefreshToken: encryptedToken,
-      googleDriveConnectedAt: new Date(),
-    });
-
-    console.log(`Google Drive connected for user ${userId}`);
-
-    // Redirect to frontend with success
-    res.redirect(`${config.frontendUrl}/settings?drive_connected=true`);
-  } catch (error: any) {
-    console.error('Drive callback error:', error.message || error);
-    res.redirect(`${config.frontendUrl}/settings?drive_error=callback_failed`);
-  }
-});
-
 /**
  * GET /api/drive/disconnect
  * Disconnect Google Drive for the authenticated user.
