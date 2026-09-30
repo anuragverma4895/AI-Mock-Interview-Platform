@@ -171,24 +171,19 @@ export const uploadVideoToDrive = async (
   // Use a file stream instead of loading the entire recording into RAM.
   // googleapis creates a resumable upload session when resumable=true, which is
   // important for large interview recordings and transient network failures.
-  const res = await drive.files.create(
-    {
-      requestBody: {
-        name: fileName,
-        parents: [folderId],
-        mimeType,
-      },
-      media: {
-        mimeType,
-        body: fs.createReadStream(filePath),
-      },
-      fields: 'id,name',
+  const res = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [folderId],
+      mimeType,
     },
-    {
-      resumable: true,
-      chunkSize: 8 * 1024 * 1024,
-    }
-  );
+    media: {
+      mimeType,
+      body: fs.createReadStream(filePath),
+    },
+    fields: 'id,name',
+    uploadType: 'resumable',
+  });
 
   if (!res.data.id) {
     throw new Error('Drive upload failed — no file ID returned');
