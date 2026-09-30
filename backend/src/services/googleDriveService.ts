@@ -1,7 +1,7 @@
 import { google, drive_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
-import { Readable } from 'stream';
+import fs from 'fs';
 import config from '../config';
 import User from '../models/User';
 
@@ -197,25 +197,30 @@ export const uploadVideoToDrive = async (
   drive: drive_v3.Drive,
   folderId: string,
   fileName: string,
-  videoBuffer: Buffer,
+  filePath: string,
   mimeType: string = 'video/webm'
 ): Promise<{ fileId: string; fileName: string }> => {
-  const readableStream = new Readable();
-  readableStream.push(videoBuffer);
-  readableStream.push(null);
-
-  const res = await drive.files.create({
-    requestBody: {
-      name: fileName,
-      parents: [folderId],
-      mimeType,
+  // Use a file stream instead of loading the entire recording into RAM.
+  // googleapis creates a resumable upload session when resumable=true, which is
+  // important for large interview recordings and transient network failures.
+  const res = await drive.files.create(
+    {
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+        mimeType,
+      },
+      media: {
+        mimeType,
+        body: fs.createReadStream(filePath),
+      },
+      fields: 'id,name',
     },
-    media: {
-      mimeType,
-      body: readableStream,
-    },
-    fields: 'id,name',
-  });
+    {
+      resumable: true,
+      chunkSize: 8 * 1024 * 1024,
+    }
+  );
 
   if (!res.data.id) {
     throw new Error('Drive upload failed — no file ID returned');
