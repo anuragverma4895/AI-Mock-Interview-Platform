@@ -13,7 +13,6 @@ interface Config {
   googleClientId: string;
   googleClientSecret: string;
   googleRedirectUri: string;
-  googleDriveRedirectUri: string;
   tokenEncryptionKey: string;
   frontendUrl: string;
 }
@@ -37,7 +36,6 @@ const config: Config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5005/api/auth/google/callback',
-  googleDriveRedirectUri: process.env.GOOGLE_DRIVE_REDIRECT_URI || 'http://localhost:5005/api/drive/callback',
   tokenEncryptionKey: process.env.GOOGLE_TOKEN_ENCRYPTION_KEY || process.env.JWT_SECRET || 'dev-encryption-key-change-in-production',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
