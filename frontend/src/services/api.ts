@@ -116,23 +116,13 @@ export const driveAPI = {
   /** Check if the user has connected Google Drive */
   getStatus: () => api.get('/drive/status'),
 
-  /** Get the Drive OAuth URL (returns { authUrl }) */
-  getConnectUrl: () => api.get('/drive/connect'),
-
   /** Disconnect Google Drive */
   disconnect: () => api.post('/drive/disconnect'),
 
   /** Upload a recording to the user's Google Drive */
-  uploadRecording: (interviewId: string, video: Blob | string, duration: number) => {
-    if (typeof video === 'string') {
-      return api.post(`/drive/upload/${interviewId}`, { videoBase64: video, duration }, {
-        timeout: 600000,
-      });
-    }
-
+  uploadRecording: (interviewId: string, video: Blob, duration: number) => {
     const formData = new FormData();
-    const cleanBlob = new Blob([video], { type: 'video/webm' });
-    formData.append('recording', cleanBlob, `interview-${interviewId}.webm`);
+    formData.append('recording', video, `interview-${interviewId}.webm`);
     formData.append('duration', String(duration));
 
     return api.post(`/drive/upload/${interviewId}`, formData, {
