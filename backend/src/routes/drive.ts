@@ -116,7 +116,7 @@ router.post('/upload/:interviewId', auth, driveVideoUpload.single('recording'), 
         driveClient.drive,
         folderId,
         fileName,
-        tempFilePath,
+        req.file.path,
         req.file.mimetype || 'video/webm'
       );
       uploadedDriveFileId = result.fileId;
