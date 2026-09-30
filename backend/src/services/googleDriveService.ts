@@ -59,40 +59,8 @@ export const createDriveOAuth2Client = (): OAuth2Client => {
   return new OAuth2Client(
     config.googleClientId,
     config.googleClientSecret,
-    config.googleDriveRedirectUri
+    config.googleRedirectUri
   );
-};
-
-/**
- * Generate the Drive authorization URL with drive.file scope.
- * Uses a separate redirect URI so it doesn't conflict with the login flow.
- */
-export const generateDriveAuthUrl = (state: string): string => {
-  const client = createDriveOAuth2Client();
-  return client.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['https://www.googleapis.com/auth/drive.file'],
-    state,
-    prompt: 'consent',  // Always show consent to ensure we get a refresh token
-  });
-};
-
-/**
- * Exchange an authorization code for tokens.
- * Returns the refresh_token (needed for offline access).
- */
-export const exchangeDriveCode = async (code: string): Promise<{ refreshToken: string; accessToken: string }> => {
-  const client = createDriveOAuth2Client();
-  const { tokens } = await client.getToken(code);
-
-  if (!tokens.refresh_token) {
-    throw new Error('No refresh token received. User may need to re-authorize with prompt=consent.');
-  }
-
-  return {
-    refreshToken: tokens.refresh_token,
-    accessToken: tokens.access_token || '',
-  };
 };
 
 /**
