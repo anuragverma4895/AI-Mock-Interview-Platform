@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { auth, AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
+import { deleteDriveFile, getDriveClientForUser } from '../services/googleDriveService';
 
 const router = Router();
 
@@ -31,7 +32,8 @@ router.post('/publish/:interviewId', auth, async (req: AuthRequest, res: Respons
 
     res.json({ message: 'Interview published successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error publishing interview', error: String(error) });
+    console.error('Publish error:', error);
+    res.status(500).json({ message: 'Unable to publish interview' });
   }
 });
 
@@ -56,14 +58,14 @@ router.post('/unpublish/:interviewId', auth, async (req: AuthRequest, res: Respo
 
     res.json({ message: 'Interview unpublished' });
   } catch (error) {
-    res.status(500).json({ message: 'Error unpublishing', error: String(error) });
+    console.error('Unpublish error:', error);
+    res.status(500).json({ message: 'Unable to update publication status' });
   }
 });
 
 /**
  * DELETE /api/demo/recording/:interviewId
- * Delete a recording reference from the interview.
- * For Drive-backed recordings, the file remains in the user's Drive.
+ * Delete a recording and its application-created Drive file reference.
  */
 router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -75,6 +77,18 @@ router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Res
     if (interview.userId.toString() !== req.user?.id) {
       res.status(403).json({ message: 'Unauthorized' });
       return;
+    }
+
+    // Remove the specific application-created Drive file before clearing its reference.
+    if (interview.driveFileId) {
+      try {
+        const driveClient = await getDriveClientForUser(req.user!.id);
+        await deleteDriveFile(driveClient.drive, interview.driveFileId);
+      } catch (driveError) {
+        console.error('Drive recording delete failed:', driveError);
+        res.status(502).json({ message: 'Could not remove the recording from Google Drive' });
+        return;
+      }
     }
 
     // Clear legacy Cloudinary fields
@@ -95,7 +109,8 @@ router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Res
 
     res.json({ message: 'Recording deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting recording', error: String(error) });
+    console.error('Delete recording error:', error);
+    res.status(500).json({ message: 'Unable to delete recording' });
   }
 });
 
@@ -117,7 +132,8 @@ router.get('/my-recordings', auth, async (req: AuthRequest, res: Response): Prom
       .sort({ completedAt: -1 });
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching recordings', error: String(error) });
+    console.error('Fetch recordings error:', error);
+    res.status(500).json({ message: 'Unable to fetch recordings' });
   }
 });
 
@@ -155,7 +171,8 @@ router.get('/public', async (req, res): Promise<void> => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching demos', error: String(error) });
+    console.error('Fetch public demos error:', error);
+    res.status(500).json({ message: 'Unable to fetch public demos' });
   }
 });
 
