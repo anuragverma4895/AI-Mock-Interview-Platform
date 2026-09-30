@@ -484,6 +484,7 @@ export default function Interview() {
         setDriveError('Google Drive access is not available. Please sign in with Google again and allow Drive access.');
       } else {
         setDriveError(msg);
+      }
     } finally {
       setDriveUploading(false);
     }
