@@ -82,9 +82,9 @@ export const googleAuth = (req: Request, res: Response): void => {
     include_granted_scopes: true,
     state,
     access_type: 'offline',
-    // Request consent once for the additional Drive permission; after it is granted,
-    // Google can reuse the grant on subsequent logins without a second Drive flow.
-    prompt: 'consent',
+    // Request account selection; Google will show the Drive consent when the new scope
+    // has not yet been granted, then reuse the grant on later logins.
+    prompt: 'select_account',
   });
 
   res.redirect(authUrl);
