@@ -35,27 +35,6 @@ export default function Settings() {
   const [driveLoading, setDriveLoading] = useState(false)
   const [driveMessage, setDriveMessage] = useState('')
 
-  // Handle Drive OAuth callback URL params
-  useEffect(() => {
-    if (searchParams.get('drive_connected') === 'true') {
-      setDriveConnected(true)
-      setDriveMessage('Google Drive connected successfully!')
-      // Update user state
-      if (user) setUser({ ...user, googleDriveConnected: true })
-      // Clean URL
-      searchParams.delete('drive_connected')
-      setSearchParams(searchParams, { replace: true })
-      setTimeout(() => setDriveMessage(''), 5000)
-    }
-    const driveError = searchParams.get('drive_error')
-    if (driveError) {
-      setDriveMessage(`Drive connection failed: ${driveError}`)
-      searchParams.delete('drive_error')
-      setSearchParams(searchParams, { replace: true })
-      setTimeout(() => setDriveMessage(''), 5000)
-    }
-  }, [searchParams])
-
   // Check Drive status on mount
   useEffect(() => {
     driveAPI.getStatus().then(res => {
@@ -221,7 +200,7 @@ export default function Settings() {
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {driveConnected
                           ? 'Your Google Drive is connected. Recordings will be saved to PrepVerse/Interview Recordings.'
-                          : 'Connect your Google Drive to save interview recordings.'}
+                          : 'Google Drive access was not granted during Google sign-in. Sign out and sign in with Google again to enable recording uploads.'}
                       </p>
                     </div>
                     <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
@@ -244,8 +223,8 @@ export default function Settings() {
                           await driveAPI.disconnect()
                           setDriveConnected(false)
                           if (user) setUser({ ...user, googleDriveConnected: false })
-                          setDriveMessage('Google Drive disconnected.')
-                          setTimeout(() => setDriveMessage(''), 3000)
+                          setDriveMessage('Google Drive disconnected. Sign in with Google again to reconnect.')
+                          setTimeout(() => setDriveMessage(''), 4000)
                         } catch {
                           setDriveMessage('Failed to disconnect Drive.')
                         } finally {
@@ -257,23 +236,9 @@ export default function Settings() {
                       Disconnect Google Drive
                     </Button>
                   ) : (
-                    <Button
-                      className="w-full justify-start rounded-xl py-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                      disabled={driveLoading}
-                      onClick={async () => {
-                        setDriveLoading(true)
-                        try {
-                          const res = await driveAPI.getConnectUrl()
-                          window.location.href = res.data.authUrl
-                        } catch {
-                          setDriveMessage('Failed to initiate Drive connection.')
-                          setDriveLoading(false)
-                        }
-                      }}
-                    >
-                      <Globe className="mr-4 h-5 w-5" />
-                      Connect Google Drive
-                    </Button>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Drive authorization is part of Google sign-in. Sign out and sign in with Google again to reconnect Drive.
+                    </p>
                   )}
                 </CardContent>
               </Card>
