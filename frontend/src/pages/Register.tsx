@@ -65,6 +65,7 @@ export default function Register() {
           </svg>
           Continue with Google
         </button>
+        <p className="mt-3 text-center text-gray-500 text-xs">Google sign-in also asks for permission to save your interview recordings to your Google Drive.</p>
 
         <p className="mt-6 text-center text-gray-600 text-sm">
           Already have an account?{' '}

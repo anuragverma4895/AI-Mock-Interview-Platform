@@ -1,13 +1,9 @@
 import { Router, Response } from 'express';
-import crypto from 'crypto';
+import fs from 'fs/promises';
 import { auth, AuthRequest } from '../middleware/auth';
-import config from '../config';
 import User from '../models/User';
 import Interview from '../models/Interview';
 import {
-  generateDriveAuthUrl,
-  exchangeDriveCode,
-  encryptToken,
   getDriveClientForUser,
   getOrCreateRecordingsFolder,
   uploadVideoToDrive,
@@ -17,7 +13,7 @@ import {
   generatePlaybackToken,
   validatePlaybackToken,
 } from '../services/googleDriveService';
-import { videoUpload } from '../middleware/upload';
+import { driveVideoUpload } from '../middleware/upload';
 
 const router = Router();
 
@@ -44,109 +40,6 @@ router.get('/status', auth, async (req: AuthRequest, res: Response): Promise<voi
 });
 
 /**
- * GET /api/drive/connect
- * Initiates Google Drive OAuth flow.
- * The user must already be authenticated in the application.
- */
-router.get('/connect', auth, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!config.googleClientId || !config.googleClientSecret) {
-      res.status(500).json({ message: 'Google OAuth is not configured' });
-      return;
-    }
-
-    // Generate CSRF state containing the user ID (encrypted)
-    const statePayload = JSON.stringify({
-      userId: req.user?.id,
-      nonce: crypto.randomBytes(16).toString('hex'),
-    });
-    const state = encryptToken(statePayload);
-
-    // Store state in HTTP-only cookie (5 minutes)
-    res.cookie('drive_oauth_state', state, {
-      httpOnly: true,
-      secure: config.nodeEnv === 'production',
-      sameSite: 'lax',
-      maxAge: 5 * 60 * 1000,
-      path: '/',
-    });
-
-    const authUrl = generateDriveAuthUrl(state);
-    res.json({ authUrl });
-  } catch (error) {
-    console.error('Drive connect error:', error);
-    res.status(500).json({ message: 'Failed to initiate Drive connection' });
-  }
-});
-
-/**
- * GET /api/drive/callback
- * Handles the Google Drive OAuth callback.
- * Exchanges the authorization code for tokens and stores the encrypted refresh token.
- */
-router.get('/callback', async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { code, state, error: oauthError } = req.query;
-
-    if (oauthError) {
-      console.error('Drive OAuth error:', oauthError);
-      res.redirect(`${config.frontendUrl}/settings?drive_error=denied`);
-      return;
-    }
-
-    if (!code || typeof code !== 'string') {
-      res.redirect(`${config.frontendUrl}/settings?drive_error=missing_code`);
-      return;
-    }
-
-    // CSRF validation
-    const savedState = req.cookies?.drive_oauth_state;
-    if (!state || !savedState || state !== savedState) {
-      console.error('Drive OAuth state mismatch — possible CSRF');
-      res.redirect(`${config.frontendUrl}/settings?drive_error=invalid_state`);
-      return;
-    }
-
-    // Clear the state cookie
-    res.clearCookie('drive_oauth_state', { path: '/' });
-
-    // Exchange code for tokens
-    const { refreshToken } = await exchangeDriveCode(code);
-
-    // Encrypt the refresh token before storing
-    const encryptedToken = encryptToken(refreshToken);
-
-    // The state contains the user ID — decrypt it
-    // Since the state is the encrypted statePayload, we need to find the user
-    // For the callback we need to extract user from the state
-    let userId: string;
-    try {
-      const { decryptToken } = await import('../services/googleDriveService');
-      const statePayload = JSON.parse(decryptToken(savedState));
-      userId = statePayload.userId;
-    } catch {
-      res.redirect(`${config.frontendUrl}/settings?drive_error=invalid_state`);
-      return;
-    }
-
-    // Update user with Drive credentials
-    await User.findByIdAndUpdate(userId, {
-      googleDriveConnected: true,
-      googleDriveRefreshToken: encryptedToken,
-      googleDriveConnectedAt: new Date(),
-    });
-
-    console.log(`Google Drive connected for user ${userId}`);
-
-    // Redirect to frontend with success
-    res.redirect(`${config.frontendUrl}/settings?drive_connected=true`);
-  } catch (error: any) {
-    console.error('Drive callback error:', error.message || error);
-    res.redirect(`${config.frontendUrl}/settings?drive_error=callback_failed`);
-  }
-});
-
-/**
  * GET /api/drive/disconnect
  * Disconnect Google Drive for the authenticated user.
  */
@@ -169,62 +62,65 @@ router.post('/disconnect', auth, async (req: AuthRequest, res: Response): Promis
 /**
  * POST /api/drive/upload/:interviewId
  * Upload an interview recording to the user's Google Drive.
- * Accepts multipart file upload or base64.
+ * Accepts the final recording as multipart form data.
  */
-router.post('/upload/:interviewId', auth, videoUpload.single('recording'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/upload/:interviewId', auth, driveVideoUpload.single('recording'), async (req: AuthRequest, res: Response): Promise<void> => {
+  let tempFilePath: string | undefined;
+  let uploadedDriveFileId: string | undefined;
+
   try {
     const { interviewId } = req.params;
-    const { videoBase64, duration } = req.body;
+    const { duration } = req.body;
+    // Capture the temp path immediately so even ownership/validation failures clean it up.
+    tempFilePath = req.file?.path;
 
-    // Find interview and verify ownership
     const interview = await Interview.findById(interviewId);
     if (!interview) {
       res.status(404).json({ message: 'Interview not found' });
       return;
     }
+
     if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized' });
+      res.status(403).json({ message: 'You are not allowed to upload this interview' });
       return;
     }
 
-    // Get the video buffer
-    let videoBuffer: Buffer | null = req.file?.buffer || null;
-    if (!videoBuffer && typeof videoBase64 === 'string') {
-      const base64Data = videoBase64.replace(/^data:video\/\w+;base64,/, '');
-      videoBuffer = Buffer.from(base64Data, 'base64');
-    }
-    if (!videoBuffer || videoBuffer.length === 0) {
+    if (!req.file?.path) {
       res.status(400).json({ message: 'No recording file provided' });
       return;
     }
 
-    // Check Drive connection
+    // Drive authorization is obtained during Google login. There is deliberately
+    // no OAuth redirect from this upload endpoint.
     let driveClient;
     try {
       driveClient = await getDriveClientForUser(req.user!.id);
     } catch {
-      res.status(400).json({ message: 'Google Drive is not connected. Please connect Drive first.', code: 'DRIVE_NOT_CONNECTED' });
+      res.status(403).json({
+        message: 'Google Drive access is not available for this account. Please sign in with Google again and allow Drive access.',
+        code: 'DRIVE_NOT_CONNECTED',
+      });
       return;
     }
 
-    // Update status to uploading
     interview.driveUploadStatus = 'uploading';
+    interview.driveUploadError = undefined;
     await interview.save();
 
-    console.log(`Uploading recording for interview ${interviewId} to Google Drive (${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB)...`);
-
     try {
-      // Get or create the recordings folder
       const folderId = await getOrCreateRecordingsFolder(driveClient.drive, req.user!.id);
-
-      // Generate a descriptive filename
       const date = new Date().toISOString().split('T')[0];
       const fileName = `Interview_${date}_${interviewId.slice(-6)}.webm`;
 
-      // Upload to Drive
-      const result = await uploadVideoToDrive(driveClient.drive, folderId, fileName, videoBuffer);
+      const result = await uploadVideoToDrive(
+        driveClient.drive,
+        folderId,
+        fileName,
+        tempFilePath,
+        req.file.mimetype || 'video/webm'
+      );
+      uploadedDriveFileId = result.fileId;
 
-      // Update interview with Drive metadata
       interview.driveFileId = result.fileId;
       interview.driveFileName = result.fileName;
       interview.driveFolderId = folderId;
@@ -232,27 +128,44 @@ router.post('/upload/:interviewId', auth, videoUpload.single('recording'), async
       interview.driveUploadedAt = new Date();
       interview.driveUploadError = undefined;
       interview.recordingDuration = Number(duration) || 0;
-      await interview.save();
 
-      console.log(`Recording uploaded to Drive: ${result.fileId}`);
+      try {
+        await interview.save();
+      } catch (dbError) {
+        // Avoid leaving an orphaned Drive recording when MongoDB cannot persist
+        // the reference after a successful Drive upload.
+        await deleteDriveFile(driveClient.drive, uploadedDriveFileId);
+        throw dbError;
+      }
 
       res.json({
         message: 'Recording uploaded to Google Drive',
         driveFileId: result.fileId,
         driveFileName: result.fileName,
       });
-    } catch (uploadError: any) {
-      // Mark as failed
+    } catch (uploadError) {
       interview.driveUploadStatus = 'failed';
-      interview.driveUploadError = uploadError.message || 'Upload failed';
+      interview.driveUploadError = 'Upload failed';
       await interview.save();
 
       console.error('Drive upload failed:', uploadError);
-      res.status(500).json({ message: 'Failed to upload to Google Drive', error: uploadError.message });
+      res.status(500).json({ message: 'Failed to upload the recording to Google Drive' });
     }
   } catch (error) {
     console.error('Drive upload route error:', error);
-    res.status(500).json({ message: 'Error uploading recording', error: String(error) });
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Unable to upload the recording right now' });
+    }
+  } finally {
+    if (tempFilePath) {
+      try {
+        await fs.unlink(tempFilePath);
+      } catch (cleanupError: any) {
+        if (cleanupError?.code !== 'ENOENT') {
+          console.error('Drive temp file cleanup failed:', cleanupError);
+        }
+      }
+    }
   }
 });
 
@@ -273,11 +186,13 @@ router.post('/skip/:interviewId', auth, async (req: AuthRequest, res: Response):
     }
 
     interview.driveUploadStatus = 'skipped';
+    interview.driveUploadError = undefined;
     await interview.save();
 
     res.json({ message: 'Recording upload skipped' });
   } catch (error) {
-    res.status(500).json({ message: 'Error skipping upload', error: String(error) });
+    console.error('Drive skip error:', error);
+    res.status(500).json({ message: 'Unable to update recording status' });
   }
 });
 
@@ -293,7 +208,8 @@ router.get('/playback-token/:interviewId', auth, async (req: AuthRequest, res: R
       return;
     }
 
-    // Verify ownership (unless the interview is published)
+    // Published demos are intentionally viewable by authenticated users, but the
+    // Drive credentials must always belong to the interview owner.
     if (interview.userId.toString() !== req.user?.id && !interview.isPublished) {
       res.status(403).json({ message: 'Unauthorized' });
       return;
@@ -304,7 +220,8 @@ router.get('/playback-token/:interviewId', auth, async (req: AuthRequest, res: R
       return;
     }
 
-    const token = generatePlaybackToken(req.params.interviewId, interview.userId.toString());
+    const tokenOwnerId = interview.userId.toString();
+    const token = generatePlaybackToken(req.params.interviewId, tokenOwnerId);
 
     res.json({ token, expiresIn: 300 }); // 5 minutes
   } catch (error) {
@@ -347,6 +264,12 @@ router.get('/stream/:interviewId', async (req: AuthRequest, res: Response): Prom
       return;
     }
 
+    // Never let a playback token select a different user's Drive credentials.
+    if (interview.userId.toString() !== tokenData.userId) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+
     // Get Drive client for the file owner
     let driveClient;
     try {
@@ -374,12 +297,19 @@ router.get('/stream/:interviewId', async (req: AuthRequest, res: Response): Prom
       if (rangeMatch) {
         const start = parseInt(rangeMatch[1], 10);
         const end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : fileSize - 1;
-        const chunkSize = end - start + 1;
 
-        const { stream } = await getDriveFileStream(driveClient.drive, interview.driveFileId, { start, end });
+        if (fileSize <= 0 || start >= fileSize || end < start) {
+          res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).json({ message: 'Requested video range is not satisfiable' });
+          return;
+        }
+
+        const safeEnd = Math.min(end, fileSize - 1);
+        const chunkSize = safeEnd - start + 1;
+
+        const { stream } = await getDriveFileStream(driveClient.drive, interview.driveFileId, { start, end: safeEnd });
 
         res.writeHead(206, {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Range': `bytes ${start}-${safeEnd}/${fileSize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize,
           'Content-Type': mimeType,

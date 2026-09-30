@@ -1,6 +1,7 @@
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 import { Request } from 'express';
 
@@ -59,6 +60,31 @@ const videoFileFilter = (req: Request, file: any, cb: any) => {
 
 export const videoUpload = multer({
   storage: multer.memoryStorage(),
+  fileFilter: videoFileFilter,
+  limits: {
+    fileSize: 500 * 1024 * 1024,
+  },
+});
+
+
+const driveTempDir = path.join(os.tmpdir(), 'prepverse-drive-temp');
+
+const driveVideoStorage = multer.diskStorage({
+  destination: (_req: Request, _file: any, cb: any) => {
+    ensureDir(driveTempDir, cb);
+  },
+  filename: (_req: Request, file: any, cb: any) => {
+    const ext = path.extname(file.originalname) || '.webm';
+    const safeBase = path.basename(file.originalname, ext)
+      .replace(/[^a-z0-9-_]/gi, '-')
+      .slice(0, 60) || 'interview';
+    const uniqueSuffix = `${Date.now()}-${process.hrtime.bigint().toString()}`;
+    cb(null, `${safeBase}-${uniqueSuffix}${ext}`);
+  },
+});
+
+export const driveVideoUpload = multer({
+  storage: driveVideoStorage,
   fileFilter: videoFileFilter,
   limits: {
     fileSize: 500 * 1024 * 1024,

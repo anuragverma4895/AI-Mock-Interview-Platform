@@ -177,7 +177,7 @@ flowchart TD
 
 16. **Session Finalization:** The frontend triggers `POST /api/interview/end/:interviewId`, sending the aggregated body-language metrics to the server. The server marks the interview completed, calculates the final score, identifies strong/improvement areas, generates a closing message, and updates the `Interview` document in MongoDB.
 
-17. **Cloud Video Upload:** After the interview-end request, the final WebM blob is uploaded via `POST /api/demo/upload-recording/:interviewId`. The backend uploads it to **Cloudinary** and saves the recording URL, public ID, and duration in the interview record.
+17. **Google Drive Upload:** After the interview-end request, the user chooses whether to save the final WebM recording. Clicking **Upload to Google Drive** sends it to the backend, which writes a temporary file and performs a resumable Google Drive upload owned by the authenticated user. MongoDB stores only Drive metadata.
 
 ### Phase 5: Analytics Dashboard & Replay
 
@@ -185,7 +185,7 @@ flowchart TD
 
 19. **Performance Visualization:** The page fetches the complete interview record and renders interactive Recharts visualizations — radar charts for category scores, score trajectory plots, and body language compliance metrics.
 
-20. **Video Replay:** The candidate can review their complete Q&A transcript alongside graded feedback, and play back their recorded session directly via the integrated Cloudinary video player.
+20. **Video Replay:** The candidate can review their complete Q&A transcript alongside graded feedback, while the existing frontend `VideoPlayer` streams the private Drive recording through the backend using a short-lived playback token.
 
 ---
 
@@ -397,14 +397,11 @@ JWT_SECRET=your-super-secret-jwt-key-change-in-production
 NODE_ENV=development
 GEMINI_API_KEY=your-gemini-api-key
 OPENAI_API_KEY=your-openai-api-key
-CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-CLOUDINARY_API_KEY=your-cloudinary-api-key
-CLOUDINARY_API_SECRET=your-cloudinary-api-secret
-
 # Google OAuth 2.0 (required)
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:5005/api/auth/google/callback
+GOOGLE_TOKEN_ENCRYPTION_KEY=your-strong-encryption-key
 FRONTEND_URL=http://localhost:3000
 ```
 
@@ -431,6 +428,23 @@ The frontend development server will be available at `http://localhost:3000`.
 ```bash
 npm run dev
 ```
+
+
+## Google Drive Interview Recording Flow
+
+Google Drive authorization is part of the normal Google Login/Signup flow. There is no separate Drive OAuth step after an interview.
+
+1. User clicks **Continue with Google**.
+2. Google authenticates the user and asks for the application's Drive permission (`drive.file`).
+3. Backend verifies the Google identity and securely stores the Drive refresh token encrypted.
+4. User starts and records a mock interview.
+5. When the interview ends, the app shows **Upload to Google Drive** or **Skip**.
+6. Upload starts immediately when the user clicks **Upload to Google Drive**.
+7. Backend writes the recording to a temporary file and performs a resumable upload to `PrepVerse/Interview Recordings` in that user's Drive.
+8. MongoDB stores the Drive file ID/name/status; the final video binary is not stored permanently on the application server.
+9. Playback requests a short-lived token. The backend streams the private Drive file to the existing frontend `VideoPlayer`, including HTTP Range support for seeking.
+
+The Drive scope is intentionally narrow. `drive.file` is the per-file scope used by this application; the broader `drive` scope is not requested.
 
 ## Authentication Flow
 
@@ -536,9 +550,6 @@ User clicks "Continue with Google"
 | `NODE_ENV` | No | `development` or `production` |
 | `GEMINI_API_KEY` | Conditional | Gemini API key; enables the primary Gemini AI path |
 | `OPENAI_API_KEY` | Conditional | OpenAI API key; fallback AI path |
-| `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 Client ID from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth 2.0 Client Secret from Google Cloud Console |
 | `GOOGLE_REDIRECT_URI` | Yes | OAuth callback URL (default: `http://localhost:5005/api/auth/google/callback`) |
@@ -562,12 +573,10 @@ The project is deployed on [Render](https://render.com) as a single web service 
 | `MONGODB_URI` | Your MongoDB Atlas connection string |
 | `JWT_SECRET` | Your secret JWT signing key |
 | `GEMINI_API_KEY` | Your Gemini API key |
-| `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Your Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Your Cloudinary API secret |
 | `GOOGLE_CLIENT_ID` | Your Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Your Google OAuth Client Secret |
 | `GOOGLE_REDIRECT_URI` | `https://<your-render-url>.onrender.com/api/auth/google/callback` |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | A strong server-side encryption key |
 | `FRONTEND_URL` | `https://<your-render-url>.onrender.com` |
 
 6. In Google Cloud Console → Credentials → your OAuth client, add your Render URL:

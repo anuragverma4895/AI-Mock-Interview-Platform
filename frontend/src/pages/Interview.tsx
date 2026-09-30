@@ -51,7 +51,6 @@ export default function Interview() {
   const [endingInterview, setEndingInterview] = useState(false);
   // Google Drive upload modal state
   const [showDriveModal, setShowDriveModal] = useState(false);
-  const [driveConnected, setDriveConnected] = useState(false);
   const [driveUploading, setDriveUploading] = useState(false);
   const [driveUploadDone, setDriveUploadDone] = useState(false);
   const [driveError, setDriveError] = useState('');
@@ -451,14 +450,6 @@ export default function Interview() {
         pendingRecordingRef.current = recordingBlob;
         pendingRecordingTimeRef.current = finalRecordingTime;
 
-        // Check if Drive is already connected
-        try {
-          const statusRes = await driveAPI.getStatus();
-          setDriveConnected(statusRes.data.connected);
-        } catch {
-          setDriveConnected(false);
-        }
-
         // Show the Drive upload confirmation modal
         setShowDriveModal(true);
       } else {
@@ -490,25 +481,12 @@ export default function Interview() {
       const msg = uploadErr?.response?.data?.message || uploadErr?.message || 'Upload failed';
       const code = uploadErr?.response?.data?.code;
       if (code === 'DRIVE_NOT_CONNECTED') {
-        setDriveConnected(false);
-        setDriveError('Please connect Google Drive first.');
+        setDriveError('Google Drive access is not available. Please sign in with Google again and allow Drive access.');
       } else {
         setDriveError(msg);
       }
     } finally {
       setDriveUploading(false);
-    }
-  };
-
-  /** Handle "Connect Google Drive" button */
-  const handleConnectDrive = async () => {
-    try {
-      const res = await driveAPI.getConnectUrl();
-      // Open Drive authorization in the same window
-      window.location.href = res.data.authUrl;
-    } catch (err) {
-      console.error('Failed to get Drive connect URL:', err);
-      setDriveError('Failed to initiate Drive connection.');
     }
   };
 
@@ -575,23 +553,13 @@ export default function Interview() {
                     </div>
                   )}
 
-                  {driveConnected ? (
-                    <button
-                      onClick={handleDriveUpload}
-                      className="w-full mb-3 px-6 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H1.05c0 1.6.4 3.2 1.2 4.6l4.35 9.25z" fill="#0066DA"/><path d="M43.65 25.05L29.9 1.25c-1.35.8-2.5 1.9-3.3 3.3L1.2 52.9c-.8 1.4-1.2 2.95-1.2 4.6h27.45l16.2-32.45z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.6H59.85L73.55 76.8z" fill="#EA4335"/><path d="M43.65 25.05L57.4 1.25C56.05.45 54.5 0 52.85 0H34.4c-1.6 0-3.2.5-4.5 1.25l13.75 23.8z" fill="#00832D"/><path d="M59.85 52.9H27.45l-13.75 23.8c1.35.8 2.9 1.3 4.5 1.3h50.5c1.6 0 3.2-.5 4.55-1.3L59.85 52.9z" fill="#2684FC"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25.05l16.2 27.85H87.3c0-1.6-.4-3.2-1.2-4.6L73.4 26.5z" fill="#FFBA00"/></svg>
-                      Upload to Google Drive
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleConnectDrive}
-                      className="w-full mb-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-5 h-5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H1.05c0 1.6.4 3.2 1.2 4.6l4.35 9.25z" fill="#0066DA"/><path d="M43.65 25.05L29.9 1.25c-1.35.8-2.5 1.9-3.3 3.3L1.2 52.9c-.8 1.4-1.2 2.95-1.2 4.6h27.45l16.2-32.45z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.6H59.85L73.55 76.8z" fill="#EA4335"/><path d="M43.65 25.05L57.4 1.25C56.05.45 54.5 0 52.85 0H34.4c-1.6 0-3.2.5-4.5 1.25l13.75 23.8z" fill="#00832D"/><path d="M59.85 52.9H27.45l-13.75 23.8c1.35.8 2.9 1.3 4.5 1.3h50.5c1.6 0 3.2-.5 4.55-1.3L59.85 52.9z" fill="#2684FC"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25.05l16.2 27.85H87.3c0-1.6-.4-3.2-1.2-4.6L73.4 26.5z" fill="#FFBA00"/></svg>
-                      Connect Google Drive
-                    </button>
-                  )}
+                  <button
+                    onClick={handleDriveUpload}
+                    disabled={driveUploading}
+                    className="w-full mb-3 px-6 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    Upload to Google Drive
+                  </button>
 
                   <button
                     onClick={handleSkipUpload}

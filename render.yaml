@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: ai-mock-interview-backend
+    name: ai-mock-interview-platform
     runtime: node
-    rootDir: backend
     buildCommand: npm run build
     startCommand: npm start
     envVars:
@@ -14,31 +13,17 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
+      - key: GEMINI_API_KEY
         sync: false
       - key: PORT
-        value: 5000
+        value: 10000
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
-      - key: FRONTEND_URL
+      - key: GOOGLE_TOKEN_ENCRYPTION_KEY
         sync: false
-
-  - type: web
-    name: ai-mock-interview-frontend
-    runtime: node
-    rootDir: frontend
-    buildCommand: npm run build
-    startCommand: npm run preview
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: VITE_BACKEND_URL
+      - key: FRONTEND_URL
         sync: false

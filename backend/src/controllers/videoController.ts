@@ -9,6 +9,21 @@ export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise
   try {
     const { interviewId, chunkIndex } = req.body;
     
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      res.status(404).json({ message: 'Interview not found' });
+      return;
+    }
+    if (interview.userId.toString() !== req.user.id) {
+      res.status(403).json({ message: 'You are not allowed to upload this interview' });
+      return;
+    }
+
     if (!req.file) {
       res.status(400).json({ message: 'No video chunk provided' });
       return;
@@ -19,7 +34,7 @@ export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise
     res.json({ message: 'Video chunk uploaded', chunkIndex });
   } catch (error) {
     console.error('Error uploading video chunk:', error);
-    res.status(500).json({ message: 'Error uploading video chunk', error: String(error) });
+    res.status(500).json({ message: 'Unable to upload video chunk' });
   }
 };
 
@@ -27,9 +42,22 @@ export const finalizeVideo = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { interviewId, totalChunks } = req.body;
 
-    const videoPath = await combineVideoChunks(interviewId, parseInt(totalChunks));
+    if (!req.user?.id) {
+      res.status(401).json({ message: 'Authentication required' });
+      return;
+    }
 
     const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      res.status(404).json({ message: 'Interview not found' });
+      return;
+    }
+    if (interview.userId.toString() !== req.user.id) {
+      res.status(403).json({ message: 'You are not allowed to finalize this interview' });
+      return;
+    }
+
+    const videoPath = await combineVideoChunks(interviewId, parseInt(totalChunks));
     if (interview) {
       interview.videoPath = videoPath;
       await interview.save();
@@ -38,7 +66,7 @@ export const finalizeVideo = async (req: AuthRequest, res: Response): Promise<vo
     res.json({ message: 'Video finalized', videoPath });
   } catch (error) {
     console.error('Error finalizing video:', error);
-    res.status(500).json({ message: 'Error finalizing video', error: String(error) });
+    res.status(500).json({ message: 'Unable to finalize video' });
   }
 };
 
@@ -51,6 +79,10 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
       res.status(404).json({ message: 'Video not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const exists = await videoExists(id);
 
@@ -59,7 +91,7 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
       path: interview.videoPath,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error getting video info', error: String(error) });
+    res.status(500).json({ message: 'Unable to get video information' });
   }
 };
 
@@ -72,6 +104,10 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
       res.status(404).json({ message: 'Video not found' });
       return;
     }
+    if (interview.userId.toString() !== req.user?.id) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
 
     const exists = await videoExists(id);
     if (!exists) {
@@ -81,7 +117,7 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
 
     res.download(interview.videoPath);
   } catch (error) {
-    res.status(500).json({ message: 'Error downloading video', error: String(error) });
+    res.status(500).json({ message: 'Unable to download video' });
   }
 };
 
