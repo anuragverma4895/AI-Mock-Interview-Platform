@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import connectDB from './config/db';
 import config from './config';
 import authRoutes from './routes/auth';
@@ -12,6 +13,7 @@ import demoRoutes from './routes/demo';
 import codingRoutes from './routes/coding';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
+
 
 // Handle unhandled Promise rejections
 process.on('unhandledRejection', (err: any) => {
@@ -53,6 +55,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(cookieParser());
+
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(uploadsDir));

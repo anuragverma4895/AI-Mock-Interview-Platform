@@ -10,6 +10,10 @@ interface Config {
   nodeEnv: string;
   openaiApiKey?: string;
   geminiApiKey?: string;
+  googleClientId: string;
+  googleClientSecret: string;
+  googleRedirectUri: string;
+  frontendUrl: string;
 }
 
 // Validate required environment variables
@@ -28,6 +32,10 @@ const config: Config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   openaiApiKey: process.env.OPENAI_API_KEY,
   geminiApiKey: process.env.GEMINI_API_KEY,
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5005/api/auth/google/callback',
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
 
 console.log('--- Configuration Loaded ---');
@@ -35,6 +43,7 @@ console.log(`Port: ${config.port}`);
 console.log(`Environment: ${config.nodeEnv}`);
 console.log(`Database: ${config.mongoUri.split('@').pop()}`); // Log only host for security
 console.log(`AI: ${config.geminiApiKey ? 'Gemini ✅' : 'No Gemini'} | ${config.openaiApiKey ? 'OpenAI ✅' : 'No OpenAI'}`);
+console.log(`Google OAuth: ${config.googleClientId ? '✅' : '⚠️  NOT CONFIGURED — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env'}`);
 console.log('---------------------------');
 
 export default config;

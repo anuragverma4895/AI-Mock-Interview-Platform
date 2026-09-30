@@ -22,6 +22,14 @@ services:
         sync: false
       - key: PORT
         value: 5000
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
 
   - type: web
     name: ai-mock-interview-frontend

@@ -17,6 +17,7 @@ import CodingChallenges from './pages/CodingChallenges';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import DemoPage from './pages/DemoPage';
+import AuthCallback from './pages/AuthCallback';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { token, checkToken, logout } = useAuthStore();
@@ -50,6 +51,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/demo" element={<DemoPage />} />
           <Route
             path="/dashboard"

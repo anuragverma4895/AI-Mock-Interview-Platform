@@ -14,20 +14,10 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
   next();
 };
 
-// Validation rules for auth
-export const validateRegister = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('role').optional().isIn(['candidate', 'interviewer', 'admin']).withMessage('Role must be candidate, interviewer, or admin'),
-  handleValidationErrors,
-];
+// Auth validation rules for register/login have been removed.
+// Google OAuth handles identity verification server-side.
+// Profile and settings validators remain below.
 
-export const validateLogin = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').exists().withMessage('Password is required'),
-  handleValidationErrors,
-];
 
 export const validateProfileUpdate = [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),

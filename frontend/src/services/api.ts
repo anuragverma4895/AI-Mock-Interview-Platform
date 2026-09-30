@@ -39,15 +39,20 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
-  register: (email: string, password: string, name: string, role?: string) =>
-    api.post('/auth/register', { email, password, name, role }),
+  getGoogleAuthUrl: () => {
+    // Returns the full URL that the browser should navigate to.
+    // This hits the backend which redirects to Google.
+    const baseUrl = import.meta.env.VITE_BACKEND_URL || '/api';
+    return `${baseUrl}/auth/google`;
+  },
+  exchangeCode: (code: string) =>
+    api.post('/auth/exchange', { code }),
   getMe: () => api.get('/auth/me'),
   updateProfile: (profile: Partial<Pick<User, 'name' | 'role'>>) =>
     api.patch('/auth/profile', profile),
   updateSettings: (settings: Partial<Pick<User, 'role'>>) =>
     api.patch('/auth/settings', settings),
+  logout: () => api.post('/auth/logout'),
 };
 
 export const resumeAPI = {

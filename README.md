@@ -5,6 +5,7 @@ A full-stack AI-powered interview preparation platform with real-time video reco
 ## Features
 
 - **AI-Powered Interviews** — Resume-aware dynamic question generation using Gemini when `GEMINI_API_KEY` is configured, with OpenAI and local fallbacks
+- **Google OAuth Authentication** — Secure sign-in via Google's OAuth 2.0 / OpenID Connect with server-side identity verification
 - **Video Recording** — Browser camera/microphone capture with `getUserMedia()` and `MediaRecorder`, with the completed WebM recording stored on Cloudinary
 - **Live Coding Environment** — Monaco Editor with multi-language support (JavaScript, Python, C++)
 - **Body Language Analysis** — MediaPipe-based face detection tracking eye contact, head pose, and engagement metrics
@@ -126,7 +127,7 @@ flowchart TD
 
 ### Phase 1: Authentication & Onboarding
 
-1. **User Sign-up / Login:** The candidate visits the registration page. Passwords are hashed using `bcrypt` inside `authController.ts` and user profiles are created in the `User` MongoDB model. All subsequent backend communication is protected via **JSON Web Tokens (JWT)**.
+1. **Google OAuth Sign-in:** The candidate clicks **"Continue with Google"** on the login or register page. The backend initiates an OAuth 2.0 Authorization Code flow — the user authenticates directly with Google, and Google returns a verified identity. The backend verifies Google's ID token (signature, issuer, audience, email verification), finds or creates the user in MongoDB by Google's stable `sub` identifier, and generates an application **JSON Web Token (JWT)**. The JWT is delivered to the frontend via a secure one-time authorization code exchange.
 
 2. **Resume Upload:** The candidate uploads their resume (PDF or DOCX) via `ResumeUpload.tsx`.
 
@@ -211,8 +212,8 @@ flowchart TD
 | Node.js + Express | REST API server |
 | TypeScript | Type-safe backend code |
 | MongoDB + Mongoose | Database and ODM |
-| JSON Web Tokens (JWT) | Authentication |
-| bcryptjs | Password hashing |
+| Google OAuth 2.0 (google-auth-library) | Authentication via Google OpenID Connect |
+| JSON Web Tokens (JWT) | Application session tokens |
 | Gemini API + OpenAI API | AI question generation, resume suitability analysis, and answer evaluation |
 | Cloudinary | Cloud video storage and streaming |
 | multer | File upload handling |
@@ -220,6 +221,7 @@ flowchart TD
 | socket.io | Real-time communication |
 | helmet | HTTP security headers |
 | express-validator | Input validation |
+| cookie-parser | OAuth state cookie handling |
 
 ## Project Structure
 
@@ -233,12 +235,12 @@ AI-Mock-Interview-Platform/
 │   │   │   ├── db.ts
 │   │   │   └── index.ts
 │   │   ├── controllers/                 # Express controllers for routes
-│   │   │   ├── authController.ts
+│   │   │   ├── authController.ts        # Google OAuth, code exchange, profile/settings
 │   │   │   ├── interviewController.ts
 │   │   │   ├── resumeController.ts
 │   │   │   └── videoController.ts
 │   │   ├── middleware/                  # Endpoint routers validation & upload rules
-│   │   │   ├── auth.ts
+│   │   │   ├── auth.ts                  # JWT verification, generateToken, AuthRequest
 │   │   │   ├── errorHandler.ts
 │   │   │   ├── fileValidation.ts
 │   │   │   ├── upload.ts
@@ -246,10 +248,11 @@ AI-Mock-Interview-Platform/
 │   │   ├── models/                      # Mongoose models schema
 │   │   │   ├── Interview.ts
 │   │   │   ├── Resume.ts
-│   │   │   └── User.ts
+│   │   │   └── User.ts                  # googleId, email, name, role, profileImage
 │   │   ├── routes/                      # API routing endpoints
 │   │   │   ├── analytics.ts
-│   │   │   ├── auth.ts
+│   │   │   ├── auth.ts                  # /google, /google/callback, /exchange, /me, /profile, /settings
+│   │   │   ├── coding.ts
 │   │   │   ├── demo.ts
 │   │   │   ├── interview.ts
 │   │   │   ├── resume.ts
@@ -257,15 +260,17 @@ AI-Mock-Interview-Platform/
 │   │   ├── services/                    # Business core logic
 │   │   │   ├── aiService.ts
 │   │   │   ├── cloudinaryService.ts
+│   │   │   ├── codingService.ts
 │   │   │   ├── resumeParser.ts
 │   │   │   └── videoService.ts
 │   │   ├── types/                       # Custom TypeScript types
 │   │   │   ├── declarations.d.ts
 │   │   │   └── file-type.d.ts
 │   │   ├── utils/                       # DB helpers
-│   │   │   └── dropDuplicateIndex.ts
+│   │   │   ├── codingChallenges.ts      # Built-in coding challenge bank
+│   │   │   └── dropDuplicateIndex.ts    # Legacy index cleanup utility
 │   │   └── index.ts                     # Express app main listener
-│   ├── uploads/                         # PDF resume uploads directory (tracked samples)
+│   ├── uploads/                         # PDF resume uploads directory
 │   ├── .env.example
 │   ├── package.json
 │   ├── package-lock.json
@@ -296,6 +301,8 @@ AI-Mock-Interview-Platform/
 │   │   │   └── utils.ts
 │   │   ├── pages/                       # Screen views and dashboard boards
 │   │   │   ├── Analytics.tsx
+│   │   │   ├── AuthCallback.tsx         # Google OAuth one-time code exchange
+│   │   │   ├── CodingChallenges.tsx
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── DemoPage.tsx
 │   │   │   ├── Interview.tsx
@@ -303,9 +310,9 @@ AI-Mock-Interview-Platform/
 │   │   │   ├── InterviewSetup.tsx
 │   │   │   ├── LandingPage.tsx
 │   │   │   ├── LiveCodingEditor.tsx
-│   │   │   ├── Login.tsx
+│   │   │   ├── Login.tsx                # "Continue with Google" button
 │   │   │   ├── Profile.tsx
-│   │   │   ├── Register.tsx
+│   │   │   ├── Register.tsx             # "Continue with Google" button
 │   │   │   ├── ResumeUpload.tsx
 │   │   │   ├── Settings.tsx
 │   │   │   └── VideoLibrary.tsx
@@ -340,6 +347,7 @@ AI-Mock-Interview-Platform/
 
 - **Node.js** v18 or higher
 - **MongoDB** (local instance or MongoDB Atlas)
+- **Google Cloud Console project** with OAuth 2.0 credentials — [console.cloud.google.com](https://console.cloud.google.com)
 - **Gemini and/or OpenAI API Key**
 - **Cloudinary Account** — [cloudinary.com](https://cloudinary.com) (free tier is sufficient)
 
@@ -350,7 +358,28 @@ git clone https://github.com/anuragverma4895/AI-Mock-Interview-Platform.git
 cd AI-Mock-Interview-Platform
 ```
 
-### 2. Backend Setup
+### 2. Google OAuth Setup (Required)
+
+Before running the app, you need to configure Google OAuth credentials:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to **APIs & Services → OAuth consent screen**
+   - Select **External** user type
+   - Fill in app name (`PrepVerse`), support email, and developer email
+   - Add scopes: `email`, `profile`, `openid`
+   - Add your Google email under **Test users** (required while in Testing mode)
+4. Navigate to **APIs & Services → Credentials**
+   - Click **Create Credentials → OAuth client ID**
+   - Application type: **Web application**
+   - **Authorized JavaScript origins:**
+     - `http://localhost:3000`
+     - `http://localhost:5005`
+   - **Authorized redirect URIs:**
+     - `http://localhost:5005/api/auth/google/callback`
+   - Click **Create** and copy the **Client ID** and **Client Secret**
+
+### 3. Backend Setup
 
 ```bash
 cd backend
@@ -369,6 +398,12 @@ OPENAI_API_KEY=your-openai-api-key
 CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
 CLOUDINARY_API_KEY=your-cloudinary-api-key
 CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+
+# Google OAuth 2.0 (required)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:5005/api/auth/google/callback
+FRONTEND_URL=http://localhost:3000
 ```
 
 Start the backend development server:
@@ -379,7 +414,7 @@ npm run dev
 
 The backend API will be available at `http://localhost:5005` by default.
 
-### 3. Frontend Setup
+### 4. Frontend Setup
 
 ```bash
 cd frontend
@@ -387,12 +422,36 @@ npm install
 npm run dev
 ```
 
-The frontend development server will be available at `http://localhost:5173`.
+The frontend development server will be available at `http://localhost:3000`.
 
-### 4. Run Both Concurrently (from the root)
+### 5. Run Both Concurrently (from the root)
 
 ```bash
 npm run dev
+```
+
+## Authentication Flow
+
+The platform uses **Google OAuth 2.0** with a server-side Authorization Code flow. No passwords are stored — Google verifies the user's identity directly.
+
+```
+User clicks "Continue with Google"
+  → Browser navigates to GET /api/auth/google
+  → Backend generates CSRF state (stored in HTTP-only cookie)
+  → Redirects to Google's OAuth consent screen
+  → User authenticates with their Google account
+  → Google redirects to GET /api/auth/google/callback
+  → Backend validates CSRF state
+  → Backend exchanges authorization code with Google
+  → Backend verifies Google's ID token (signature, issuer, audience, expiration)
+  → MongoDB: find user by googleId or create new user
+  → Generate application JWT (2-hour expiry)
+  → Create one-time authorization code (60-second TTL)
+  → Redirect to frontend /auth/callback?code=<one-time-code>
+  → Frontend exchanges code for JWT via POST /api/auth/exchange
+  → JWT stored in localStorage
+  → User redirected to Dashboard
+  → All subsequent API requests include JWT in Authorization header
 ```
 
 ## API Endpoints
@@ -400,9 +459,13 @@ npm run dev
 ### Authentication
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/register` | Register a new user |
-| `POST` | `/api/auth/login` | Login and receive a JWT |
+| `GET` | `/api/auth/google` | Initiates Google OAuth flow (redirects to Google) |
+| `GET` | `/api/auth/google/callback` | Google OAuth callback (handled by backend) |
+| `POST` | `/api/auth/exchange` | Exchange one-time code for JWT and user data |
 | `GET` | `/api/auth/me` | Get the currently authenticated user |
+| `PATCH` | `/api/auth/profile` | Update user profile (name, role) |
+| `PATCH` | `/api/auth/settings` | Update user settings (role) |
+| `POST` | `/api/auth/logout` | Server-side logout |
 
 ### Resume
 | Method | Endpoint | Description |
@@ -418,6 +481,7 @@ npm run dev
 | `POST` | `/api/interview/start` | Start a new interview session |
 | `GET` | `/api/interview/next-question/:interviewId` | Get the next question |
 | `POST` | `/api/interview/submit-answer/:interviewId` | Submit an answer for evaluation |
+| `POST` | `/api/interview/follow-up/:interviewId` | Ask a follow-up question |
 | `POST` | `/api/interview/end/:interviewId` | End the interview session |
 | `GET` | `/api/interview/:id` | Get interview details |
 | `GET` | `/api/interview/user/:userId` | Get all interviews for a user |
@@ -431,6 +495,26 @@ npm run dev
 | `GET` | `/api/video/:id` | Get video metadata |
 | `GET` | `/api/video/:id/download` | Download the recorded video |
 | `POST` | `/api/video/analyze-body-language` | Currently returns HTTP 501; active body-language metrics are sent through `/api/interview/end/:interviewId` |
+
+### Demo Recordings
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/demo/upload-recording/:interviewId` | Upload interview recording (WebM or base64) |
+| `POST` | `/api/demo/publish/:interviewId` | Publish a recording publicly |
+| `POST` | `/api/demo/unpublish/:interviewId` | Unpublish a recording |
+| `DELETE` | `/api/demo/recording/:interviewId` | Delete a recording |
+| `GET` | `/api/demo/my-recordings` | Get all recordings for the authenticated user |
+| `GET` | `/api/demo/public` | Get all publicly published recordings |
+
+### Coding
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/coding/challenges` | Get available coding challenges |
+| `POST` | `/api/coding/start` | Start a coding session |
+| `POST` | `/api/coding/submit/:interviewId` | Submit code for evaluation |
+| `GET` | `/api/coding/sessions` | Get all coding sessions for the user |
+| `GET` | `/api/coding/sessions/:interviewId` | Get a specific coding session |
+| `POST` | `/api/coding/generate` | Generate an AI coding challenge |
 
 ### Analytics
 | Method | Endpoint | Description |
@@ -446,33 +530,49 @@ npm run dev
 |---|---|---|
 | `PORT` | No | Port for the Express server (default: `5005`) |
 | `MONGODB_URI` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | Secret key for signing JWTs |
+| `JWT_SECRET` | Yes | Secret key for signing application JWTs |
 | `NODE_ENV` | No | `development` or `production` |
 | `GEMINI_API_KEY` | Conditional | Gemini API key; enables the primary Gemini AI path |
+| `OPENAI_API_KEY` | Conditional | OpenAI API key; fallback AI path |
 | `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
+| `GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 Client ID from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth 2.0 Client Secret from Google Cloud Console |
+| `GOOGLE_REDIRECT_URI` | Yes | OAuth callback URL (default: `http://localhost:5005/api/auth/google/callback`) |
+| `FRONTEND_URL` | Yes | Frontend URL for OAuth redirects (default: `http://localhost:3000`) |
 
 ## Deployment
 
-### Frontend — Vercel
+### Render (Single Service — Backend serves Frontend)
 
-1. Push code to GitHub.
-2. Import the project on [vercel.com](https://vercel.com).
-3. Set the **root directory** to `frontend`.
-4. Build command: `npm run build`
-5. Output directory: `dist`
-6. Deploy.
-
-### Backend — Render
+The project is deployed on [Render](https://render.com) as a single web service where the Express backend serves the Vite-built frontend in production.
 
 1. Connect your GitHub repository on [render.com](https://render.com).
 2. Select **Web Service** and set the **root directory** to `backend`.
 3. Build command: `npm run build`
 4. Start command: `npm start`
-5. Add all environment variables in the Render dashboard.
+5. Add all environment variables in the Render dashboard:
 
-A `render.yaml` configuration file is included in the repository root for one-click deployment.
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `MONGODB_URI` | Your MongoDB Atlas connection string |
+| `JWT_SECRET` | Your secret JWT signing key |
+| `GEMINI_API_KEY` | Your Gemini API key |
+| `CLOUDINARY_CLOUD_NAME` | Your Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Your Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Your Cloudinary API secret |
+| `GOOGLE_CLIENT_ID` | Your Google OAuth Client ID |
+| `GOOGLE_CLIENT_SECRET` | Your Google OAuth Client Secret |
+| `GOOGLE_REDIRECT_URI` | `https://<your-render-url>.onrender.com/api/auth/google/callback` |
+| `FRONTEND_URL` | `https://<your-render-url>.onrender.com` |
+
+6. In Google Cloud Console → Credentials → your OAuth client, add your Render URL:
+   - **Authorized JavaScript origins:** `https://<your-render-url>.onrender.com`
+   - **Authorized redirect URIs:** `https://<your-render-url>.onrender.com/api/auth/google/callback`
+
+A `render.yaml` configuration file is included in the repository root for assisted deployment.
 
 ### Database — MongoDB Atlas
 
@@ -482,8 +582,12 @@ A `render.yaml` configuration file is included in the repository root for one-cl
 
 ## Security
 
-- **JWT Authentication** — All protected routes require a valid Bearer token
-- **Password Hashing** — All passwords are hashed with `bcryptjs` before storage
+- **Google OAuth 2.0** — Users authenticate directly with Google; no passwords are stored
+- **ID Token Verification** — Google's ID token is verified server-side for signature, issuer, audience, and expiration
+- **CSRF Protection** — Cryptographic state parameter stored in HTTP-only cookie during OAuth flow
+- **One-Time Code Exchange** — JWT is never exposed in URLs; delivered via single-use, 60-second TTL authorization codes
+- **JWT Authentication** — All protected routes require a valid Bearer token (2-hour expiry)
+- **User Ownership** — All resources (interviews, resumes, recordings) are scoped to the authenticated user's MongoDB `_id`
 - **CORS Configuration** — Restricted to allowed origins
 - **Helmet** — Sets secure HTTP response headers
 - **File Type Validation** — Resume uploads are validated for allowed MIME types

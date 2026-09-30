@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     email: string;
     name: string;
     role: string;
+    profileImage?: string;
   };
 }
 
@@ -22,12 +23,9 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 
     const decoded = jwt.verify(token, config.jwtSecret) as {
       id: string;
-      email: string;
-      name: string;
-      role: string;
     };
 
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -37,6 +35,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       email: user.email,
       name: user.name,
       role: user.role,
+      profileImage: user.profileImage,
     };
 
     next();
