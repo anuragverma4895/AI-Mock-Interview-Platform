@@ -1,6 +1,7 @@
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 import { Request } from 'express';
 
@@ -66,7 +67,7 @@ export const videoUpload = multer({
 });
 
 
-const driveTempDir = path.join(uploadsDir, 'drive-temp');
+const driveTempDir = path.join(os.tmpdir(), 'prepverse-drive-temp');
 
 const driveVideoStorage = multer.diskStorage({
   destination: (_req: Request, _file: any, cb: any) => {
