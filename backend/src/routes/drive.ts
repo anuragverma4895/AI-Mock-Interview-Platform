@@ -1,7 +1,6 @@
 import { Router, Response } from 'express';
 import fs from 'fs/promises';
 import { auth, AuthRequest } from '../middleware/auth';
-import config from '../config';
 import User from '../models/User';
 import Interview from '../models/Interview';
 import {
@@ -41,11 +40,6 @@ router.get('/status', auth, async (req: AuthRequest, res: Response): Promise<voi
 });
 
 /**
- * GET /api/drive/connect
- * Initiates Google Drive OAuth flow.
- * The user must already be authenticated in the application.
- */
-/**
  * GET /api/drive/disconnect
  * Disconnect Google Drive for the authenticated user.
  */
@@ -68,7 +62,7 @@ router.post('/disconnect', auth, async (req: AuthRequest, res: Response): Promis
 /**
  * POST /api/drive/upload/:interviewId
  * Upload an interview recording to the user's Google Drive.
- * Accepts multipart file upload or base64.
+ * Accepts the final recording as multipart form data.
  */
 router.post('/upload/:interviewId', auth, driveVideoUpload.single('recording'), async (req: AuthRequest, res: Response): Promise<void> => {
   let tempFilePath: string | undefined;
