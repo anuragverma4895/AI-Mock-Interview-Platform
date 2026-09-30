@@ -71,6 +71,8 @@ router.post('/upload/:interviewId', auth, driveVideoUpload.single('recording'), 
   try {
     const { interviewId } = req.params;
     const { duration } = req.body;
+    // Capture the temp path immediately so even ownership/validation failures clean it up.
+    tempFilePath = req.file?.path;
 
     const interview = await Interview.findById(interviewId);
     if (!interview) {
@@ -87,8 +89,6 @@ router.post('/upload/:interviewId', auth, driveVideoUpload.single('recording'), 
       res.status(400).json({ message: 'No recording file provided' });
       return;
     }
-
-    tempFilePath = req.file.path;
 
     // Drive authorization is obtained during Google login. There is deliberately
     // no OAuth redirect from this upload endpoint.
