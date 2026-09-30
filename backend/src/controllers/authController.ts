@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import User from '../models/User';
 import { generateToken, AuthRequest } from '../middleware/auth';
 import config from '../config';
+import { encryptToken } from '../services/googleDriveService';
 
 // ── Google OAuth2 client ──
 const oauth2Client = new OAuth2Client(
@@ -76,9 +77,14 @@ export const googleAuth = (req: Request, res: Response): void => {
       'openid',
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/drive.file',
     ],
+    include_granted_scopes: true,
     state,
-    prompt: 'select_account',
+    access_type: 'offline',
+    // Request consent once for the additional Drive permission; after it is granted,
+    // Google can reuse the grant on subsequent logins without a second Drive flow.
+    prompt: 'consent',
   });
 
   res.redirect(authUrl);
@@ -207,6 +213,25 @@ export const googleCallback = async (req: Request, res: Response): Promise<void>
       if (picture && user.profileImage !== picture) { user.profileImage = picture; updated = true; }
       if (email && user.email !== email.toLowerCase()) { user.email = email.toLowerCase(); updated = true; }
       if (updated) await user.save();
+    }
+
+    // ── Persist Google Drive authorization from the SAME login flow ──
+    // The refresh token is kept server-side and encrypted. The frontend only receives
+    // the boolean connection state through the normal application user payload.
+    const driveScope = 'https://www.googleapis.com/auth/drive.file';
+    const grantedScopes = typeof tokens.scope === 'string' ? tokens.scope.split(' ') : [];
+    const driveAuthorized = grantedScopes.includes(driveScope);
+
+    if (tokens.refresh_token && driveAuthorized) {
+      user.googleDriveConnected = true;
+      user.googleDriveRefreshToken = encryptToken(tokens.refresh_token);
+      user.googleDriveConnectedAt = new Date();
+      await user.save();
+    } else if (!user.googleDriveRefreshToken || !user.googleDriveConnected) {
+      // Login still succeeds if the user declined Drive access. They can log in normally,
+      // but the recording upload feature will report that Drive authorization is required.
+      user.googleDriveConnected = false;
+      await user.save();
     }
 
     // ── Generate the application JWT ──
