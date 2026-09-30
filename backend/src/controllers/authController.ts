@@ -34,12 +34,14 @@ setInterval(() => {
 }, 60_000);
 
 // ── Helpers ──
-const serializeUser = (user: { _id: any; email: string; name: string; role: string; profileImage?: string }) => ({
+const serializeUser = (user: { _id: any; email: string; name: string; role: string; profileImage?: string; googleDriveConnected?: boolean; googleDriveConnectedAt?: Date }) => ({
   id: user._id.toString(),
   email: user.email,
   name: user.name,
   role: user.role,
   profileImage: user.profileImage,
+  googleDriveConnected: user.googleDriveConnected || false,
+  googleDriveConnectedAt: user.googleDriveConnectedAt || null,
 });
 
 /**

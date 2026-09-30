@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { demoAPI } from "../services/api"
+import { demoAPI, driveAPI } from "../services/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,7 +18,9 @@ import {
 
 interface DemoVideo {
   id: string
-  recordingUrl: string
+  recordingUrl: string | null
+  driveFileId: string | null
+  driveUploadStatus: string
   duration: number
   score: number
   questionsCount: number
@@ -31,6 +33,7 @@ export default function DemoPage() {
   const [demos, setDemos] = useState<DemoVideo[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null)
+  const [driveStreamUrl, setDriveStreamUrl] = useState<string | null>(null)
 
   useEffect(() => {
     loadDemos()
@@ -46,6 +49,30 @@ export default function DemoPage() {
       setLoading(false)
     }
   }
+
+  // Fetch Drive stream URL when a Drive-backed demo is selected
+  useEffect(() => {
+    if (!selectedVideo) {
+      setDriveStreamUrl(null)
+      return
+    }
+    if (!selectedVideo.driveFileId || selectedVideo.driveUploadStatus !== 'uploaded') return
+
+    let cancelled = false
+    const fetchStreamUrl = async () => {
+      try {
+        const res = await driveAPI.getPlaybackToken(selectedVideo.id)
+        if (!cancelled) {
+          setDriveStreamUrl(driveAPI.getStreamUrl(selectedVideo.id, res.data.token))
+        }
+      } catch (err) {
+        console.error('Failed to get Drive playback token:', err)
+      }
+    }
+
+    fetchStreamUrl()
+    return () => { cancelled = true }
+  }, [selectedVideo])
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -233,14 +260,25 @@ export default function DemoPage() {
               </div>
 
               <div className="aspect-video">
-                <video
-                  controls
-                  autoPlay
-                  className="w-full h-full"
-                  src={selectedVideo.recordingUrl}
-                >
-                  Your browser does not support the video tag.
-                </video>
+                {(() => {
+                  const videoSrc = selectedVideo.driveFileId && selectedVideo.driveUploadStatus === 'uploaded'
+                    ? driveStreamUrl
+                    : selectedVideo.recordingUrl;
+                  return videoSrc ? (
+                    <video
+                      controls
+                      autoPlay
+                      className="w-full h-full"
+                      src={videoSrc}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                      <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
           </motion.div>

@@ -6,7 +6,7 @@ A full-stack AI-powered interview preparation platform with real-time video reco
 
 - **AI-Powered Interviews** — Resume-aware dynamic question generation using Gemini when `GEMINI_API_KEY` is configured, with OpenAI and local fallbacks
 - **Google OAuth Authentication** — Secure sign-in via Google's OAuth 2.0 / OpenID Connect with server-side identity verification
-- **Video Recording** — Browser camera/microphone capture with `getUserMedia()` and `MediaRecorder`, with the completed WebM recording stored on Cloudinary
+- **Video Recording** — Browser camera/microphone capture with `getUserMedia()` and `MediaRecorder`, with the completed WebM recording stored directly in the user's **Google Drive**.
 - **Live Coding Environment** — Monaco Editor with multi-language support (JavaScript, Python, C++)
 - **Body Language Analysis** — MediaPipe-based face detection tracking eye contact, head pose, and engagement metrics
 - **Resume Parsing** — PDF and DOCX parsing to extract skills, projects, and work experience
@@ -82,17 +82,17 @@ flowchart TD
     subgraph PHASE4 ["PHASE 4: Session Finalization & Video Archiving"]
         direction LR
         P4_FE["WebRTC Compilation<br>Stop MediaRecorder, Build WebM"]:::client
-        P4_Ctrl["demoAPI.uploadRecording()<br>Final WebM Upload"]:::client
-        P4_Cloudinary["cloudinaryService.ts<br>Cloud Storage Driver"]:::server
-        P4_CloudAPI["Cloudinary CDN<br>Secure Cloud Storage"]:::ext
+        P4_Ctrl["driveAPI.uploadRecording()<br>Final WebM Upload"]:::client
+        P4_DriveSvc["googleDriveService.ts<br>OAuth & Resumable Uploads"]:::server
+        P4_DriveAPI["Google Drive API<br>User's Personal Drive"]:::ext
         P4_IntCtrl["interviewController.ts<br>Express Session End"]:::server
-        P4_DB["MongoDB Interview Collection<br>Update Status to Completed"]:::db
+        P4_DB["MongoDB Interview Collection<br>Update Status and Drive Metadata"]:::db
 
         P4_FE -->|"23. Send final WebM Blob"| P4_Ctrl
-        P4_Ctrl -->|"24. Upload final recording"| P4_Cloudinary
-        P4_Cloudinary -->|"25. Secure Archiving"| P4_CloudAPI
-        P4_CloudAPI -->|"26. Return HTTPS URL"| P4_Cloudinary
-        P4_Cloudinary -->|"27. Register Video URL"| P4_IntCtrl
+        P4_Ctrl -->|"24. Upload final recording"| P4_DriveSvc
+        P4_DriveSvc -->|"25. Secure Archiving"| P4_DriveAPI
+        P4_DriveAPI -->|"26. Return Drive File ID"| P4_DriveSvc
+        P4_DriveSvc -->|"27. Register Video Metadata"| P4_IntCtrl
         P4_IntCtrl -->|"28. Mark completed session"| P4_DB
     end
 
@@ -100,18 +100,20 @@ flowchart TD
         direction LR
         P5_FE["InterviewResult.tsx<br>React Dashboard Room"]:::client
         P5_Charts["Recharts Visuals<br>Radar, Trajectory Plots"]:::client
-        P5_Player["Cloudinary Player<br>Synchronized Replay"]:::client
+        P5_Player["VideoPlayer.tsx<br>Authenticated Drive Streaming"]:::client
         P5_Ctrl["interviewController.ts<br>Fetch Session Metrics"]:::server
         P5_DB["MongoDB Collections<br>Retrieve Historical Data"]:::db
-        P5_CloudAPI2["Cloudinary CDN<br>Stream Recorded Session"]:::ext
+        P5_DriveSvc["googleDriveService.ts<br>Playback Token & Stream Proxy"]:::server
+        P5_DriveAPI["Google Drive API<br>Stream Recorded Session"]:::ext
 
         P5_FE -->|"30. Render Dashboard UI"| P5_Charts
         P5_FE -->|"31. Fetch Performance Data"| P5_Ctrl
         P5_Ctrl -->|"32. Query Records"| P5_DB
         P5_DB -->|"33. Return Analytics JSON"| P5_Ctrl
         P5_Ctrl -->|"34. Load Visuals"| P5_FE
-        P5_FE -->|"35. Play Video Replay"| P5_Player
-        P5_CloudAPI2 -->|"36. Stream Playback"| P5_Player
+        P5_FE -->|"35. Request Playback Token"| P5_DriveSvc
+        P5_DriveSvc -->|"36. Proxy Auth Stream"| P5_DriveAPI
+        P5_DriveAPI -->|"37. Pipe Stream"| P5_Player
     end
 
     %% Phase-to-Phase Chronological Flows

@@ -11,6 +11,7 @@ import videoRoutes from './routes/video';
 import analyticsRoutes from './routes/analytics';
 import demoRoutes from './routes/demo';
 import codingRoutes from './routes/coding';
+import driveRoutes from './routes/drive';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
 
@@ -71,6 +72,7 @@ app.use('/api/video', videoRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/coding', codingRoutes);
+app.use('/api/drive', driveRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 

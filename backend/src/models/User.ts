@@ -6,6 +6,10 @@ export interface IUser extends Document {
   name: string;
   role: string;
   profileImage?: string;
+  googleDriveConnected: boolean;
+  googleDriveRefreshToken?: string;  // Stored encrypted (AES-256-GCM)
+  googleDriveFolderId?: string;
+  googleDriveConnectedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +41,20 @@ const userSchema = new Schema<IUser>(
     },
     profileImage: {
       type: String,
+    },
+    googleDriveConnected: {
+      type: Boolean,
+      default: false,
+    },
+    googleDriveRefreshToken: {
+      type: String,
+      select: false,  // Never returned in normal queries
+    },
+    googleDriveFolderId: {
+      type: String,
+    },
+    googleDriveConnectedAt: {
+      type: Date,
     },
   },
   {

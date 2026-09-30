@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { interviewAPI } from '../services/api';
+import { interviewAPI, driveAPI } from '../services/api';
 import { Interview } from '../types';
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ export default function InterviewResult() {
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
   const [recordingLoading, setRecordingLoading] = useState(false);
+  const [driveStreamUrl, setDriveStreamUrl] = useState<string | null>(null);
 
   const loadInterview = useCallback(async () => {
     try {
@@ -40,18 +41,48 @@ export default function InterviewResult() {
     loadInterview();
   }, [loadInterview]);
 
+  // Video URL: check for Drive recording or legacy Cloudinary URL
+  const hasRecording = !!(interview?.recordingUrl || (interview?.driveFileId && interview?.driveUploadStatus === 'uploaded'));
+  const isDriveRecording = !!(interview?.driveFileId && interview?.driveUploadStatus === 'uploaded');
+
+  // Fetch Drive playback token when we have a Drive recording
   useEffect(() => {
-    if (loading || interview?.recordingUrl || interview?.status !== 'completed') return;
+    if (!isDriveRecording || !id) return;
+    let cancelled = false;
+
+    const fetchStreamUrl = async () => {
+      try {
+        const res = await driveAPI.getPlaybackToken(id);
+        if (!cancelled) {
+          setDriveStreamUrl(driveAPI.getStreamUrl(id, res.data.token));
+        }
+      } catch (err) {
+        console.error('Failed to get playback token:', err);
+      }
+    };
+
+    fetchStreamUrl();
+    // Refresh token every 4 minutes (tokens last 5 min)
+    const refreshInterval = setInterval(fetchStreamUrl, 4 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(refreshInterval);
+    };
+  }, [isDriveRecording, id]);
+
+  useEffect(() => {
+    if (loading || hasRecording || interview?.status !== 'completed') return;
 
     setRecordingLoading(true);
     let attempts = 0;
-    const maxAttempts = 30; // Poll for up to 60 seconds
+    const maxAttempts = 30;
     const interval = window.setInterval(async () => {
       attempts += 1;
       try {
         const res = await interviewAPI.getInterview(id!);
         setInterview(res.data);
-        if (res.data.recordingUrl || attempts >= maxAttempts) {
+        const done = !!(res.data.recordingUrl || (res.data.driveFileId && res.data.driveUploadStatus === 'uploaded'));
+        if (done || attempts >= maxAttempts) {
           window.clearInterval(interval);
           setRecordingLoading(false);
         }
@@ -67,22 +98,27 @@ export default function InterviewResult() {
       window.clearInterval(interval);
       setRecordingLoading(false);
     };
-  }, [loading, interview?.recordingUrl, interview?.status, id]);
+  }, [loading, hasRecording, interview?.status, id]);
 
-  // Video URL comes directly from Cloudinary (recordingUrl field)
-  const videoUrl = interview?.recordingUrl || null;
+  // Resolve the video URL (Drive stream or legacy Cloudinary)
+  const videoUrl = isDriveRecording ? driveStreamUrl : (interview?.recordingUrl || null);
   const finalScore = interview?.finalScore;
   const finalScoreLabel = typeof finalScore === 'number' ? finalScore.toFixed(1) : '-';
 
   const downloadVideo = () => {
     if (!videoUrl) return;
-    const link = document.createElement('a');
-    link.href = videoUrl;
-    link.setAttribute('download', `interview-${id}.webm`);
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    if (isDriveRecording) {
+      // For Drive videos, open the stream URL in a new tab for download
+      window.open(videoUrl, '_blank');
+    } else {
+      const link = document.createElement('a');
+      link.href = videoUrl;
+      link.setAttribute('download', `interview-${id}.webm`);
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   };
 
   if (loading) {
@@ -121,22 +157,24 @@ export default function InterviewResult() {
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20 mb-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Interview Results</h2>
-            {videoUrl && (
+          {hasRecording && (
               <div className="flex gap-3">
                 <button
                   onClick={() => navigate('/profile')}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transform hover:scale-105 transition-all duration-300"
                 >
                   <Video className="mr-2 inline h-5 w-5" />
-                  Saved in Profile
+                  {isDriveRecording ? 'Saved in Google Drive' : 'Saved in Profile'}
                 </button>
-                <button
-                  onClick={downloadVideo}
-                  className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
-                >
-                  <Download className="mr-2 inline h-5 w-5" />
-                  Download Video
-                </button>
+                {videoUrl && (
+                  <button
+                    onClick={downloadVideo}
+                    className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-green-700 shadow-lg shadow-emerald-500/25 transform hover:scale-105 transition-all duration-300"
+                  >
+                    <Download className="mr-2 inline h-5 w-5" />
+                    Download Video
+                  </button>
+                )}
               </div>
             )}
           </div>

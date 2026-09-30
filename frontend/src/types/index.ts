@@ -4,6 +4,8 @@ export interface User {
   name: string;
   role: string;
   profileImage?: string;
+  googleDriveConnected?: boolean;
+  googleDriveConnectedAt?: string;
 }
 
 export interface Resume {
@@ -60,6 +62,11 @@ export interface Interview {
   recordingPublicId?: string;
   recordingDuration?: number;
   isPublished?: boolean;
+  // Google Drive fields
+  driveFileId?: string;
+  driveFileName?: string;
+  driveUploadStatus?: 'not_requested' | 'pending' | 'uploading' | 'uploaded' | 'failed' | 'skipped';
+  driveUploadedAt?: string;
   bodyLanguageData?: {
     eyeContact: number;
     faceOrientation: number;

@@ -10,6 +10,7 @@ export interface AuthRequest extends Request {
     name: string;
     role: string;
     profileImage?: string;
+    googleDriveConnected?: boolean;
   };
 }
 
@@ -36,6 +37,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       name: user.name,
       role: user.role,
       profileImage: user.profileImage,
+      googleDriveConnected: user.googleDriveConnected,
     };
 
     next();

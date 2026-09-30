@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { interviewAPI, demoAPI } from '../services/api';
+import { interviewAPI, driveAPI } from '../services/api';
 import { Interview as InterviewData, AnswerEvaluation } from '../types';
 import { useBodyLanguageAnalysis } from '../hooks/useBodyLanguageAnalysis';
 import { Button } from "@/components/ui/button"
@@ -48,10 +48,15 @@ export default function Interview() {
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [uploadingRecording, setUploadingRecording] = useState(false);
-  const [recordingSaveError, setRecordingSaveError] = useState(false);
-  const [recordingSaveErrorMessage, setRecordingSaveErrorMessage] = useState('');
   const [endingInterview, setEndingInterview] = useState(false);
+  // Google Drive upload modal state
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveUploading, setDriveUploading] = useState(false);
+  const [driveUploadDone, setDriveUploadDone] = useState(false);
+  const [driveError, setDriveError] = useState('');
+  const pendingRecordingRef = useRef<Blob | null>(null);
+  const pendingRecordingTimeRef = useRef(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -426,8 +431,6 @@ export default function Interview() {
 
     endingInterviewRef.current = true;
     setEndingInterview(true);
-    setRecordingSaveError(false);
-    setRecordingSaveErrorMessage('');
 
     const finalRecordingTime = recordingTimeRef.current;
     const recordingBlob = await stopFullRecording();
@@ -443,35 +446,82 @@ export default function Interview() {
       const res = await interviewAPI.endInterview(id!, undefined, bodyLanguageData);
       setClosingMessage(res.data.closingMessage);
 
-      // Auto-upload recording to Cloudinary
+      // Store the recording blob for the Drive upload modal
       if (recordingBlob && recordingBlob.size > 0) {
-        setUploadingRecording(true);
-        try {
-          console.log(`Uploading recording (${(recordingBlob.size / 1024 / 1024).toFixed(2)} MB)...`);
-          await demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime);
-          console.log('Recording uploaded successfully!');
-        } catch (uploadErr) {
-          console.error('Recording upload failed:', uploadErr);
-          const errorMessage = (uploadErr as any)?.response?.data?.message
-            || (uploadErr as any)?.response?.data?.error
-            || (uploadErr as any)?.message
-            || 'Recording upload failed';
-          setRecordingSaveErrorMessage(errorMessage);
-          setRecordingSaveError(true);
-        } finally {
-          setUploadingRecording(false);
-        }
-      } else {
-        setRecordingSaveErrorMessage('No recording data was captured by the browser.');
-        setRecordingSaveError(true);
-      }
+        pendingRecordingRef.current = recordingBlob;
+        pendingRecordingTimeRef.current = finalRecordingTime;
 
-      // Redirect only AFTER upload completes (success or failure)
-      setTimeout(() => navigate(`/interview-result/${id}`), 2000);
+        // Check if Drive is already connected
+        try {
+          const statusRes = await driveAPI.getStatus();
+          setDriveConnected(statusRes.data.connected);
+        } catch {
+          setDriveConnected(false);
+        }
+
+        // Show the Drive upload confirmation modal
+        setShowDriveModal(true);
+      } else {
+        // No recording — go to results directly
+        setTimeout(() => navigate(`/interview-result/${id}`), 2000);
+      }
     } catch (error) {
       console.error('Error ending interview:', error);
       setTimeout(() => navigate(`/interview-result/${id}`), 1000);
     }
+  };
+
+  /** Handle "Upload to Google Drive" button */
+  const handleDriveUpload = async () => {
+    if (!pendingRecordingRef.current || !id) return;
+
+    setDriveUploading(true);
+    setDriveError('');
+
+    try {
+      console.log(`Uploading recording to Google Drive (${(pendingRecordingRef.current.size / 1024 / 1024).toFixed(2)} MB)...`);
+      await driveAPI.uploadRecording(id, pendingRecordingRef.current, pendingRecordingTimeRef.current);
+      console.log('Recording uploaded to Google Drive!');
+      setDriveUploadDone(true);
+      pendingRecordingRef.current = null;
+      setTimeout(() => navigate(`/interview-result/${id}`), 2000);
+    } catch (uploadErr: any) {
+      console.error('Drive upload failed:', uploadErr);
+      const msg = uploadErr?.response?.data?.message || uploadErr?.message || 'Upload failed';
+      const code = uploadErr?.response?.data?.code;
+      if (code === 'DRIVE_NOT_CONNECTED') {
+        setDriveConnected(false);
+        setDriveError('Please connect Google Drive first.');
+      } else {
+        setDriveError(msg);
+      }
+    } finally {
+      setDriveUploading(false);
+    }
+  };
+
+  /** Handle "Connect Google Drive" button */
+  const handleConnectDrive = async () => {
+    try {
+      const res = await driveAPI.getConnectUrl();
+      // Open Drive authorization in the same window
+      window.location.href = res.data.authUrl;
+    } catch (err) {
+      console.error('Failed to get Drive connect URL:', err);
+      setDriveError('Failed to initiate Drive connection.');
+    }
+  };
+
+  /** Handle "Skip" button */
+  const handleSkipUpload = async () => {
+    pendingRecordingRef.current = null;
+    try {
+      await driveAPI.skipUpload(id!);
+    } catch {
+      // Non-critical
+    }
+    setShowDriveModal(false);
+    navigate(`/interview-result/${id}`);
   };
 
   const formatTime = (seconds: number) => {
@@ -487,38 +537,91 @@ export default function Interview() {
         animate={{ opacity: 1 }}
         className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 flex items-center justify-center p-4"
       >
-        <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-2xl max-w-lg w-full">
-          <CardContent className="p-12 text-center">
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-8xl mb-6"
-            >
-              <Award className="mx-auto h-20 w-20 text-white" />
-            </motion.div>
-            <h2 className="text-3xl font-bold mb-6 text-white">Interview Complete!</h2>
-            <p className="text-white/90 text-lg leading-relaxed mb-6">{closingMessage}</p>
-            {uploadingRecording ? (
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-white/70 font-medium">Saving your recording...</p>
-              </div>
-            ) : recordingSaveError ? (
-              <div className="text-center">
-                <p className="text-amber-200 font-medium mb-2">Interview completed, but recording could not be saved.</p>
-                {recordingSaveErrorMessage && (
-                  <p className="mb-2 text-sm text-white/70">{recordingSaveErrorMessage}</p>
-                )}
-                <p className="text-white/70 font-medium">Redirecting to results...</p>
-              </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-emerald-300 font-medium mb-2">Recording saved to your profile.</p>
-                <p className="text-white/70 font-medium">Redirecting to results...</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Google Drive Upload Modal */}
+        {showDriveModal && (
+          <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-2xl max-w-lg w-full">
+            <CardContent className="p-10 text-center">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="mb-6"
+              >
+                <Award className="mx-auto h-16 w-16 text-white" />
+              </motion.div>
+              <h2 className="text-3xl font-bold mb-4 text-white">Interview Complete!</h2>
+              <p className="text-white/90 text-lg leading-relaxed mb-6">{closingMessage}</p>
+
+              {driveUploadDone ? (
+                <div className="text-center">
+                  <CheckCircle className="mx-auto h-12 w-12 text-emerald-300 mb-3" />
+                  <p className="text-emerald-300 font-semibold mb-2">Recording uploaded to Google Drive!</p>
+                  <p className="text-white/70">Redirecting to results...</p>
+                </div>
+              ) : driveUploading ? (
+                <div className="text-center">
+                  <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-white/80 font-semibold">Uploading to Google Drive...</p>
+                  <p className="text-white/60 text-sm mt-1">This may take a moment for longer recordings.</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-white/80 font-medium mb-6">
+                    Would you like to save your interview recording to your Google Drive?
+                  </p>
+
+                  {driveError && (
+                    <div className="bg-red-500/20 border border-red-400/30 rounded-xl p-3 mb-4">
+                      <p className="text-red-200 text-sm">{driveError}</p>
+                    </div>
+                  )}
+
+                  {driveConnected ? (
+                    <button
+                      onClick={handleDriveUpload}
+                      className="w-full mb-3 px-6 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H1.05c0 1.6.4 3.2 1.2 4.6l4.35 9.25z" fill="#0066DA"/><path d="M43.65 25.05L29.9 1.25c-1.35.8-2.5 1.9-3.3 3.3L1.2 52.9c-.8 1.4-1.2 2.95-1.2 4.6h27.45l16.2-32.45z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.6H59.85L73.55 76.8z" fill="#EA4335"/><path d="M43.65 25.05L57.4 1.25C56.05.45 54.5 0 52.85 0H34.4c-1.6 0-3.2.5-4.5 1.25l13.75 23.8z" fill="#00832D"/><path d="M59.85 52.9H27.45l-13.75 23.8c1.35.8 2.9 1.3 4.5 1.3h50.5c1.6 0 3.2-.5 4.55-1.3L59.85 52.9z" fill="#2684FC"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25.05l16.2 27.85H87.3c0-1.6-.4-3.2-1.2-4.6L73.4 26.5z" fill="#FFBA00"/></svg>
+                      Upload to Google Drive
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleConnectDrive}
+                      className="w-full mb-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H1.05c0 1.6.4 3.2 1.2 4.6l4.35 9.25z" fill="#0066DA"/><path d="M43.65 25.05L29.9 1.25c-1.35.8-2.5 1.9-3.3 3.3L1.2 52.9c-.8 1.4-1.2 2.95-1.2 4.6h27.45l16.2-32.45z" fill="#00AC47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.6H59.85L73.55 76.8z" fill="#EA4335"/><path d="M43.65 25.05L57.4 1.25C56.05.45 54.5 0 52.85 0H34.4c-1.6 0-3.2.5-4.5 1.25l13.75 23.8z" fill="#00832D"/><path d="M59.85 52.9H27.45l-13.75 23.8c1.35.8 2.9 1.3 4.5 1.3h50.5c1.6 0 3.2-.5 4.55-1.3L59.85 52.9z" fill="#2684FC"/><path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25.05l16.2 27.85H87.3c0-1.6-.4-3.2-1.2-4.6L73.4 26.5z" fill="#FFBA00"/></svg>
+                      Connect Google Drive
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleSkipUpload}
+                    className="w-full px-6 py-3 bg-white/10 text-white/80 font-medium rounded-xl hover:bg-white/20 transition-all duration-300"
+                  >
+                    Skip
+                  </button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No recording / ending state */}
+        {!showDriveModal && (
+          <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-2xl max-w-lg w-full">
+            <CardContent className="p-12 text-center">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="text-8xl mb-6"
+              >
+                <Award className="mx-auto h-20 w-20 text-white" />
+              </motion.div>
+              <h2 className="text-3xl font-bold mb-6 text-white">Interview Complete!</h2>
+              <p className="text-white/90 text-lg leading-relaxed mb-6">{closingMessage}</p>
+              <p className="text-white/70 font-medium">Redirecting to results...</p>
+            </CardContent>
+          </Card>
+        )}
       </motion.div>
     );
   }

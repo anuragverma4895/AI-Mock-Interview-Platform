@@ -55,6 +55,13 @@ export interface IInterview extends Document {
   recordingPublicId?: string;
   recordingDuration?: number;
   isPublished?: boolean;
+  // Google Drive fields
+  driveFileId?: string;
+  driveFileName?: string;
+  driveFolderId?: string;
+  driveUploadStatus: 'not_requested' | 'pending' | 'uploading' | 'uploaded' | 'failed' | 'skipped';
+  driveUploadError?: string;
+  driveUploadedAt?: Date;
   bodyLanguageData?: {
     eyeContact: number;
     faceOrientation: number;
@@ -161,6 +168,17 @@ const interviewSchema = new Schema<IInterview>(
     recordingPublicId: String,
     recordingDuration: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: false },
+    // Google Drive fields
+    driveFileId: String,
+    driveFileName: String,
+    driveFolderId: String,
+    driveUploadStatus: {
+      type: String,
+      enum: ['not_requested', 'pending', 'uploading', 'uploaded', 'failed', 'skipped'],
+      default: 'not_requested',
+    },
+    driveUploadError: String,
+    driveUploadedAt: Date,
     bodyLanguageData: {
       eyeContact: Number,
       faceOrientation: Number,
@@ -183,14 +201,17 @@ const interviewSchema = new Schema<IInterview>(
 // Add compound index for userId and status
 interviewSchema.index({ userId: 1, status: 1 });
 
-// Static method to find user's recordings
+// Static method to find user's recordings (supports both Cloudinary legacy and Google Drive)
 interviewSchema.statics.findMyRecordings = function (userId: string) {
   return this.find({
     userId,
     status: 'completed',
-    recordingUrl: { $exists: true, $ne: '' },
+    $or: [
+      { recordingUrl: { $exists: true, $ne: '' } },
+      { driveFileId: { $exists: true, $ne: '' }, driveUploadStatus: 'uploaded' },
+    ],
   })
-    .select('recordingUrl recordingDuration isPublished finalScore questions completedAt createdAt')
+    .select('recordingUrl recordingDuration isPublished finalScore questions completedAt createdAt driveFileId driveFileName driveUploadStatus')
     .sort({ completedAt: -1 });
 };
 

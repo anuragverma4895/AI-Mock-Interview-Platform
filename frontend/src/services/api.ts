@@ -105,29 +105,53 @@ export const analyticsAPI = {
 };
 
 export const demoAPI = {
-  uploadRecording: (interviewId: string, video: Blob | string, duration: number) => {
-    if (typeof video === 'string') {
-      return api.post(`/demo/upload-recording/${interviewId}`, { videoBase64: video, duration }, {
-        timeout: 600000,
-      });
-    }
-
-    const formData = new FormData();
-    // Re-wrap the blob with a clean video/webm MIME type
-    // (MediaRecorder may produce types like "video/webm;codecs=vp9,opus" which confuse multer)
-    const cleanBlob = new Blob([video], { type: 'video/webm' });
-    formData.append('recording', cleanBlob, `interview-${interviewId}.webm`);
-    formData.append('duration', String(duration));
-
-    return api.post(`/demo/upload-recording/${interviewId}`, formData, {
-      timeout: 600000,
-    });
-  },
   publish: (interviewId: string) => api.post(`/demo/publish/${interviewId}`),
   unpublish: (interviewId: string) => api.post(`/demo/unpublish/${interviewId}`),
   deleteRecording: (interviewId: string) => api.delete(`/demo/recording/${interviewId}`),
   getMyRecordings: () => api.get('/demo/my-recordings'),
   getPublicDemos: () => api.get('/demo/public'),
+};
+
+export const driveAPI = {
+  /** Check if the user has connected Google Drive */
+  getStatus: () => api.get('/drive/status'),
+
+  /** Get the Drive OAuth URL (returns { authUrl }) */
+  getConnectUrl: () => api.get('/drive/connect'),
+
+  /** Disconnect Google Drive */
+  disconnect: () => api.post('/drive/disconnect'),
+
+  /** Upload a recording to the user's Google Drive */
+  uploadRecording: (interviewId: string, video: Blob | string, duration: number) => {
+    if (typeof video === 'string') {
+      return api.post(`/drive/upload/${interviewId}`, { videoBase64: video, duration }, {
+        timeout: 600000,
+      });
+    }
+
+    const formData = new FormData();
+    const cleanBlob = new Blob([video], { type: 'video/webm' });
+    formData.append('recording', cleanBlob, `interview-${interviewId}.webm`);
+    formData.append('duration', String(duration));
+
+    return api.post(`/drive/upload/${interviewId}`, formData, {
+      timeout: 600000,
+    });
+  },
+
+  /** Mark interview as skipped (user chose not to upload) */
+  skipUpload: (interviewId: string) => api.post(`/drive/skip/${interviewId}`),
+
+  /** Get a short-lived playback token for video streaming */
+  getPlaybackToken: (interviewId: string) =>
+    api.get<{ token: string; expiresIn: number }>(`/drive/playback-token/${interviewId}`),
+
+  /** Build the stream URL for the video player (does NOT go through Axios) */
+  getStreamUrl: (interviewId: string, token: string) => {
+    const baseUrl = import.meta.env.VITE_BACKEND_URL || '/api';
+    return `${baseUrl}/drive/stream/${interviewId}?token=${encodeURIComponent(token)}`;
+  },
 };
 
 export interface CodingTestCase {

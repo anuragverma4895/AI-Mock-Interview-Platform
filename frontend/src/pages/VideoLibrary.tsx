@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { interviewAPI } from '../services/api';
+import { interviewAPI, driveAPI } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,8 @@ interface InterviewWithVideo {
   completedAt?: string;
   videoPath?: string;
   recordingUrl?: string;
+  driveFileId?: string;
+  driveUploadStatus?: string;
   questions?: any[];
 }
 
@@ -30,10 +32,41 @@ export default function VideoLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<InterviewWithVideo | null>(null);
+  const [driveStreamUrl, setDriveStreamUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadInterviews();
   }, []);
+
+  // Fetch Drive stream URL when a Drive-backed video is selected
+  useEffect(() => {
+    if (!selectedVideo) {
+      setDriveStreamUrl(null);
+      return;
+    }
+    if (!selectedVideo.driveFileId || selectedVideo.driveUploadStatus !== 'uploaded') return;
+
+    let cancelled = false;
+    const fetchStreamUrl = async () => {
+      try {
+        const interviewId = selectedVideo._id || selectedVideo.id;
+        if (!interviewId) return;
+        const res = await driveAPI.getPlaybackToken(interviewId);
+        if (!cancelled) {
+          setDriveStreamUrl(driveAPI.getStreamUrl(interviewId, res.data.token));
+        }
+      } catch (err) {
+        console.error('Failed to get Drive playback token:', err);
+      }
+    };
+
+    fetchStreamUrl();
+    const refreshInterval = setInterval(fetchStreamUrl, 4 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(refreshInterval);
+    };
+  }, [selectedVideo]);
 
   const loadInterviews = async () => {
     try {
@@ -42,7 +75,10 @@ export default function VideoLibrary() {
       const res = await interviewAPI.getUserInterviews(user?.id || '');
       // Filter only completed interviews with videos
       const completedWithVideos = res.data.filter((interview: any) =>
-        interview.status === 'completed' && (interview.recordingUrl || interview.videoPath)
+        interview.status === 'completed' && (
+          interview.recordingUrl || interview.videoPath ||
+          (interview.driveFileId && interview.driveUploadStatus === 'uploaded')
+        )
       );
       setInterviews(completedWithVideos);
     } catch (err: any) {
@@ -112,7 +148,7 @@ export default function VideoLibrary() {
             animate={{ opacity: 1, y: 0 }}
           >
             <VideoPlayer
-              videoUrl={selectedVideo.recordingUrl || selectedVideo.videoPath || ''}
+              videoUrl={driveStreamUrl || selectedVideo.recordingUrl || selectedVideo.videoPath || ''}
               title={`${selectedVideo.jobRole || selectedVideo.questions?.[0]?.category || 'Interview'} Session`}
             />
           </motion.div>
