@@ -3,18 +3,17 @@ node_modules/
 dist/
 build/
 *.log
+*.tsbuildinfo
 frontend/node_modules/
 backend/node_modules/
 frontend/dist/
 backend/dist/
 
-# Generated docs and local analysis artifacts
-ANIMATION_GUIDE.md
-IMPLEMENTATION_CHECKLIST.md
-PROJECT_SUMMARY.md
-QUICK_START.md
-START_HERE.md
-UI_ENHANCEMENTS.md
-VISUAL_GUIDE.md
+# Uploads directory - preserve folder structure but ignore uploaded user files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Editor and local caches
+.kilo/
 .code-review-graph/
 .dist/
