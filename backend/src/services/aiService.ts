@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import retry from 'async-retry';
+import { areQuestionsSimilar, buildBoundedQuestionContext, extractPreviousQuestions, selectUnusedQuestion } from './questionContext';
 
 // Initialize AI clients
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -58,15 +59,8 @@ const QUESTION_BANK = {
 
 const selectQuestion = (category: string, difficulty: string, conversationHistory: any[] = []) => {
   const questions = QUESTION_BANK[category as keyof typeof QUESTION_BANK] || QUESTION_BANK.DSA;
-  const usedQuestions = new Set(
-    conversationHistory
-      .map(item => String(item.content || item.question || '').trim().toLowerCase())
-      .filter(Boolean)
-  );
-
-  const matchingDifficulty = questions.filter(q => q.difficulty === difficulty);
-  const candidates = matchingDifficulty.length > 0 ? matchingDifficulty : questions;
-  return candidates.find(q => !usedQuestions.has(q.question.toLowerCase())) || candidates[0];
+  const previousQuestions = extractPreviousQuestions(conversationHistory);
+  return selectUnusedQuestion(questions, difficulty, previousQuestions) || questions[0];
 };
 
 const clampScore = (score: unknown): number => {
@@ -297,11 +291,12 @@ export const generateInterviewQuestion = async (
   }
 
   try {
-    // Build the previously-asked questions list to avoid repetition
-    const previousQuestions = conversationHistory
-      .filter(h => h.role === 'assistant' || h.question)
-      .map(h => h.content || h.question)
-      .filter(Boolean);
+    // Preserve full history for duplicate checks; send only bounded context to Gemini.
+    const { previousQuestions, recentQuestions, earlierTopics } = buildBoundedQuestionContext(conversationHistory);
+    const alreadyAskedContext = [
+      earlierTopics.length ? 'EARLIER TOPICS COVERED (avoid repeating): ' + earlierTopics.join(', ') : '',
+      recentQuestions.length ? 'RECENT QUESTIONS (DO NOT REPEAT):\\n' + recentQuestions.map((q, i) => (i + 1) + '. ' + q).join('\\n') : '',
+    ].filter(Boolean).join('\\n\\n');
 
     const prompt = `You are conducting a real mock interview for a ${jobRole || 'software developer'} position.
 
@@ -313,7 +308,7 @@ ${resumeSkills?.length ? `CANDIDATE'S SKILLS (from resume): ${resumeSkills.join(
 ${projectDescriptions?.length ? `CANDIDATE'S PROJECTS:\n${projectDescriptions.map(p => `- ${p.name}: ${p.description}`).join('\n')}` : projectNames?.length ? `CANDIDATE'S PROJECTS: ${projectNames.join(', ')}` : ''}
 ${experience?.length ? `CANDIDATE'S EXPERIENCE:\n${experience.map(e => `- ${e.role} at ${e.company} (${e.duration})`).join('\n')}` : ''}
 
-${previousQuestions.length > 0 ? `ALREADY ASKED (DO NOT REPEAT):\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}` : ''}
+${alreadyAskedContext}
 
 INSTRUCTIONS:
 - Generate ONE ${difficulty}-level interview question for the ${category} category
@@ -331,26 +326,38 @@ Respond in this EXACT JSON format:
   "idealAnswer": "A brief 2-3 sentence ideal answer outline"
 }`;
 
-    const response = await getAICompletion(prompt, 'You are Alex, a senior technical interviewer. Output ONLY valid JSON, no markdown, no explanation.');
+    // Retry a small number of times when Gemini repeats an earlier question.
+    // The entire history stays server-side for checking; it is not sent to Gemini.
+    const rejectedQuestions: string[] = [];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const retryPrompt = rejectedQuestions.length
+        ? prompt + '\\n\\nIMPORTANT: These candidate questions were duplicates. Ask something different:\\n' + rejectedQuestions.join('\\n')
+        : prompt;
+      const response = await getAICompletion(retryPrompt, 'You are Alex, a senior technical interviewer. Output ONLY valid JSON, no markdown, no explanation.');
 
-    // Parse JSON from response
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const data = JSON.parse(jsonMatch[0]);
-      return {
-        question: data.question || 'Tell me about your technical experience.',
-        category,
-        difficulty,
-        idealAnswer: data.idealAnswer || 'A comprehensive answer with practical examples.'
-      };
+      let question = response.trim().replace(/^["']|["']$/g, '');
+      let idealAnswer = 'A comprehensive answer with practical examples.';
+      const jsonMatch = response.match(/\\{[\\s\\S]*\\}/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        question = typeof data.question === 'string' ? data.question.trim() : '';
+        idealAnswer = typeof data.idealAnswer === 'string' && data.idealAnswer.trim()
+          ? data.idealAnswer : idealAnswer;
+      }
+
+      if (question && !previousQuestions.some(previous => areQuestionsSimilar(previous, question))) {
+        return { question, category, difficulty, idealAnswer };
+      }
+      if (question) rejectedQuestions.push(question);
     }
 
-    // If not JSON, use the raw text as the question
+    // If AI cannot produce a unique question, prefer an unused local bank question.
+    const fallback = selectQuestion(category, difficulty, conversationHistory);
     return {
-      question: response.trim().replace(/^["']|["']$/g, ''),
+      question: fallback.question,
       category,
-      difficulty,
-      idealAnswer: 'A comprehensive answer with practical examples.'
+      difficulty: fallback.difficulty,
+      idealAnswer: 'A comprehensive answer covering key concepts and practical examples.'
     };
   } catch (error) {
     console.error('Question generation failed, using fallback:', error);

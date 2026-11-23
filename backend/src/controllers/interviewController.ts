@@ -11,7 +11,12 @@ import {
 } from '../services/aiService';
 import { AuthRequest } from '../middleware/auth';
 
-const QUESTION_CATEGORIES = ['DSA', 'SystemDesign', 'DB', 'HR', 'Project'];
+const CATEGORIES_BY_TYPE: Record<string, string[]> = {
+  technical: ['DSA', 'SystemDesign', 'DB', 'Project', 'DSA'],
+  hr: ['HR', 'Project', 'HR', 'Project', 'HR'],
+  combine: ['DSA', 'SystemDesign', 'DB', 'HR', 'Project'],
+};
+const getCategoriesForType = (type: string) => CATEGORIES_BY_TYPE[type] || CATEGORIES_BY_TYPE.technical;
 const DIFFICULTY_SEQUENCE = ['easy', 'medium', 'medium', 'hard', 'medium', 'hard', 'medium', 'hard', 'medium', 'hard'];
 const MAX_QUESTIONS = 10;
 
@@ -31,24 +36,19 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
       }
     }
 
-    // Determine categories based on interview type
-    let categories = QUESTION_CATEGORIES;
-    if (interviewType === 'technical') {
-      categories = ['DSA', 'SystemDesign', 'DB', 'Project', 'DSA'];
-    } else if (interviewType === 'hr') {
-      categories = ['HR', 'Project', 'HR', 'Project', 'HR'];
-    }
-
-    const firstCategory = categories[0];
-    const firstDifficulty = difficulty || 'easy';
+    const selectedInterviewType = interviewType === 'hr' || interviewType === 'combine' ? interviewType : 'technical';
+    const selectedDifficulty = ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy';
+    const selectedJobRole = typeof jobRole === 'string' && jobRole.trim() ? jobRole.trim() : undefined;
+    const firstCategory = getCategoriesForType(selectedInterviewType)[0];
+    const firstDifficulty = selectedDifficulty;
     const firstQuestion = await generateInterviewQuestion(
       firstCategory,
       firstDifficulty,
       [],
       resumeData?.skills,
       resumeData?.projects?.map(p => p.name),
-      jobRole,
-      interviewType,
+      selectedJobRole,
+      selectedInterviewType,
       resumeData?.experience,
       resumeData?.projects
     );
@@ -56,6 +56,9 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     const interview = new Interview({
       userId: req.user?.id,
       resumeId: resumeId || undefined,
+      interviewType: selectedInterviewType,
+      jobRole: selectedJobRole,
+      preferredDifficulty: selectedDifficulty,
       status: 'in_progress',
       questions: [{
         question: firstQuestion.question,
@@ -126,14 +129,12 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     }
 
     const conversationHistory = interview.transcript.map(t => ({
-      role: t.answer ? 'user' : 'assistant',
-      content: t.answer || t.question,
       question: t.question,
-      timestamp: new Date(t.timestamp)
     }));
 
-    const category = QUESTION_CATEGORIES[(interview.currentQuestionIndex + 1) % QUESTION_CATEGORIES.length];
-    const difficulty = DIFFICULTY_SEQUENCE[interview.currentQuestionIndex + 1] || 'medium';
+    const categories = getCategoriesForType(interview.interviewType);
+    const category = categories[(interview.currentQuestionIndex + 1) % categories.length];
+    const difficulty = interview.preferredDifficulty || DIFFICULTY_SEQUENCE[interview.currentQuestionIndex + 1] || 'medium';
 
     const newQuestion = await generateInterviewQuestion(
       category,
@@ -141,8 +142,8 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       conversationHistory,
       resumeData?.skills,
       resumeData?.projects?.map(p => p.name),
-      undefined, // jobRole (not stored yet, could be added)
-      undefined, // interviewType
+      interview.jobRole,
+      interview.interviewType,
       resumeData?.experience,
       resumeData?.projects
     );

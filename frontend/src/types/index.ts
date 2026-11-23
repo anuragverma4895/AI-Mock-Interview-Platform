@@ -33,6 +33,8 @@ export interface Interview {
   userId: string;
   resumeId?: string;
   interviewType: 'technical' | 'hr' | 'combine' | 'coding';
+  jobRole?: string;
+  preferredDifficulty?: 'easy' | 'medium' | 'hard';
   status: 'pending' | 'in_progress' | 'completed';
   questions: InterviewQuestion[];
   currentQuestionIndex: number;

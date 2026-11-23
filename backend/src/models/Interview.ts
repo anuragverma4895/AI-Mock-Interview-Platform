@@ -38,6 +38,8 @@ export interface IInterview extends Document {
   userId: mongoose.Types.ObjectId;
   resumeId?: mongoose.Types.ObjectId;
   interviewType: 'technical' | 'hr' | 'combine' | 'coding';
+  jobRole?: string;
+  preferredDifficulty?: 'easy' | 'medium' | 'hard';
   status: 'pending' | 'in_progress' | 'completed';
   questions: IInterviewQuestion[];
   currentQuestionIndex: number;
@@ -84,6 +86,11 @@ const interviewSchema = new Schema<IInterview>(
       enum: ['technical', 'hr', 'combine', 'coding'],
       default: 'technical',
       index: true,
+    },
+    jobRole: { type: String, trim: true },
+    preferredDifficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard'],
     },
     status: {
       type: String,
