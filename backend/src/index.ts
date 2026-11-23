@@ -69,6 +69,8 @@ app.use('/api/resume/analyze', rateLimit(20, 60 * 60 * 1000));
 app.use('/api/interview/next-question', rateLimit(60, 60 * 60 * 1000));
 app.use('/api/interview/submit-answer', rateLimit(70, 60 * 60 * 1000));
 app.use('/api/coding/generate', rateLimit(15, 60 * 60 * 1000));
+app.use('/api/coding/run', rateLimit(45, 60 * 60 * 1000));
+app.use('/api/coding/submit', rateLimit(30, 60 * 60 * 1000));
 app.use('/api/demo/upload-recording', rateLimit(12, 60 * 60 * 1000));
 
 // ---- API Routes ----
