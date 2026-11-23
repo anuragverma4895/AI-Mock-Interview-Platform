@@ -448,37 +448,23 @@ export default function Interview() {
     speechSynthesis.cancel();
 
     try {
-      const res = await interviewAPI.endInterview(id!, undefined, bodyLanguageData);
+      const recordingPending = Boolean(recordingBlob && recordingBlob.size > 0);
+      const res = await interviewAPI.endInterview(id!, undefined, bodyLanguageData, recordingPending);
       setClosingMessage(res.data.closingMessage);
 
-      // Auto-upload recording to Cloudinary
+      // Recording continues uploading while the results page is displayed.
+      // Users can see its pending/ready/failed status in the results page.
       if (recordingBlob && recordingBlob.size > 0) {
-        setUploadingRecording(true);
-        try {
-          console.log(`Uploading recording (${(recordingBlob.size / 1024 / 1024).toFixed(2)} MB)...`);
-          await demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime);
-          console.log('Recording uploaded successfully!');
-        } catch (uploadErr) {
-          console.error('Recording upload failed:', uploadErr);
-          const errorMessage = (uploadErr as any)?.response?.data?.message
-            || (uploadErr as any)?.response?.data?.error
-            || (uploadErr as any)?.message
-            || 'Recording upload failed';
-          setRecordingSaveErrorMessage(errorMessage);
-          setRecordingSaveError(true);
-        } finally {
-          setUploadingRecording(false);
-        }
-      } else {
-        setRecordingSaveErrorMessage('No recording data was captured by the browser.');
-        setRecordingSaveError(true);
+        void demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime).catch(err => {
+          console.error('Recording upload failed:', err);
+        });
       }
-
-      // Redirect only AFTER upload completes (success or failure)
-      setTimeout(() => navigate(`/interview-result/${id}`), 2000);
+      navigate(`/interview-result/${id}`, { replace: true });
     } catch (error) {
       console.error('Error ending interview:', error);
-      setTimeout(() => navigate(`/interview-result/${id}`), 1000);
+      setEndingInterview(false);
+      endingInterviewRef.current = false;
+      setSubmissionError('Unable to finish the interview. Please try again.');
     }
   };
 

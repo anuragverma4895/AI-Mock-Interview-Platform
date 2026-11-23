@@ -74,8 +74,10 @@ export const interviewAPI = {
     api.post(`/interview/submit-answer/${interviewId}`, { answer }),
   askFollowUp: (interviewId: string, answer: string) =>
     api.post(`/interview/follow-up/${interviewId}`, { answer }),
-  endInterview: (interviewId: string, videoPath?: string, bodyLanguageData?: any) =>
-    api.post(`/interview/end/${interviewId}`, { videoPath, bodyLanguageData }),
+  endInterview: (interviewId: string, videoPath?: string, bodyLanguageData?: any, recordingPending = false) =>
+    api.post(`/interview/end/${interviewId}`, { bodyLanguageData, recordingPending }),
+  evaluateInterview: (interviewId: string) =>
+    api.post(`/interview/evaluate/${interviewId}`),
   getInterview: (id: string) => api.get(`/interview/${id}`),
   getUserInterviews: (userId: string) => api.get(`/interview/user/${userId}`),
   getTranscript: (id: string) => api.get(`/interview/transcript/${id}`),

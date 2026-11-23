@@ -47,6 +47,7 @@ router.post('/upload-recording/:interviewId', auth, videoUpload.single('recordin
     const result = await uploadVideoToCloudinary(videoBuffer, publicId);
 
     interview.recordingUrl = result.url;
+    interview.recordingStatus = 'ready';
     interview.recordingPublicId = result.publicId;
     interview.recordingDuration = Number(duration) || result.duration;
     await interview.save();
@@ -60,7 +61,13 @@ router.post('/upload-recording/:interviewId', auth, videoUpload.single('recordin
     });
   } catch (error) {
     console.error('Error uploading recording:', error);
-    res.status(500).json({ message: 'Error uploading recording', error: String(error) });
+    try {
+      await Interview.updateOne(
+        { _id: req.params.interviewId, userId: req.user?.id },
+        { $set: { recordingStatus: 'failed' } }
+      );
+    } catch (updateError) { console.error('Unable to save recording failure status:', updateError); }
+    res.status(500).json({ message: 'Error uploading recording' });
   }
 });
 

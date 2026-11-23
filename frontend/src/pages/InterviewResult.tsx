@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewAPI } from '../services/api';
 import { Interview } from '../types';
@@ -20,6 +20,9 @@ export default function InterviewResult() {
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
   const [recordingLoading, setRecordingLoading] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState('');
+  const analysisRequestRef = useRef(false);
 
   const loadInterview = useCallback(async () => {
     try {
@@ -39,17 +42,17 @@ export default function InterviewResult() {
   }, [loadInterview]);
 
   useEffect(() => {
-    if (loading || interview?.recordingUrl || interview?.status !== 'completed') return;
+    if (loading || interview?.recordingStatus !== 'pending') return;
 
     setRecordingLoading(true);
     let attempts = 0;
-    const maxAttempts = 30; // Poll for up to 60 seconds
+    const maxAttempts = 15; // Avoid polling indefinitely if upload cannot finish
     const interval = window.setInterval(async () => {
       attempts += 1;
       try {
         const res = await interviewAPI.getInterview(id!);
         setInterview(res.data);
-        if (res.data.recordingUrl || attempts >= maxAttempts) {
+        if (res.data.recordingStatus !== 'pending' || attempts >= maxAttempts) {
           window.clearInterval(interval);
           setRecordingLoading(false);
         }
@@ -65,12 +68,38 @@ export default function InterviewResult() {
       window.clearInterval(interval);
       setRecordingLoading(false);
     };
-  }, [loading, interview?.recordingUrl, interview?.status, id]);
+  }, [loading, interview?.recordingStatus, id]);
+
+  const requestEvaluation = useCallback(async () => {
+    if (!id || analysisRequestRef.current) return;
+    analysisRequestRef.current = true;
+    setAnalysisLoading(true);
+    try {
+      await interviewAPI.evaluateInterview(id);
+      await loadInterview();
+      setAnalysisError('');
+    } catch (error) {
+      console.error('Unable to generate final feedback:', error);
+      setAnalysisError('Feedback could not be generated. Your answers are safely saved. Please retry.');
+    } finally {
+      analysisRequestRef.current = false;
+      setAnalysisLoading(false);
+    }
+  }, [id, loadInterview]);
+
+  useEffect(() => {
+    if (loading || interview?.status !== 'completed' || interview?.interviewType === 'coding' ||
+        !interview?.evaluationStatus || interview.evaluationStatus === 'completed' || analysisError) return;
+    // Start or resume DB-backed evaluation; poll while another request is processing.
+    void requestEvaluation();
+    const interval = window.setInterval(() => { void requestEvaluation(); }, 5000);
+    return () => window.clearInterval(interval);
+  }, [loading, interview?.status, interview?.interviewType, interview?.evaluationStatus, analysisError, requestEvaluation]);
 
   // Video URL comes directly from Cloudinary (recordingUrl field)
   const videoUrl = interview?.recordingUrl || null;
   const finalScore = interview?.finalScore;
-  const finalScoreLabel = typeof finalScore === 'number' ? finalScore.toFixed(1) : '-';
+  const finalScoreLabel = (interview?.interviewType === 'coding' || !interview?.evaluationStatus || interview.evaluationStatus === 'completed') && typeof finalScore === 'number' ? finalScore.toFixed(1) : '—';
 
   const downloadVideo = () => {
     if (!videoUrl) return;
@@ -116,6 +145,24 @@ export default function InterviewResult() {
       </nav>
 
       <div className="w-full max-w-[1760px] mx-auto px-3 sm:px-6 lg:px-8 py-5 lg:py-8">
+        {interview?.evaluationStatus && interview.evaluationStatus !== 'completed' && interview.interviewType !== 'coding' && (
+          <div role="status" className="mb-6 rounded-xl bg-indigo-50 border border-indigo-200 p-4 sm:p-5 flex flex-wrap justify-between gap-3 items-center">
+            <div>
+              <h2 className="text-lg font-bold text-indigo-950">
+                {analysisLoading ? 'Preparing your interview feedback...' : 'Feedback analysis is pending'}
+              </h2>
+              <p className="text-sm text-indigo-700 mt-1">
+                {analysisError || 'Your answers are stored. Detailed Gemini evaluation and marks will appear here when ready.'}
+              </p>
+            </div>
+            {analysisError && (
+              <button onClick={() => { setAnalysisError(''); void requestEvaluation(); }}
+                className="rounded-lg bg-indigo-600 text-white font-semibold px-4 py-2 hover:bg-indigo-700">
+                Retry evaluation
+              </button>
+            )}
+          </div>
+        )}
         <div className="bg-white/90 backdrop-blur-md p-4 sm:p-6 lg:p-8 rounded-3xl shadow-xl border border-white/50 mb-6">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Interview Results</h2>
