@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
@@ -11,11 +11,11 @@ export interface ParsedResume {
 
 const TECHNICAL_SKILLS = [
   'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'go', 'rust', 'ruby', 'php',
-  'react', 'angular', 'vue', 'node', 'express', 'django', 'flask', 'spring', 'laravel',
+  'react', 'angular', 'vue', 'nodejs', 'express', 'django', 'flask', 'spring', 'laravel',
   'mongodb', 'mysql', 'postgresql', 'redis', 'elasticsearch', 'graphql', 'rest', 'api',
   'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'linux', 'html', 'css',
   'tailwind', 'bootstrap', 'sql', 'nosql', 'machine learning', 'ai', 'data science',
-  'typescript', 'nextjs', 'nuxt', 'svelte', 'flutter', 'react native', 'swift', 'kotlin'
+  'nextjs', 'nuxt', 'svelte', 'flutter', 'react native', 'swift', 'kotlin'
 ];
 
 const PROJECT_KEYWORDS = ['project', 'built', 'developed', 'created', 'implemented', 'designed'];
@@ -37,7 +37,7 @@ export const parseResume = async (filePath: string): Promise<ParsedResume> => {
 };
 
 const parsePDF = async (filePath: string): Promise<string> => {
-  const dataBuffer = fs.readFileSync(filePath);
+  const dataBuffer = await fs.readFile(filePath);
   const data = await pdf(dataBuffer);
   return data.text;
 };
@@ -57,28 +57,34 @@ const extractInformation = (text: string): ParsedResume => {
   return { skills, projects, experience };
 };
 
-const extractSkills = (text: string): string[] => {
-  const foundSkills: string[] = [];
-  
+// Canonical names keep local role matching consistent with parsed resume skills.
+const SKILL_ALIASES: Record<string, string[]> = {
+  nodejs: ['node.js', 'node js', 'node'],
+  react: ['react.js', 'reactjs'],
+  express: ['express.js', 'expressjs'],
+  nextjs: ['next.js'],
+  vue: ['vue.js', 'vuejs'],
+  angular: ['angularjs'],
+  mongodb: ['mongo db'],
+  'machine learning': ['ml'],
+};
+
+const REGEX_META = new Set(['.', '*', '+', '?', '^', '$', '{', '}', '(', ')', '|', '[', ']', '\\']);
+const escapeRegex = (value: string): string =>
+  value.split('').map(char => REGEX_META.has(char) ? '\\' + char : char).join('').replace(/\s+/g, '\\s+');
+
+export const extractSkills = (text: string): string[] => {
+  const normalized = text.toLowerCase();
+  const detected = new Set<string>();
   for (const skill of TECHNICAL_SKILLS) {
-    if (text.includes(skill)) {
-      foundSkills.push(skill);
-    }
+    const variants = [skill, ...(SKILL_ALIASES[skill] || [])];
+    const alternatives = variants.map(escapeRegex).join('|');
+    // Whole-token matching prevents Java being inferred from JavaScript,
+    // or AI from words such as training.
+    const matcher = new RegExp('(?:^|[^a-z0-9+#])(?:' + alternatives + ')(?=$|[^a-z0-9+#])', 'i');
+    if (matcher.test(normalized)) detected.add(skill);
   }
-
-  const skillSections = text.match(/(?:skills|technical skills|technologies)[\s:]*([\s\S]*?)(?:\n\n|$)/gi);
-  if (skillSections) {
-    for (const section of skillSections) {
-      const skills = section.split(/[,;\n]/).map(s => s.trim().toLowerCase()).filter(s => s.length > 2);
-      for (const skill of skills) {
-        if (!foundSkills.includes(skill) && TECHNICAL_SKILLS.some(ts => skill.includes(ts))) {
-          foundSkills.push(skill);
-        }
-      }
-    }
-  }
-
-  return [...new Set(foundSkills)];
+  return [...detected];
 };
 
 // ═══════════════════════════════════════════════════════════════════
