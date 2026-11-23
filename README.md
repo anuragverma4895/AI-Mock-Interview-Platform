@@ -2,7 +2,6 @@
 
 PrepVerse is a full-stack interview preparation application built with **React, TypeScript, Express, and MongoDB**. It combines resume-based interview practice, question generation, recorded sessions, coding challenges, and post-interview feedback.
 
-> **Project status:** Development project. Automated builds and selected integration tests run in GitHub Actions; browser hardware, AI providers, Cloudinary, and external compiler availability still need verification in the deployment environment.
 
 ## Features
 
