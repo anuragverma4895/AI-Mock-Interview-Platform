@@ -83,11 +83,11 @@ export default function ResumeUpload() {
   };
 
   const handleStartWithResume = () => {
-    navigate('/interview', { state: { resumeId: uploadedResumeId } });
+    navigate('/interview', { state: { resumeId: uploadedResumeId, jobRole: selectedRole } });
   };
 
   const handleStartWithoutResume = () => {
-    navigate('/interview');
+    navigate('/interview', { state: { jobRole: selectedRole } });
   };
 
   return (
@@ -106,8 +106,8 @@ export default function ResumeUpload() {
         </div>
       </nav>
 
-      <div className="max-w-2xl mx-auto p-8">
-        <div className="bg-white p-8 rounded-lg shadow">
+      <div className={`w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 ${step === "selectRole" ? "max-w-6xl" : "max-w-3xl"}`}>
+        <div className="bg-white p-5 sm:p-8 rounded-2xl border border-slate-200 shadow-lg">
 
           {step === 'upload' && (
             <>
@@ -158,12 +158,14 @@ export default function ResumeUpload() {
                 Choose the job role you want to analyze your resume for.
               </p>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {jobRoles.map((role) => (
-                  <div
+                  <button
+                    type="button"
                     key={role.id}
+                    aria-pressed={selectedRole === role.id}
                     onClick={() => setSelectedRole(role.id)}
-                    className={`p-4 border-2 rounded cursor-pointer transition-colors ${
+                    className={`w-full h-full text-left p-4 border-2 rounded-xl cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                       selectedRole === role.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-300 hover:border-gray-400'
@@ -171,7 +173,7 @@ export default function ResumeUpload() {
                   >
                     <h3 className="font-semibold">{role.label}</h3>
                     <p className="text-sm text-gray-600">{role.description}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
 

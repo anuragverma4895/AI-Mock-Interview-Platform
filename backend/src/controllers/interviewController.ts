@@ -116,6 +116,11 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
+    if (!interview.questions[interview.currentQuestionIndex]?.answer?.trim()) {
+      res.status(409).json({ message: 'Answer the current question before continuing' });
+      return;
+    }
+
     if (interview.currentQuestionIndex >= MAX_QUESTIONS - 1) {
       res.status(400).json({ message: 'Maximum questions reached' });
       return;

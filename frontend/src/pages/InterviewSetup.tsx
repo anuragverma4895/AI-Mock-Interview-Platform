@@ -82,7 +82,7 @@ export default function InterviewSetup() {
       const formData = new FormData();
       formData.append('resume', file);
       const res = await resumeAPI.upload(formData);
-      setResumeId(res.data.resume._id);
+      setResumeId(res.data.resume.id || res.data.resume._id);
       setStep('jobRole');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to upload resume');

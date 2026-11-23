@@ -421,6 +421,7 @@ export default function Interview() {
       speak(res.data.question.question);
     } catch (error) {
       console.error('Error getting next question:', error);
+      setSubmissionError('Unable to prepare a new question. Try again.');
     } finally {
       setQuestionLoading(false);
     }
@@ -762,6 +763,7 @@ export default function Interview() {
                         </p>
                       </div>
                     </div>
+                    {submissionError && <p className="text-rose-200 text-sm" role="alert">{submissionError}</p>}
                     <Button
                       onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
                       disabled={questionLoading || endingInterview}

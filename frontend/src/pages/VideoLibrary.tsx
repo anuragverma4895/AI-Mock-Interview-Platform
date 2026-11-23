@@ -14,8 +14,10 @@ interface InterviewWithVideo {
   _id: string;
   id?: string;
   jobRole: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  role: 'technical' | 'hr' | 'combine';
+  difficulty?: 'easy' | 'medium' | 'hard';
+  preferredDifficulty?: 'easy' | 'medium' | 'hard';
+  role?: 'technical' | 'hr' | 'combine';
+  interviewType?: 'technical' | 'hr' | 'combine' | 'coding';
   finalScore?: number;
   completedAt?: string;
   videoPath?: string;
@@ -235,10 +237,10 @@ export default function VideoLibrary() {
                       </CardTitle>
                       <div className="flex gap-2 flex-wrap">
                         <Badge className={getRoleColor(interview.jobRole || interview.role || '')}>
-                          {interview.role || interview.questions?.[0]?.category || 'Interview'}
+                          {interview.interviewType || interview.role || interview.questions?.[0]?.category || 'Interview'}
                         </Badge>
-                        <Badge className={getDifficultyColor(interview.difficulty)}>
-                          {interview.difficulty}
+                        <Badge className={getDifficultyColor(interview.preferredDifficulty || interview.difficulty || 'medium')}>
+                          {interview.preferredDifficulty || interview.difficulty || 'medium'}
                         </Badge>
                       </div>
                     </div>

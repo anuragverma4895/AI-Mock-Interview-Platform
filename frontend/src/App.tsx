@@ -15,6 +15,7 @@ import InterviewSetup from './pages/InterviewSetup';
 import LiveCodingEditor from './pages/LiveCodingEditor';
 import CodingChallenges from './pages/CodingChallenges';
 import Profile from './pages/Profile';
+import VideoLibrary from './pages/VideoLibrary';
 import Settings from './pages/Settings';
 import DemoPage from './pages/DemoPage';
 
@@ -122,6 +123,10 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/video-library"
+            element={<ProtectedRoute><VideoLibrary /></ProtectedRoute>}
           />
           <Route
             path="/settings"

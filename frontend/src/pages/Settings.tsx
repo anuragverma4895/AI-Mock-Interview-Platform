@@ -101,7 +101,7 @@ export default function Settings() {
                         Candidate (Looking for Jobs)
                       </Button>
                       <Button 
-                        variant={user?.role === 'admin' ? 'default' : 'outline'}
+                        variant={user?.role === 'interviewer' ? 'default' : 'outline'}
                         onClick={() => handleUpdateRole('interviewer')}
                         disabled={loading}
                         className="h-16"

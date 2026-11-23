@@ -66,7 +66,9 @@ const QUESTION_BANK = {
 const selectQuestion = (category: string, difficulty: string, conversationHistory: any[] = []) => {
   const questions = QUESTION_BANK[category as keyof typeof QUESTION_BANK] || QUESTION_BANK.DSA;
   const previousQuestions = extractPreviousQuestions(conversationHistory);
-  return selectUnusedQuestion(questions, difficulty, previousQuestions) || questions[0];
+  const unused = selectUnusedQuestion(questions, difficulty, previousQuestions);
+  if (!unused) throw new Error('No unique fallback question available');
+  return unused;
 };
 
 const clampScore = (score: unknown): number => {
