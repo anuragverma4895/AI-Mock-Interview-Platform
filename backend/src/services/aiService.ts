@@ -47,6 +47,9 @@ const QUESTION_BANK = {
     { question: "Why do you want to join our company?", difficulty: "easy" },
     { question: "Describe a challenging project you worked on?", difficulty: "medium" },
     { question: "How do you handle conflict in a team?", difficulty: "medium" },
+    { question: "Tell me about a time you had to learn something quickly?", difficulty: "easy" },
+    { question: "How do you organize tasks when several deadlines overlap?", difficulty: "medium" },
+    { question: "Describe a time you received feedback and improved your work?", difficulty: "medium" },
   ],
   Project: [
     { question: "Walk me through a project you're most proud of?", difficulty: "medium" },
@@ -54,6 +57,9 @@ const QUESTION_BANK = {
     { question: "Explain the architecture of your recent project?", difficulty: "hard" },
     { question: "What technologies did you use in your last project and why?", difficulty: "medium" },
     { question: "How do you handle debugging in your projects?", difficulty: "easy" },
+    { question: "Which project feature required the most testing and why?", difficulty: "medium" },
+    { question: "What trade-offs did you consider when designing your project architecture?", difficulty: "hard" },
+    { question: "If your project gained many users, what would you improve first?", difficulty: "hard" },
   ]
 };
 
