@@ -295,8 +295,8 @@ export const generateInterviewQuestion = async (
     const { previousQuestions, recentQuestions, earlierTopics } = buildBoundedQuestionContext(conversationHistory);
     const alreadyAskedContext = [
       earlierTopics.length ? 'EARLIER TOPICS COVERED (avoid repeating): ' + earlierTopics.join(', ') : '',
-      recentQuestions.length ? 'RECENT QUESTIONS (DO NOT REPEAT):\\n' + recentQuestions.map((q, i) => (i + 1) + '. ' + q).join('\\n') : '',
-    ].filter(Boolean).join('\\n\\n');
+      recentQuestions.length ? 'RECENT QUESTIONS (DO NOT REPEAT):\n' + recentQuestions.map((q, i) => (i + 1) + '. ' + q).join('\n') : '',
+    ].filter(Boolean).join('\n\n');
 
     const prompt = `You are conducting a real mock interview for a ${jobRole || 'software developer'} position.
 
@@ -331,13 +331,13 @@ Respond in this EXACT JSON format:
     const rejectedQuestions: string[] = [];
     for (let attempt = 0; attempt < 3; attempt++) {
       const retryPrompt = rejectedQuestions.length
-        ? prompt + '\\n\\nIMPORTANT: These candidate questions were duplicates. Ask something different:\\n' + rejectedQuestions.join('\\n')
+        ? prompt + '\n\nIMPORTANT: These candidate questions were duplicates. Ask something different:\n' + rejectedQuestions.join('\n')
         : prompt;
       const response = await getAICompletion(retryPrompt, 'You are Alex, a senior technical interviewer. Output ONLY valid JSON, no markdown, no explanation.');
 
       let question = response.trim().replace(/^["']|["']$/g, '');
       let idealAnswer = 'A comprehensive answer with practical examples.';
-      const jsonMatch = response.match(/\\{[\\s\\S]*\\}/);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const data = JSON.parse(jsonMatch[0]);
         question = typeof data.question === 'string' ? data.question.trim() : '';
