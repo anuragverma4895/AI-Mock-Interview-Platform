@@ -117,10 +117,11 @@ export default function ResumeUpload() {
               </p>
 
               <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
+                <label htmlFor="resume-file" className="block text-gray-700 text-sm font-bold mb-2">
                   Select Resume File
                 </label>
                 <input
+                  id="resume-file"
                   type="file"
                   accept=".pdf,.docx"
                   onChange={handleFileChange}

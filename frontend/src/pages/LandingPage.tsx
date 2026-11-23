@@ -389,7 +389,7 @@ function example() {
                 <Logo />
               </div>
               <p className="text-slate-400">
-                The most advanced AI-powered interview preparation platform.
+                AI-assisted interview practice with question generation, feedback, and coding challenges.
               </p>
             </div>
 

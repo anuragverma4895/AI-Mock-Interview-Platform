@@ -343,7 +343,7 @@ export default function LiveCodingEditor() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Terminal className="h-5 w-5" />
-                    Test Results
+                    AI-Estimated Results
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

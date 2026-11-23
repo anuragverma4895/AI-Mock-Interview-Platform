@@ -43,10 +43,11 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label htmlFor="register-name" className="block text-gray-700 text-sm font-bold mb-2">
               Name
             </label>
             <input
+              id="register-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -56,10 +57,11 @@ export default function Register() {
           </div>
 
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label htmlFor="register-email" className="block text-gray-700 text-sm font-bold mb-2">
               Email
             </label>
             <input
+              id="register-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -69,10 +71,11 @@ export default function Register() {
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label htmlFor="register-password" className="block text-gray-700 text-sm font-bold mb-2">
               Password
             </label>
             <input
+              id="register-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

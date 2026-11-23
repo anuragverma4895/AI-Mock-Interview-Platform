@@ -201,10 +201,10 @@ export default function InterviewResult() {
                   : (interview?.questions.filter(q => Boolean(q.answer?.trim())).length || 0)}
               </div>
               <div className="text-emerald-700 font-semibold text-lg">
-                {interview?.interviewType === 'coding' ? 'Tests Passed' : 'Questions Answered'}
+                {interview?.interviewType === 'coding' ? 'AI-Estimated Passes' : 'Questions Answered'}
               </div>
               <div className="text-emerald-500 text-sm mt-1">
-                {interview?.interviewType === 'coding' ? 'Total test cases' : 'Total Questions'}
+                {interview?.interviewType === 'coding' ? 'AI code review, not an isolated runtime' : 'Total Questions'}
               </div>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl text-center shadow-lg border border-purple-200/50 transform hover:scale-105 transition-all duration-300">
