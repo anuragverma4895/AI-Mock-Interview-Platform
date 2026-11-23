@@ -41,6 +41,8 @@ export default function LiveCodingEditor() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const editorRef = useRef<any>(null)
+  const autoSubmitRef = useRef<() => Promise<void>>(async () => {})
+  const autoSubmittedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -49,7 +51,8 @@ export default function LiveCodingEditor() {
         const res = await codingAPI.start(challengeId || undefined, languagePref || undefined)
         if (cancelled) return
         const data = res.data.codingSession
-        setSession(data)
+        autoSubmittedRef.current = false
+      setSession(data)
         const codes = data.challenge.starterCodes || {};
         setCode(codes[languagePref || 'javascript'] || data.challenge.starterCode || '// Start coding here')
         setTimeLeft(data.timeLimit)
@@ -72,7 +75,10 @@ export default function LiveCodingEditor() {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          handleSubmit()
+          if (!autoSubmittedRef.current) {
+            autoSubmittedRef.current = true
+            void autoSubmitRef.current()
+          }
           return 0
         }
         return prev - 1
@@ -103,6 +109,7 @@ export default function LiveCodingEditor() {
       const customChallenge = res.data
       const startRes = await codingAPI.start(undefined, language, customChallenge)
       const data = startRes.data.codingSession
+      autoSubmittedRef.current = false
       setSession(data)
       const codes = data.challenge.starterCodes || {};
       setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
@@ -121,6 +128,7 @@ export default function LiveCodingEditor() {
     try {
       const res = await codingAPI.start(undefined, language)
       const data = res.data.codingSession
+      autoSubmittedRef.current = false
       setSession(data)
       const codes = data.challenge.starterCodes || {};
       setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
@@ -175,6 +183,8 @@ export default function LiveCodingEditor() {
     }
   }
 
+  autoSubmitRef.current = handleSubmit
+
   const resetCode = () => {
     const codes = challenge?.starterCodes || {}
     setCode(codes[language] || challenge?.starterCode || '// Start coding here')
@@ -220,7 +230,15 @@ export default function LiveCodingEditor() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={!session || isSubmitting || isRunning}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Solution'}
+            </Button>
             <Button
               size="sm"
               variant="outline"
