@@ -18,11 +18,18 @@ test('HR opening question uses candidate project', () => {
 
 test('opening question works without resume', () => {
   const q = createOpeningQuestion('DSA', 'hard');
-  assert.match(q.question, /Two Sum/);
+  assert.match(q.question, /median of two sorted arrays/);
   assert.equal(q.difficulty, 'hard');
 });
 
 test('project opening question uses available project', () => {
   const q = createOpeningQuestion('Project', 'medium', [], [{ name: 'Payment Processing System' }]);
   assert.match(q.question, /Payment Processing System/);
+});
+
+test('easy opening question matches easy difficulty', () => {
+  const q = createOpeningQuestion('DSA', 'easy', ['Python']);
+  assert.match(q.question, /duplicate elements/);
+  assert.match(q.question, /in Python/);
+  assert.equal(q.difficulty, 'easy');
 });

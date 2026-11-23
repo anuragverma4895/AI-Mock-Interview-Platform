@@ -45,12 +45,27 @@ export function createOpeningQuestion(
     };
   }
 
-  // Technical and combined interviews start with a short DSA question.
+  // Technical and combined interviews start with a DSA question at the selected difficulty.
   const context = language ? ` in ${language}` : '';
+  const challenges: Record<string, { question: string; idealAnswer: string }> = {
+    easy: {
+      question: `How would you check whether an array contains duplicate elements${context}, and what is the time complexity?`,
+      idealAnswer: 'Use a hash set of seen values. If an element is already present, return true; otherwise add it. O(n) time and O(n) extra space.',
+    },
+    medium: {
+      question: `How would you solve the Two Sum problem efficiently${context}, and what is its time complexity?`,
+      idealAnswer: 'Use a hash map to store each value and its index. For each number, check whether target minus the number is already in the map. O(n) time and O(n) extra space.',
+    },
+    hard: {
+      question: `How would you find the median of two sorted arrays in logarithmic time${context}?`,
+      idealAnswer: 'Use binary search on the shorter array to find a partition where all left-side elements are smaller than the right-side elements. Then calculate the median from the partition boundaries. O(log(min(m,n))) time.',
+    },
+  };
+  const chosen = challenges[difficulty] || challenges.medium;
   return {
-    question: `How would you solve the Two Sum problem efficiently${context}, and what is its time complexity?`,
-    category: category === 'DSA' ? category : 'DSA',
+    question: chosen.question,
+    category: 'DSA',
     difficulty,
-    idealAnswer: 'Use a hash map to store each value and its index. For each number, check whether target minus the number is already in the map. This takes O(n) time and O(n) extra space.',
+    idealAnswer: chosen.idealAnswer,
   };
 }
