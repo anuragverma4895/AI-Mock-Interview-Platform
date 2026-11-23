@@ -176,8 +176,8 @@ export const codingAPI = {
     ),
   run: (interviewId: string, code: string, language?: string) =>
     api.post(`/coding/run/${interviewId}`, { code, language }),
-  submit: (interviewId: string, code: string, language?: string) =>
-    api.post(`/coding/submit/${interviewId}`, { code, language }),
+  submit: (interviewId: string, code: string, language?: string, browserResults?: CodingTestResult[]) =>
+    api.post(`/coding/submit/${interviewId}`, { code, language, browserResults }),
   getSessions: () => api.get<CodingSession[]>('/coding/sessions'),
   getSession: (interviewId: string) => api.get<CodingSession>(`/coding/sessions/${interviewId}`),
   generateChallenge: (difficulty: string, language: string, context?: string) =>
