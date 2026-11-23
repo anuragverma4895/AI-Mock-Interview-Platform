@@ -12,7 +12,7 @@ const STOP_WORDS = new Set([
   'difference', 'discuss', 'does', 'explain', 'for', 'from', 'give', 'how', 'into',
   'interview', 'is', 'its', 'me', 'of', 'or', 'please', 'tell', 'that', 'the',
   'their', 'them', 'there', 'these', 'this', 'using', 'versus', 'what', 'when',
-  'where', 'which', 'why', 'with', 'would', 'you', 'your', 'compare', 'databases', 'database',
+  'where', 'which', 'why', 'with', 'would', 'you', 'your', 'compare',
 ]);
 
 export const normalizeQuestion = (question: string): string =>
