@@ -8,6 +8,7 @@ import {
   getUserInterviews,
   getTranscript,
   askFollowUp,
+  evaluateInterview,
 } from '../controllers/interviewController';
 import { auth } from '../middleware/auth';
 import { validateInterviewId, validateInterviewParamId, validateUserId, validateSubmitAnswer } from '../middleware/validation';
@@ -19,6 +20,7 @@ router.get('/next-question/:interviewId', auth, validateInterviewId, getNextQues
 router.post('/submit-answer/:interviewId', auth, validateInterviewId, validateSubmitAnswer, submitAnswer);
 router.post('/follow-up/:interviewId', auth, validateInterviewId, askFollowUp);
 router.post('/end/:interviewId', auth, validateInterviewId, endInterview);
+router.post('/evaluate/:interviewId', auth, validateInterviewId, evaluateInterview);
 router.get('/user/:userId', auth, validateUserId, getUserInterviews);
 router.get('/transcript/:id', auth, validateInterviewParamId, getTranscript);
 router.get('/:id', auth, validateInterviewParamId, getInterview);

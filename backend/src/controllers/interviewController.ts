@@ -6,7 +6,6 @@ import {
   evaluateAnswer, 
   generateFinalReport,
   getGreeting,
-  getClosingMessage,
   generateFollowUpQuestion
 } from '../services/aiService';
 import { AuthRequest } from '../middleware/auth';
@@ -203,24 +202,14 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
 
     const currentQuestion = interview.questions[interview.currentQuestionIndex];
     
-    const conversationHistory = interview.transcript.map(t => ({
-      role: t.answer ? 'user' : 'assistant',
-      content: t.answer || t.question,
-      timestamp: new Date(t.timestamp)
-    }));
-
-    const evaluation = await evaluateAnswer(
-      currentQuestion.question,
-      sanitizedAnswer,
-      currentQuestion.category,
-      currentQuestion.difficulty,
-      conversationHistory,
-      currentQuestion.idealAnswer
-    );
-
+    if (!currentQuestion) {
+      res.status(409).json({ message: 'No current question available' }); return;
+    }
+    if (currentQuestion.answer?.trim()) {
+      res.status(409).json({ message: 'This question has already been answered' }); return;
+    }
+    // Save first; defer expensive AI evaluation until after the interview.
     interview.questions[interview.currentQuestionIndex].answer = sanitizedAnswer;
-    interview.questions[interview.currentQuestionIndex].score = evaluation.score;
-    interview.questions[interview.currentQuestionIndex].feedback = evaluation.feedback;
 
     const transcriptIdx = interview.transcript.findIndex((_, i) => 
       interview.questions[interview.currentQuestionIndex].question === interview.transcript[i].question
@@ -232,14 +221,7 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
     await interview.save();
 
     res.json({
-      evaluation: {
-        score: evaluation.score,
-        feedback: evaluation.feedback,
-        strengths: evaluation.strengths,
-        improvements: evaluation.improvements,
-        idealAnswer: evaluation.idealAnswer,
-        followUpQuestion: evaluation.followUpQuestion,
-      },
+      saved: true,
       currentIndex: interview.currentQuestionIndex,
       totalQuestions: MAX_QUESTIONS,
       isLastQuestion: interview.currentQuestionIndex >= MAX_QUESTIONS - 1,
@@ -290,7 +272,7 @@ export const askFollowUp = async (req: AuthRequest, res: Response): Promise<void
 export const endInterview = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { interviewId } = req.params;
-    const { videoPath, bodyLanguageData } = req.body;
+    const { bodyLanguageData } = req.body;
 
     const interview = await Interview.findById(interviewId);
     if (!interview) {
@@ -302,31 +284,23 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    interview.status = 'completed';
-    interview.completedAt = new Date();
-
-    if (videoPath) interview.videoPath = videoPath;
-    if (bodyLanguageData) interview.bodyLanguageData = bodyLanguageData;
-
-    const scoredQuestions = interview.questions.filter(q => q.score !== undefined);
-    const totalScore = scoredQuestions.reduce((sum, q) => sum + (q.score || 0), 0);
-    interview.finalScore = scoredQuestions.length > 0 ? totalScore / scoredQuestions.length : 0;
-
-    const strongAreas = interview.questions
-      .filter(q => (q.score || 0) >= 4)
-      .map(q => q.category);
-    
-    const improvements = interview.questions
-      .filter(q => (q.score || 0) < 3)
-      .map(q => q.category);
-
-    const closingMessage = await getClosingMessage(
-      interview.finalScore,
-      [...new Set(strongAreas)],
-      [...new Set(improvements)]
-    );
-
-    await interview.save();
+    if (interview.status !== 'completed') {
+      interview.status = 'completed';
+      interview.completedAt = new Date();
+      if (bodyLanguageData) interview.bodyLanguageData = bodyLanguageData;
+      const needsEvaluation = interview.questions.some(q => Boolean(q.answer?.trim()) && q.score === undefined);
+      interview.evaluationStatus = needsEvaluation ? 'pending' : 'completed';
+      interview.recordingStatus = req.body.recordingPending === true ? 'pending' : 'none';
+      if (!needsEvaluation) {
+        const scored = interview.questions.filter(q => typeof q.score === 'number');
+        interview.finalScore = scored.length
+          ? scored.reduce((sum, q) => sum + (q.score || 0), 0) / scored.length : 0;
+      }
+      await interview.save();
+    }
+    const closingMessage = interview.evaluationStatus === 'completed'
+      ? 'Interview completed. Your results are ready.'
+      : 'Interview completed. Your detailed feedback is being prepared.';
 
     res.json({
       message: 'Interview completed',
@@ -342,6 +316,77 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
   } catch (error) {
     console.error('Error ending interview:', error);
     res.status(500).json({ message: 'Error ending interview', error: String(error) });
+  }
+};
+
+
+/** Client-triggered and idempotent final evaluation (durable DB state, no in-memory queue). */
+export const evaluateInterview = async (req: AuthRequest, res: Response): Promise<void> => {
+  const interviewId = req.params.interviewId;
+  try {
+    const existing = await Interview.findOne({ _id: interviewId, userId: req.user?.id });
+    if (!existing) { res.status(404).json({ message: 'Interview not found' }); return; }
+    if (existing.status !== 'completed') {
+      res.status(409).json({ message: 'Interview must be completed first' }); return;
+    }
+    // Existing records from older versions were already scored at submission time.
+    if (!existing.evaluationStatus || existing.evaluationStatus === 'completed') {
+      res.json({ status: 'completed', finalScore: existing.finalScore }); return;
+    }
+
+    const staleStart = new Date(Date.now() - 120000);
+    const claimed = await Interview.findOneAndUpdate(
+      {
+        _id: interviewId, userId: req.user?.id, status: 'completed',
+        $or: [
+          { evaluationStatus: { $in: ['pending', 'failed'] } },
+          { evaluationStatus: 'processing', evaluationStartedAt: { $lt: staleStart } },
+        ],
+      },
+      { $set: { evaluationStatus: 'processing', evaluationStartedAt: new Date() } },
+      { new: true }
+    );
+    if (!claimed) { res.status(202).json({ status: 'processing' }); return; }
+
+    try {
+      const pending = claimed.questions.map((q, i) =>
+        q.answer?.trim() && q.score === undefined ? i : -1
+      ).filter(i => i >= 0);
+      // Keep AI concurrency bounded. Persist each completed batch for recoverability.
+      for (let offset = 0; offset < pending.length; offset += 2) {
+        const indices = pending.slice(offset, offset + 2);
+        const results = await Promise.all(indices.map(async index => {
+          const q = claimed.questions[index];
+          return evaluateAnswer(q.question, q.answer || '', q.category, q.difficulty, [], q.idealAnswer);
+        }));
+        indices.forEach((index, position) => {
+          const q = claimed.questions[index];
+          const outcome = results[position];
+          q.score = outcome.score;
+          q.feedback = outcome.feedback;
+          q.strengths = outcome.strengths;
+          q.improvements = outcome.improvements;
+          q.followUpQuestion = outcome.followUpQuestion;
+          q.evaluationSource = outcome.source;
+        });
+        await claimed.save();
+      }
+      const scored = claimed.questions.filter(q => typeof q.score === 'number');
+      claimed.finalScore = scored.length
+        ? Math.round(scored.reduce((sum, q) => sum + (q.score || 0), 0) / scored.length * 10) / 10
+        : 0;
+      claimed.evaluationStatus = 'completed';
+      await claimed.save();
+      res.json({ status: 'completed', finalScore: claimed.finalScore });
+    } catch (error) {
+      claimed.evaluationStatus = 'failed';
+      await claimed.save();
+      console.error('Final evaluation failed:', error);
+      res.status(503).json({ message: 'Feedback generation failed. You can retry from the results page.' });
+    }
+  } catch (error) {
+    console.error('Final evaluation error:', error);
+    res.status(500).json({ message: 'Unable to evaluate interview' });
   }
 };
 

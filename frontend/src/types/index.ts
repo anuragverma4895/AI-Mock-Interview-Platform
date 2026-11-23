@@ -72,6 +72,9 @@ export interface Interview {
     suggestions: string[];
   };
   finalScore?: number;
+  evaluationStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  evaluationStartedAt?: string;
+  recordingStatus?: 'none' | 'pending' | 'ready' | 'failed';
   duration: number;
   startedAt?: string;
   completedAt?: string;

@@ -68,6 +68,9 @@ export interface IInterview extends Document {
     suggestions: string[];
   };
   finalScore?: number;
+  evaluationStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  evaluationStartedAt?: Date;
+  recordingStatus?: 'none' | 'pending' | 'ready' | 'failed';
   duration: number;
   startedAt?: Date;
   completedAt?: Date;
@@ -183,6 +186,9 @@ const interviewSchema = new Schema<IInterview>(
       suggestions: [String],
     },
     finalScore: Number,
+    evaluationStatus: { type: String, enum: ['pending', 'processing', 'completed', 'failed'] },
+    evaluationStartedAt: Date,
+    recordingStatus: { type: String, enum: ['none', 'pending', 'ready', 'failed'], default: 'none' },
     duration: {
       type: Number,
       default: 45,
