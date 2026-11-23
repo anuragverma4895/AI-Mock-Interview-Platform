@@ -51,6 +51,7 @@ export interface IInterview extends Document {
   codingResults?: ICodingTestResult[];
   codingPassedCount?: number;
   codingTotalCount?: number;
+  codingEvaluationMethod?: 'browser_js' | 'ai_estimate';
   transcript: Array<{
     question: string;
     answer: string;
@@ -167,6 +168,7 @@ const interviewSchema = new Schema<IInterview>(
       type: Number,
       default: 0,
     },
+    codingEvaluationMethod: { type: String, enum: ['browser_js', 'ai_estimate'] },
     transcript: [
       {
         question: String,

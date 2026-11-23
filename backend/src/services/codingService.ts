@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
 import { getChallenge, listChallenges, CodingChallenge } from '../utils/codingChallenges';
 import { evaluateCode } from './aiService';
+import { normalizeBrowserResults } from '../utils/browserCodingResults';
 
 export const startCoding = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -90,10 +91,29 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
       res.status(400).json({ message: 'Unsupported programming language' }); return;
     }
 
-    const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
-    const { results, passedCount, totalCount } = await evaluateCode(code, language, challenge.testCases, fnName);
+    let results: Array<{ passed: boolean; input: string; expected: string; actual: string }>;
+    let evaluationMethod: 'browser_js' | 'ai_estimate';
+    if (language === 'javascript') {
+      // Browser executes JavaScript locally in an isolated, disposable Web Worker.
+      // Never evaluate untrusted JS inside Node. Submitted outputs are practice-only.
+      try {
+        results = normalizeBrowserResults(challenge.testCases, req.body.browserResults, challenge.title);
+      } catch {
+        res.status(400).json({ message: 'Run the JavaScript test cases in your browser before submitting.' });
+        return;
+      }
+      evaluationMethod = 'browser_js';
+    } else {
+      const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
+      const estimate = await evaluateCode(code, language, challenge.testCases, fnName);
+      results = estimate.results;
+      evaluationMethod = 'ai_estimate';
+    }
+    const totalCount = results.length;
+    const passedCount = results.filter(result => result.passed).length;
 
     if (finalize) {
+      interview.codingEvaluationMethod = evaluationMethod;
       interview.codingResults = results;
       interview.codingPassedCount = passedCount;
       interview.codingTotalCount = totalCount;
@@ -106,7 +126,7 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
       message: finalize ? 'Coding session submitted' : 'AI code review complete; your session is still active',
       results, passedCount, totalCount,
       finalScore: finalize ? interview.finalScore : undefined,
-      evaluationMethod: 'ai_estimate',
+      evaluationMethod,
       finalized: finalize,
     });
   } catch (error) {
@@ -129,7 +149,7 @@ export const getUserCodingSessions = async (req: AuthRequest, res: Response): Pr
       status: 'completed',
     })
       .select(
-        '_id codingChallenge codingResults codingPassedCount codingTotalCount finalScore completedAt startedAt'
+        '_id codingChallenge codingResults codingPassedCount codingTotalCount codingEvaluationMethod finalScore completedAt startedAt'
       )
       .sort({ completedAt: -1 });
 
