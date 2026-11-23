@@ -102,7 +102,45 @@ async function waitForHealthy() {
     assert.equal(result.body.questions[0].evaluationSource, 'heuristic');
     assert.ok(Array.isArray(result.body.questions[0].strengths));
     assert.ok(result.body.questions[0].feedback);
-    console.log('Integration checks passed: auth, ownership, interview flow, deferred feedback.');
+    // The original AI-free JavaScript workflow must remain usable for coding practice.
+    const codingStart = await request('POST', '/api/coding/start',
+      { challengeId: 'two-sum', language: 'javascript' }, token1);
+    assert.equal(codingStart.status, 201, JSON.stringify(codingStart.body));
+    const codingId = codingStart.body.codingSession.id;
+    const javascriptSolution = 'function twoSum(nums, target) { const seen = new Map(); for (let i = 0; i < nums.length; i++) { const other = target - nums[i]; if (seen.has(other)) return [seen.get(other),i]; seen.set(nums[i], i); } return []; }';
+    const expectedOutputs = ['[0,1]', '[1,2]', '[0,1]'];
+    const practiceResults = expectedOutputs.map(actual => ({actual, passed:true}));
+
+    const missingBrowserResult = await request('POST', '/api/coding/run/' + codingId,
+      { code: javascriptSolution, language: 'javascript' }, token1);
+    assert.equal(missingBrowserResult.status, 400, 'Server must never execute untrusted JS itself');
+    const forbidden = await request('POST', '/api/coding/run/' + codingId,
+      { code: javascriptSolution, language: 'javascript', browserResults: practiceResults }, token2);
+    assert.equal(forbidden.status, 404, 'Other users must not review this coding session');
+
+    const preview = await request('POST', '/api/coding/run/' + codingId,
+      { code: javascriptSolution, language: 'javascript', browserResults: practiceResults }, token1);
+    assert.equal(preview.status, 200, JSON.stringify(preview.body));
+    assert.equal(preview.body.finalized, false, 'Preview must not close the session');
+    assert.equal(preview.body.evaluationMethod, 'browser_js');
+    assert.equal(preview.body.passedCount, 3);
+
+    const stillActive = await request('GET', '/api/coding/sessions/' + codingId, undefined, token1);
+    assert.equal(stillActive.status, 200);
+    assert.equal(stillActive.body.status, 'in_progress');
+
+    const submitted = await request('POST', '/api/coding/submit/' + codingId,
+      { code: javascriptSolution, language: 'javascript', browserResults: practiceResults }, token1);
+    assert.equal(submitted.status, 200, JSON.stringify(submitted.body));
+    assert.equal(submitted.body.finalized, true);
+    assert.equal(submitted.body.passedCount, 3);
+    const graded = await request('GET', '/api/coding/sessions/' + codingId, undefined, token1);
+    assert.equal(graded.body.status, 'completed');
+    assert.equal(graded.body.codingEvaluationMethod, 'browser_js');
+    assert.equal(graded.body.finalScore, 5);
+
+    console.log('Integration checks passed: auth, interview, AI-free JS practice previews and final submission.');
+
   } finally {
     server.kill('SIGTERM');
   }
