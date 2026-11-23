@@ -96,7 +96,7 @@ router.post('/publish/:interviewId', auth, async (req: AuthRequest, res: Respons
 
     res.json({ message: 'Interview published successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error publishing interview', error: String(error) });
+    res.status(500).json({ message: 'Error publishing interview' });
   }
 });
 
@@ -121,7 +121,7 @@ router.post('/unpublish/:interviewId', auth, async (req: AuthRequest, res: Respo
 
     res.json({ message: 'Interview unpublished' });
   } catch (error) {
-    res.status(500).json({ message: 'Error unpublishing', error: String(error) });
+    res.status(500).json({ message: 'Error unpublishing' });
   }
 });
 
@@ -167,7 +167,7 @@ router.delete('/recording/:interviewId', auth, async (req: AuthRequest, res: Res
 
     res.json({ message: 'Recording deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting recording', error: String(error) });
+    res.status(500).json({ message: 'Error deleting recording' });
   }
 });
 
@@ -186,7 +186,7 @@ router.get('/my-recordings', auth, async (req: AuthRequest, res: Response): Prom
       .sort({ completedAt: -1 });
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching recordings', error: String(error) });
+    res.status(500).json({ message: 'Error fetching recordings' });
   }
 });
 
@@ -218,7 +218,7 @@ router.get('/public', async (req, res): Promise<void> => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching demos', error: String(error) });
+    res.status(500).json({ message: 'Error fetching demos' });
   }
 });
 

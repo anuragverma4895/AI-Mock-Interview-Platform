@@ -30,7 +30,7 @@ export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise
     res.json({ message: 'Video chunk uploaded', chunkIndex });
   } catch (error) {
     console.error('Error uploading video chunk:', error);
-    res.status(500).json({ message: 'Error uploading video chunk', error: String(error) });
+    res.status(500).json({ message: 'Error uploading video chunk' });
   }
 };
 
@@ -53,7 +53,7 @@ export const finalizeVideo = async (req: AuthRequest, res: Response): Promise<vo
     res.json({ message: 'Video finalized', videoPath });
   } catch (error) {
     console.error('Error finalizing video:', error);
-    res.status(500).json({ message: 'Error finalizing video', error: String(error) });
+    res.status(500).json({ message: 'Error finalizing video' });
   }
 };
 
@@ -71,7 +71,7 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
 
     res.json({ exists });
   } catch (error) {
-    res.status(500).json({ message: 'Error getting video info', error: String(error) });
+    res.status(500).json({ message: 'Error getting video info' });
   }
 };
 
@@ -93,7 +93,7 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
 
     res.download(interview.videoPath);
   } catch (error) {
-    res.status(500).json({ message: 'Error downloading video', error: String(error) });
+    res.status(500).json({ message: 'Error downloading video' });
   }
 };
 
@@ -104,6 +104,6 @@ export const analyzeBodyLanguage = async (req: AuthRequest, res: Response): Prom
     });
   } catch (error) {
     console.error('Error analyzing body language:', error);
-    res.status(500).json({ message: 'Error analyzing body language', error: String(error) });
+    res.status(500).json({ message: 'Error analyzing body language' });
   }
 };

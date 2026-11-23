@@ -34,7 +34,7 @@ export const uploadResume = async (req: AuthRequest, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Error uploading resume:', error);
-    res.status(500).json({ message: 'Error uploading resume', error: String(error) });
+    res.status(500).json({ message: 'Error uploading resume' });
   }
 };
 
@@ -48,7 +48,7 @@ export const getResume = async (req: AuthRequest, res: Response): Promise<void> 
 
     res.json(resume);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching resume', error: String(error) });
+    res.status(500).json({ message: 'Error fetching resume' });
   }
 };
 
@@ -57,7 +57,7 @@ export const getUserResumes = async (req: AuthRequest, res: Response): Promise<v
     const resumes = await Resume.find({ userId: req.user?.id }).sort({ createdAt: -1 });
     res.json(resumes);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching resumes', error: String(error) });
+    res.status(500).json({ message: 'Error fetching resumes' });
   }
 };
 
@@ -83,7 +83,7 @@ export const analyzeResume = async (req: AuthRequest, res: Response): Promise<vo
       analysis,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error analyzing resume', error: String(error) });
+    res.status(500).json({ message: 'Error analyzing resume' });
   }
 };
 
@@ -100,6 +100,6 @@ export const deleteResume = async (req: AuthRequest, res: Response): Promise<voi
     catch (fileError: any) { if (fileError?.code !== 'ENOENT') console.error('Failed to remove resume file:', fileError); }
     res.json({ message: 'Resume deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting resume', error: String(error) });
+    res.status(500).json({ message: 'Error deleting resume' });
   }
 };

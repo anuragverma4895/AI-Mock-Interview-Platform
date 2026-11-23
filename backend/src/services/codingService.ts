@@ -61,7 +61,7 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
     });
   } catch (error) {
     console.error('Error starting coding session:', error);
-    res.status(500).json({ message: 'Error starting coding session', error: String(error) });
+    res.status(500).json({ message: 'Error starting coding session' });
   }
 };
 
@@ -136,7 +136,7 @@ export const getUserCodingSessions = async (req: AuthRequest, res: Response): Pr
     res.json(sessions);
   } catch (error) {
     console.error('Error fetching coding sessions:', error);
-    res.status(500).json({ message: 'Error fetching coding sessions', error: String(error) });
+    res.status(500).json({ message: 'Error fetching coding sessions' });
   }
 };
 
@@ -169,7 +169,7 @@ export const getCodingSession = async (req: AuthRequest, res: Response): Promise
     res.json(session);
   } catch (error) {
     console.error('Error fetching coding session:', error);
-    res.status(500).json({ message: 'Error fetching coding session', error: String(error) });
+    res.status(500).json({ message: 'Error fetching coding session' });
   }
 };
 
@@ -182,6 +182,6 @@ export const generateChallenge = async (req: AuthRequest, res: Response): Promis
     res.status(200).json(challenge);
   } catch (error) {
     console.error('Error generating AI coding challenge:', error);
-    res.status(500).json({ message: 'Error generating challenge', error: String(error) });
+    res.status(500).json({ message: 'Error generating challenge' });
   }
 };

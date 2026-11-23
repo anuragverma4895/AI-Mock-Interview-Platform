@@ -92,7 +92,7 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     });
   } catch (error) {
     console.error('Error starting interview:', error);
-    res.status(500).json({ message: 'Error starting interview', error: String(error) });
+    res.status(500).json({ message: 'Error starting interview' });
   }
 };
 
@@ -174,7 +174,7 @@ export const getNextQuestion = async (req: AuthRequest, res: Response): Promise<
     });
   } catch (error) {
     console.error('Error getting next question:', error);
-    res.status(500).json({ message: 'Error getting next question', error: String(error) });
+    res.status(500).json({ message: 'Error getting next question' });
   }
 };
 
@@ -228,7 +228,7 @@ export const submitAnswer = async (req: AuthRequest, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Error submitting answer:', error);
-    res.status(500).json({ message: 'Error submitting answer', error: String(error) });
+    res.status(500).json({ message: 'Error submitting answer' });
   }
 };
 
@@ -265,7 +265,7 @@ export const askFollowUp = async (req: AuthRequest, res: Response): Promise<void
     res.json({ followUpQuestion: followUp });
   } catch (error) {
     console.error('Error generating follow-up:', error);
-    res.status(500).json({ message: 'Error generating follow-up', error: String(error) });
+    res.status(500).json({ message: 'Error generating follow-up' });
   }
 };
 
@@ -315,7 +315,7 @@ export const endInterview = async (req: AuthRequest, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Error ending interview:', error);
-    res.status(500).json({ message: 'Error ending interview', error: String(error) });
+    res.status(500).json({ message: 'Error ending interview' });
   }
 };
 
@@ -403,7 +403,7 @@ export const getInterview = async (req: AuthRequest, res: Response): Promise<voi
     }
     res.json(interview);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching interview', error: String(error) });
+    res.status(500).json({ message: 'Error fetching interview' });
   }
 };
 
@@ -419,7 +419,7 @@ export const getUserInterviews = async (req: AuthRequest, res: Response): Promis
       .sort({ createdAt: -1 });
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching interviews', error: String(error) });
+    res.status(500).json({ message: 'Error fetching interviews' });
   }
 };
 
@@ -439,6 +439,6 @@ export const getTranscript = async (req: AuthRequest, res: Response): Promise<vo
       questions: interview.questions,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching transcript', error: String(error) });
+    res.status(500).json({ message: 'Error fetching transcript' });
   }
 };

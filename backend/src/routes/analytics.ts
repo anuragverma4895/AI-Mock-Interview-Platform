@@ -45,7 +45,7 @@ router.get('/interview/:id', auth, validateInterviewAnalyticsId, async (req: Aut
     });
   } catch (error) {
     console.error('Error fetching interview analytics:', error);
-    res.status(500).json({ message: 'Error fetching interview analytics', error: String(error) });
+    res.status(500).json({ message: 'Error fetching interview analytics' });
   }
 });
 
@@ -130,7 +130,7 @@ router.get('/:userId', auth, validateAnalyticsUserId, async (req: AuthRequest, r
     });
   } catch (error) {
     console.error('Error fetching analytics:', error);
-    res.status(500).json({ message: 'Error fetching analytics', error: String(error) });
+    res.status(500).json({ message: 'Error fetching analytics' });
   }
 });
 
