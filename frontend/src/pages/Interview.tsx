@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { interviewAPI, demoAPI } from '../services/api';
-import { Interview as InterviewData, AnswerEvaluation } from '../types';
+import { Interview as InterviewData } from '../types';
+import InterviewConversation from '../components/InterviewConversation';
 import { useBodyLanguageAnalysis } from '../hooks/useBodyLanguageAnalysis';
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,13 +19,8 @@ import {
   VideoOff,
   Send,
   Clock,
-  MessageCircle,
   CheckCircle,
-  Lightbulb,
-  Target,
-  User,
-  Volume2,
-  XCircle
+  Volume2
 } from "lucide-react"
 
 export default function Interview() {
@@ -33,7 +29,6 @@ export default function Interview() {
   const [interview, setInterview] = useState<InterviewData | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [answer, setAnswer] = useState('');
-  const [evaluation, setEvaluation] = useState<AnswerEvaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [questionLoading, setQuestionLoading] = useState(false);
@@ -43,7 +38,6 @@ export default function Interview() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLastQuestion, setIsLastQuestion] = useState(false);
-  const [conversation, setConversation] = useState<Array<{type: 'ai' | 'user', text: string}>>([]);
   const [listening, setListening] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(true);
   const [micEnabled, setMicEnabled] = useState(true);
@@ -52,6 +46,7 @@ export default function Interview() {
   const [recordingSaveError, setRecordingSaveError] = useState(false);
   const [recordingSaveErrorMessage, setRecordingSaveErrorMessage] = useState('');
   const [endingInterview, setEndingInterview] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -171,7 +166,8 @@ export default function Interview() {
       if (res.data.questions[res.data.currentQuestionIndex]) {
         setCurrentQuestion(res.data.questions[res.data.currentQuestionIndex]);
         const q = res.data.questions[res.data.currentQuestionIndex];
-        setConversation([{type: 'ai', text: q.question}]);
+        setShowFeedback(Boolean(q.answer?.trim()));
+        setIsLastQuestion(res.data.currentQuestionIndex >= 9);
         speak(q.question);
       }
       setTimeLeft((res.data.duration || 45) * 60);
@@ -379,15 +375,26 @@ export default function Interview() {
     if (!answer.trim()) return;
     setSubmitting(true);
 
-    setConversation(prev => [...prev, {type: 'user', text: answer}]);
+    setSubmissionError('');
+    manualStopRef.current = true;
+    recognitionRef.current?.stop();
+    setListening(false);
 
     try {
-      const res = await interviewAPI.submitAnswer(id!, answer);
-      setEvaluation(res.data.evaluation);
+      const submittedAnswer = answer.trim();
+      const res = await interviewAPI.submitAnswer(id!, submittedAnswer);
+      setInterview(prev => prev ? {
+        ...prev,
+        questions: prev.questions.map((question, index) =>
+          index === prev.currentQuestionIndex ? { ...question, answer: submittedAnswer } : question
+        ),
+      } : prev);
       setIsLastQuestion(res.data.isLastQuestion || false);
+      // Evaluation is kept on the server and revealed only on the results page.
       setShowFeedback(true);
     } catch (error) {
       console.error('Error submitting answer:', error);
+      setSubmissionError('Could not save your answer. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -399,8 +406,8 @@ export default function Interview() {
     try {
       const res = await interviewAPI.getNextQuestion(id!);
       setAnswer('');
-      setEvaluation(null);
       setShowFeedback(false);
+      setSubmissionError('');
       setCurrentQuestion(res.data.question);
       setInterview(prev => {
         if (!prev) return prev;
@@ -410,7 +417,6 @@ export default function Interview() {
           questions: [...prev.questions, res.data.question],
         };
       });
-      setConversation(prev => [...prev, {type: 'ai', text: res.data.question.question}]);
       speak(res.data.question.question);
     } catch (error) {
       console.error('Error getting next question:', error);
@@ -556,7 +562,7 @@ export default function Interview() {
         animate={{ y: 0 }}
         className="bg-black/20 backdrop-blur-md border-b border-white/10 p-4"
       >
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="w-full max-w-[1760px] mx-auto flex flex-wrap justify-between items-center gap-3 px-2 sm:px-5">
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600" />
@@ -610,8 +616,8 @@ export default function Interview() {
         </div>
       </motion.header>
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 min-h-[calc(100vh-120px)] lg:items-start">
+      <div className="w-full max-w-[1760px] mx-auto px-3 sm:px-5 lg:px-7 py-5 lg:py-7">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] gap-4 lg:gap-6 items-start">
           {/* Left Panel - AI Interaction */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -620,16 +626,16 @@ export default function Interview() {
           >
             {/* AI Avatar & Question */}
             <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-              <CardContent className="p-5 sm:p-6 lg:p-8 h-full max-h-none lg:max-h-[calc(100vh-150px)] overflow-y-auto flex flex-col">
+              <CardContent className="p-5 sm:p-6 lg:p-7 flex flex-col">
                 {/* AI Avatar */}
-                <div className="flex items-center justify-center mb-8">
+                <div className="flex items-center justify-center mb-5">
                   <motion.div
                     animate={isSpeaking ? { scale: 1.1 } : { scale: 1 }}
                     transition={{ duration: 0.3 }}
                     className="relative"
                   >
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center text-5xl shadow-2xl border-4 border-white/20">
-                      <Bot className="h-16 w-16 text-white drop-shadow-lg" />
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center shadow-xl border-4 border-white/20">
+                      <Bot className="h-10 w-10 text-white drop-shadow-lg" />
                     </div>
                     <div className="absolute bottom-2 right-2 bg-emerald-400 w-6 h-6 rounded-full border-2 border-white/20 shadow-lg flex items-center justify-center">
                       <Mic className="h-3 w-3 text-white" />
@@ -661,7 +667,7 @@ export default function Interview() {
                       <div className="flex items-start space-x-3 mb-4">
                         <MessageCircle className="h-6 w-6 text-blue-400 mt-1 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="max-h-[200px] overflow-y-auto pr-2">
+                          <div>
                             <p className="text-white text-lg leading-relaxed mb-4 whitespace-pre-wrap">
                               {currentQuestion?.question}
                             </p>
@@ -696,7 +702,7 @@ export default function Interview() {
                         value={answer}
                         onChange={(e) => setAnswer(e.target.value)}
                         placeholder="Type your answer here, or use voice input..."
-                        className="w-full h-32 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-white placeholder-white/60 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300 resize-none"
+                        className="w-full min-h-36 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 text-white placeholder-white/60 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300 resize-y"
                       />
 
                       <div className="flex flex-col sm:flex-row gap-3">
@@ -736,91 +742,35 @@ export default function Interview() {
                           )}
                         </Button>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Feedback Display */}
-                <AnimatePresence>
-                  {showFeedback && evaluation && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="space-y-5 pb-2"
-                    >
-                      {/* Score Card */}
-                      <Card className="bg-gradient-to-r from-emerald-500 to-green-600 border-0 shadow-2xl">
-                        <CardContent className="p-5 sm:p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-white">Your Score</h3>
-                            <div className="text-4xl font-black text-white">{evaluation.score}/5</div>
-                          </div>
-                          <p className="text-white/95 text-lg">{evaluation.feedback}</p>
-                        </CardContent>
-                      </Card>
-
-                      {/* Strengths & Improvements */}
-                      <div className="grid grid-cols-1 gap-4">
-                        <Card className="bg-white/10 backdrop-blur-sm border border-emerald-400/20">
-                          <CardContent className="p-5">
-                            <h4 className="text-emerald-300 font-bold mb-4 flex items-center gap-2">
-                              <CheckCircle className="h-5 w-5" />
-                              Strengths
-                            </h4>
-                            <ul className="space-y-2 text-white/90">
-                              {evaluation.strengths.map((s, i) => (
-                                <li key={i} className="flex items-start gap-3">
-                                  <span className="mt-2 h-2 w-2 rounded-full bg-emerald-400" />
-                                  <span className="text-sm leading-relaxed">{s}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-
-                        <Card className="bg-white/10 backdrop-blur-sm border border-amber-400/20">
-                          <CardContent className="p-5">
-                            <h4 className="text-amber-300 font-bold mb-4 flex items-center gap-2">
-                              <XCircle className="h-5 w-5" />
-                              Areas to Improve
-                            </h4>
-                            <ul className="space-y-2 text-white/90">
-                              {evaluation.improvements.map((imp, i) => (
-                                <li key={i} className="flex items-start gap-3">
-                                  <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                                  <span className="text-sm leading-relaxed">{imp}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-                      </div>
-
-                      {/* Follow-up Question */}
-                      {evaluation.followUpQuestion && (
-                        <Card className="bg-gradient-to-r from-blue-600/30 to-indigo-600/30 backdrop-blur-sm border border-blue-400/30">
-                          <CardContent className="p-5">
-                            <p className="text-blue-100 font-semibold flex items-start gap-2 leading-relaxed">
-                              <Target className="h-5 w-5 shrink-0 mt-0.5" />
-                              <span>Follow-up: {evaluation.followUpQuestion}</span>
-                            </p>
-                          </CardContent>
-                        </Card>
+                      {submissionError && (
+                        <p role="alert" className="text-sm font-medium text-rose-200">{submissionError}</p>
                       )}
-
-                      {/* Next Action */}
-                      <Button
-                        onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
-                        disabled={questionLoading || endingInterview}
-                        className="sticky bottom-0 w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 py-4 text-base sm:text-lg font-bold shadow-2xl shadow-purple-950/30 min-h-14"
-                      >
-                        {questionLoading ? 'Loading next question...' : isLastQuestion ? 'Finish Interview' : 'Next Question'}
-                        {!isLastQuestion && !questionLoading && <ArrowRight className="ml-2 h-5 w-5" />}
-                      </Button>
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Detailed AI scores stay private until the completed results page. */}
+                {showFeedback && (
+                  <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 sm:p-5 space-y-4" role="status">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="h-6 w-6 text-emerald-300 shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Answer saved</h3>
+                        <p className="text-sm text-blue-100/85 leading-relaxed">
+                          Your response is recorded. Scores and detailed feedback will be available after the interview.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={isLastQuestion ? handleEndInterview : handleNextQuestion}
+                      disabled={questionLoading || endingInterview}
+                      className="w-full min-h-12 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold"
+                    >
+                      {questionLoading ? 'Preparing next question...' : endingInterview ? 'Finishing interview...' : isLastQuestion ? 'Finish & View Results' : 'Next Question'}
+                      {!isLastQuestion && !questionLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -883,67 +833,23 @@ export default function Interview() {
               </CardContent>
             </Card>
 
-            {/* Progress & Status */}
-            <div className="grid grid-cols-1 gap-4">
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white/80 text-sm">Interview Progress</span>
-                    <span className="text-white font-semibold">
-                      {(interview?.currentQuestionIndex ?? 0) + 1} / 10
-                    </span>
-                  </div>
-                    <Progress
-                      value={(((interview?.currentQuestionIndex ?? 0) + 1) / 10) * 100}
-                      className="h-2"
-                    />
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-md border border-white/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/80 text-sm">Interview Progress</span>
-                    <span className="text-white font-semibold">
-                      {(interview?.currentQuestionIndex ?? 0) + 1} / 10
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Conversation History */}
-            <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl flex-1">
-              <CardContent className="p-4 h-64">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  Conversation
-                </h3>
-                <div className="space-y-3 overflow-y-auto h-full">
-                  {conversation.slice(-5).map((msg, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: msg.type === 'ai' ? -20 : 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`p-3 rounded-lg text-sm ${
-                        msg.type === 'ai'
-                          ? 'bg-blue-600/30 border border-blue-400/30 text-blue-200'
-                          : 'bg-emerald-600/30 border border-emerald-400/30 text-emerald-200 ml-auto max-w-xs'
-                      }`}
-                    >
-                      <div className="font-semibold text-xs mb-1">
-                        <span className="inline-flex items-center gap-1">
-                          {msg.type === 'ai' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                          {msg.type === 'ai' ? 'Interview AI' : 'You'}
-                        </span>
-                      </div>
-                      {msg.text}
-                    </motion.div>
-                  ))}
+            {/* One clear progress indicator, without duplicate cards. */}
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+              <CardContent className="p-5">
+                <div className="flex justify-between gap-2 items-center mb-3">
+                  <span className="text-white/85 font-medium text-sm">Interview progress</span>
+                  <span className="text-white font-semibold text-sm">
+                    {(interview?.currentQuestionIndex ?? 0) + 1} / 10 questions
+                  </span>
                 </div>
+                <Progress value={(((interview?.currentQuestionIndex ?? 0) + 1) / 10) * 100} className="h-2" />
+                <p className="text-white/60 text-xs mt-3">Full scoring and feedback appear when you finish.</p>
               </CardContent>
             </Card>
           </motion.div>
+        </div>
+        <div className="mt-6">
+          <InterviewConversation questions={interview?.questions || []} variant="dark" />
         </div>
       </div>
     </div>
