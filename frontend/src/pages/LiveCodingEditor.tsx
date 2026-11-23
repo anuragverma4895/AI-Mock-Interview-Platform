@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
 import { codingAPI, CodingChallenge, CodingTestResult } from "../services/api"
+import { runJavaScriptLocally } from "../lib/browserCodeRunner"
 
 export default function LiveCodingEditor() {
   const navigate = useNavigate()
@@ -149,20 +150,29 @@ export default function LiveCodingEditor() {
     setError(null)
 
     try {
-      const res = await codingAPI.run(session.id, code, language)
-      const results: CodingTestResult[] = res.data.results
-      const passedCount = res.data.passedCount
-      const totalCount = res.data.totalCount
+      let results: CodingTestResult[]
+      let method: string
+      if (language === 'javascript') {
+        if (!challenge) throw new Error('No challenge loaded')
+        results = await runJavaScriptLocally(code, challenge)
+        method = 'Browser JavaScript runner (no AI key required)'
+      } else {
+        const res = await codingAPI.run(session.id, code, language)
+        results = res.data.results
+        method = 'AI-estimated review (requires an AI provider)'
+      }
+      const passedCount = results.filter(result => result.passed).length
+      const totalCount = results.length
 
       let out = ''
       results.forEach((r, index) => {
         out += `Test ${index + 1}: ${r.passed ? 'PASS' : 'FAIL'}\n`
       })
-      out += `\nAI-estimated review: ${passedCount}/${totalCount} cases. Not executed in a sandbox; results may be inaccurate.\n`
+      out += `\n${passedCount}/${totalCount} cases passed. ${method}.\n`
       setOutput(out)
       setTestResults(results)
     } catch (err: any) {
-      setOutput(`Error: ${err?.response?.data?.message || 'Unable to run code'}\n`)
+      setOutput(`Error: ${err?.response?.data?.message || err?.message || 'Unable to run code'}\n`)
       setTestResults([])
     } finally {
       setIsRunning(false)
@@ -174,10 +184,16 @@ export default function LiveCodingEditor() {
     setIsSubmitting(true)
     setError(null)
     try {
-      await codingAPI.submit(session.id, code, language)
+      let browserResults: CodingTestResult[] | undefined
+      if (language === 'javascript') {
+        if (!challenge) throw new Error('No challenge loaded')
+        browserResults = await runJavaScriptLocally(code, challenge)
+        setTestResults(browserResults)
+      }
+      await codingAPI.submit(session.id, code, language, browserResults)
       navigate(`/interview-result/${session.id}`)
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Unable to submit coding challenge')
+      setError(err?.response?.data?.message || err?.message || 'Unable to submit coding challenge')
     } finally {
       setIsSubmitting(false)
     }
@@ -206,7 +222,7 @@ export default function LiveCodingEditor() {
         animate={{ y: 0, opacity: 1 }}
         className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 p-4"
       >
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="w-full max-w-[1840px] mx-auto flex flex-wrap justify-between items-center gap-4 px-1 sm:px-3">
           <div className="flex items-center space-x-4">
             <Button
               size="sm"
@@ -275,28 +291,28 @@ export default function LiveCodingEditor() {
       </motion.header>
 
       {error && (
-        <div className="max-w-7xl mx-auto px-6 pt-6">
-          <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300">
+        <div className="w-full max-w-[1840px] mx-auto px-3 sm:px-5 pt-4">
+          <div role="alert" className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-medium">
             {error}
           </div>
         </div>
       )}
 
       {loading ? (
-        <div className="max-w-7xl mx-auto p-6 flex items-center justify-center min-h-[calc(100vh-120px)]">
+        <div className="w-full max-w-[1840px] mx-auto p-5 flex items-center justify-center min-h-[calc(100vh-120px)]">
           <div className="text-center">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mx-auto mb-4" />
             <p className="text-slate-600 dark:text-slate-300">Starting coding session...</p>
           </div>
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="w-full max-w-[1840px] mx-auto px-3 sm:px-5 lg:px-6 py-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.4fr)] 2xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.5fr)] gap-4 lg:gap-5 items-start">
           {/* Left Panel - Challenge Description */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
+            className="min-w-0 space-y-4"
           >
             <Card>
               <CardHeader>
@@ -337,13 +353,31 @@ export default function LiveCodingEditor() {
               </CardContent>
             </Card>
 
+            {/* Output Console */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Terminal className="h-5 w-5" />
+                  Console Output
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={output}
+                  readOnly
+                  className="h-32 font-mono text-sm bg-slate-900 text-green-400 border-slate-700"
+                  placeholder="JavaScript runs test cases in your browser; other languages require a configured evaluator."
+                />
+              </CardContent>
+            </Card>
+
             {/* Test Results */}
             {testResults.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Terminal className="h-5 w-5" />
-                    AI-Estimated Results
+                    {language === 'javascript' ? 'Browser Test Results' : 'AI-Estimated Results'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -384,16 +418,16 @@ export default function LiveCodingEditor() {
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
+            className="min-w-0 space-y-4"
           >
-            <Card className="h-[600px]">
+            <Card className="overflow-hidden">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2">
                     <Code className="h-5 w-5" />
                     Code Editor
                   </CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={language}
                       onChange={handleLanguageChange}
@@ -425,13 +459,13 @@ export default function LiveCodingEditor() {
                       ) : (
                         <Play className="h-4 w-4" />
                       )}
-                      {isRunning ? 'Reviewing...' : 'AI Review (Preview)'}
+                      {isRunning ? 'Running...' : language === 'javascript' ? 'Run Tests' : 'AI Review'}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-0 h-full">
-                <div className="h-[500px] border rounded-lg overflow-hidden">
+              <CardContent className="p-0">
+                <div className="h-[min(64vh,720px)] min-h-[420px] overflow-hidden">
                   <Editor
                     height="100%"
                     language={language}
@@ -456,23 +490,6 @@ export default function LiveCodingEditor() {
               </CardContent>
             </Card>
 
-            {/* Output Console */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Terminal className="h-5 w-5" />
-                  Console Output
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={output}
-                  readOnly
-                  className="h-32 font-mono text-sm bg-slate-900 text-green-400 border-slate-700"
-                  placeholder="Run your code to see output here..."
-                />
-              </CardContent>
-            </Card>
           </motion.div>
         </div>
       </div>
