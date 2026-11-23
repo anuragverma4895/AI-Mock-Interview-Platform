@@ -38,7 +38,7 @@ export default function Analytics() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950 dark:text-slate-100">
       <nav className="border-b border-slate-200/60 bg-white/80 shadow-sm backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/80">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-[1600px] mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-xl font-bold">PrepVerse - Analytics</h1>
             <div className="flex items-center gap-3">
@@ -54,7 +54,7 @@ export default function Analytics() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="max-w-[1600px] mx-auto p-4 sm:p-6 lg:p-8">
         <h2 className="text-2xl font-bold mb-6">Your Performance Analytics</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

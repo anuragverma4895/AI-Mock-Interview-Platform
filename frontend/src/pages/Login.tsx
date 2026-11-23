@@ -29,8 +29,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-96">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="bg-white/95 p-5 sm:p-8 rounded-2xl shadow-xl border border-slate-200 w-full max-w-md mx-4">
         <h1 className="text-2xl font-bold text-center mb-6">PrepVerse</h1>
         <h2 className="text-xl text-center mb-6">Login</h2>
         
