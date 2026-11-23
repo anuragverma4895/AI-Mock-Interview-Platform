@@ -135,8 +135,8 @@ export default function VideoLibrary() {
             <Card className="bg-white/10 backdrop-blur-xl border-white/20">
               <CardContent className="p-4">
                 <p className="text-white/60 text-sm mb-1">Difficulty</p>
-                <Badge className={getDifficultyColor(selectedVideo.difficulty)}>
-                  {selectedVideo.difficulty}
+                <Badge className={getDifficultyColor(selectedVideo.preferredDifficulty || selectedVideo.difficulty || 'medium')}>
+                  {selectedVideo.preferredDifficulty || selectedVideo.difficulty || 'medium'}
                 </Badge>
               </CardContent>
             </Card>
