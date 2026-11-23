@@ -5,7 +5,7 @@ const root = path.join(__dirname,'..');
 const port = 5007;
 const server=spawn(process.execPath,['dist/index.js'],{
   cwd:root,
-  env:{...process.env,PORT:String(port),NODE_ENV:'production',SERVE_FRONTEND:'true',FRONTEND_URL:''},
+  env:{...process.env,PORT:String(port),NODE_ENV:'production',SERVE_FRONTEND:'false',FRONTEND_URL:'http://127.0.0.1:'+port},
   stdio:['ignore','pipe','pipe'],
 });
 server.stdout.on('data',data=>process.stdout.write('[fullstack] '+data));
@@ -14,7 +14,7 @@ async function waitForRoot(){
   for(let i=0;i<70;i++){
     if(server.exitCode!==null)throw new Error('Full-stack server exited early');
     try{
-      const response=await fetch('http://127.0.0.1:'+port+'/');
+      const response=await fetch('http://127.0.0.1:'+port+'/',{redirect:'manual'});
       if(response.status===200)return response;
     }catch{}
     await new Promise(resolve=>setTimeout(resolve,250));

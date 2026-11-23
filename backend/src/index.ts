@@ -12,6 +12,7 @@ import demoRoutes from './routes/demo';
 import codingRoutes from './routes/coding';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
+import { existsSync } from 'fs';
 import { rateLimit } from './middleware/rateLimit';
 
 // Handle unhandled Promise rejections
@@ -27,6 +28,12 @@ process.on('uncaughtException', (err: any) => {
   process.exit(1);
 });
 
+// Detect built frontend assets, regardless of a stale SERVE_FRONTEND setting.
+// Backend-only Render builds do not contain frontend/dist and remain API-only.
+const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+const serveBuiltFrontend = config.nodeEnv === 'production' && existsSync(frontendIndexPath);
+
 const app = express();
 // Render places one trusted reverse proxy in front of the Node service.
 if (config.nodeEnv === 'production') app.set('trust proxy', 1);
@@ -39,7 +46,7 @@ app.use((req, res, next) => {
 
 // In production, relax helmet CSP so the SPA can load its own scripts/styles
 app.use(helmet({
-  contentSecurityPolicy: config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true' ? false : undefined,
+  contentSecurityPolicy: serveBuiltFrontend ? false : undefined,
 }));
 
 // Allow browser cross-origin calls only from configured frontend domains.
@@ -92,45 +99,48 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ---- Serve Frontend in Production ----
-// After npm run build, frontend/dist contains the Vite-built SPA.
-// The backend serves it as static files so both run on a single Render service.
-const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
-
-if (config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true') {
-  // Serve static assets (JS, CSS, images, etc.)
+// ---- Frontend and API-root routing ----
+// A combined build always serves its own React assets. This prevents
+// FRONTEND_URL pointing to the same service from causing redirect loops.
+if (serveBuiltFrontend) {
   app.use(express.static(frontendDistPath));
-
-  // SPA catch-all: any non-API route returns index.html so React Router works
   app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendDistPath, 'index.html'));
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ message: 'API route not found' });
+      return;
+    }
+    res.sendFile(frontendIndexPath);
   });
-}
-
-// API-only deployments provide a helpful root response or redirect to the configured frontend.
-// Combined deployments serve / from React's built dist via the static middleware above.
-if (!(config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true')) {
-// The API-only Render URL is not a frontend. Redirect to the deployed SPA when configured.
-app.get('/', (_req, res) => {
-  const frontend = process.env.FRONTEND_URL?.trim();
-  if (frontend) {
-    try {
-      const url = new URL(frontend);
-      if (url.protocol === 'https:' || (config.nodeEnv !== 'production' && url.protocol === 'http:')) {
-        res.redirect(302, url.origin + url.pathname);
-        return;
+} else {
+  // API-only deployments can link to an actual *different* frontend host.
+  app.get('/', (req, res) => {
+    const frontend = process.env.FRONTEND_URL?.trim();
+    if (frontend) {
+      try {
+        const url = new URL(frontend);
+        const allowedProtocol = url.protocol === 'https:' ||
+          (config.nodeEnv !== 'production' && url.protocol === 'http:');
+        // Comparing hostnames also catches reverse-proxy HTTPS redirects back
+        // into the same Render service (regardless of forwarded port/scheme).
+        const pointsToSelf = url.hostname.toLowerCase() === req.hostname.toLowerCase();
+        if (allowedProtocol && !pointsToSelf) {
+          res.redirect(302, url.origin + url.pathname);
+          return;
+        }
+      } catch {
+        // Invalid FRONTEND_URL must never break the backend status route.
       }
-    } catch { /* invalid configured frontend URL; return API information below */ }
-  }
-  res.json({
-    service: 'PrepVerse API',
-    status: 'ok',
-    message: 'This is the backend API, not the React website. Deploy the frontend static site and set FRONTEND_URL.',
-    health: '/api/health',
+    }
+    res.status(200).json({
+      service: 'PrepVerse API',
+      status: 'ok',
+      message: 'This deployment is API-only. Deploy the frontend or build the repository from its root.',
+      health: '/api/health',
+    });
   });
-});
-
-
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ message: 'API route not found' });
+  });
 }
 
 // Error handling middleware (must be last)
@@ -138,8 +148,10 @@ app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server is running on port ${config.port}`);
-  if (config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true') {
-    console.log(`Serving frontend from: ${frontendDistPath}`);
+  if (serveBuiltFrontend) {
+    console.log(`React frontend served from: ${frontendDistPath}`);
+  } else if (config.nodeEnv === 'production') {
+    console.log('API-only mode: frontend/dist/index.html was not found.');
   }
 }).on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
