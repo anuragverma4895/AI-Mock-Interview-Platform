@@ -8,7 +8,7 @@ export interface InterviewHistoryItem {
 const RECENT_QUESTIONS_LIMIT = 4;
 const EARLIER_TOPICS_LIMIT = 14;
 const STOP_WORDS = new Set([
-  'about', 'after', 'also', 'and', 'are', 'can', 'could', 'describe', 'different',
+  'about', 'after', 'also', 'and', 'are', 'between', 'can', 'could', 'describe', 'different',
   'difference', 'discuss', 'does', 'explain', 'for', 'from', 'give', 'how', 'into',
   'interview', 'is', 'its', 'me', 'of', 'or', 'please', 'tell', 'that', 'the',
   'their', 'them', 'there', 'these', 'this', 'using', 'versus', 'what', 'when',
