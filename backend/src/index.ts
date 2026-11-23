@@ -28,6 +28,8 @@ process.on('uncaughtException', (err: any) => {
 });
 
 const app = express();
+// Render places one trusted reverse proxy in front of the Node service.
+if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -37,7 +39,7 @@ app.use((req, res, next) => {
 
 // In production, relax helmet CSP so the SPA can load its own scripts/styles
 app.use(helmet({
-  contentSecurityPolicy: config.nodeEnv === 'production' ? false : undefined,
+  contentSecurityPolicy: config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true' ? false : undefined,
 }));
 
 // Allow browser cross-origin calls only from configured frontend domains.

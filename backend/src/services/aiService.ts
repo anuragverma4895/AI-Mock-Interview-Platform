@@ -4,8 +4,7 @@ import { areQuestionsSimilar, buildBoundedQuestionContext, extractPreviousQuesti
 
 // Initialize AI clients
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
+  apiKey: process.env.OPENAI_API_KEY
 }) : null;
 
 const USE_AI = !!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY);

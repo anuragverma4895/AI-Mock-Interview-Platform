@@ -5,8 +5,16 @@ export const rateLimit = (maxRequests: number, windowMs: number) => {
   const requests = new Map<string, { count: number; expiresAt: number }>();
   return (req: Request, res: Response, next: NextFunction): void => {
     const now = Date.now();
-    if (requests.size > 10000) {
-      for (const [key, entry] of requests) if (entry.expiresAt <= now) requests.delete(key);
+    if (requests.size >= 10000) {
+      for (const [key, entry] of requests) {
+        if (entry.expiresAt <= now) requests.delete(key);
+      }
+      // Prevent unbounded memory growth from rapidly changing client addresses.
+      while (requests.size >= 10000) {
+        const oldestKey = requests.keys().next().value as string | undefined;
+        if (!oldestKey) break;
+        requests.delete(oldestKey);
+      }
     }
     const key = req.ip || req.socket.remoteAddress || 'unknown';
     const previous = requests.get(key);
