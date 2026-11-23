@@ -1,4 +1,5 @@
 import https from 'https';
+import { once } from 'events';
 import crypto from 'crypto';
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || '';
@@ -47,10 +48,9 @@ export const uploadVideoToCloudinary = async (
   parts.push(Buffer.from(
     `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${publicId}.webm"\r\nContent-Type: video/webm\r\n\r\n`
   ));
-  parts.push(videoBuffer);
-  parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
-
-  const body = Buffer.concat(parts);
+  const header = Buffer.concat(parts); // Only small text fields.
+  const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const totalLength = header.length + videoBuffer.length + footer.length;
 
   return new Promise((resolve, reject) => {
     const options = {
@@ -59,7 +59,7 @@ export const uploadVideoToCloudinary = async (
       method: 'POST',
       headers: {
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
-        'Content-Length': body.length,
+        'Content-Length': totalLength,
       },
     };
 
@@ -88,8 +88,17 @@ export const uploadVideoToCloudinary = async (
     req.setTimeout(5 * 60 * 1000, () => {
       req.destroy(new Error('Cloudinary upload timed out'));
     });
-    req.write(body);
-    req.end();
+    // Stream the existing buffer in chunks and respect socket backpressure.
+    void (async () => {
+      if (!req.write(header)) await once(req, 'drain');
+      const step = 1024 * 1024;
+      for (let offset = 0; offset < videoBuffer.length; offset += step) {
+        if (!req.write(videoBuffer.subarray(offset, Math.min(offset + step, videoBuffer.length)))) {
+          await once(req, 'drain');
+        }
+      }
+      req.end(footer);
+    })().catch(reject);
   });
 };
 
