@@ -38,7 +38,7 @@ function detectSignature(challenge: ChallengeShape, language: Language) {
   };
   const match = code.match(patterns[language] || /$^/);
   if (!match) throw new Error('Unable to detect '+language+' function signature');
-  return { name:match[2], returns:match[1].trim(), args:splitArguments(match[3]) };
+  return { name:match[2], returns:match[1].replace(/^.*(?:public|private|protected)\s*:\s*/s, '').trim(), args:splitArguments(match[3]) };
 }
 function paramType(declaration: string): string {
   return declaration.replace(/\b\w+\s*$/, '').trim().replace(/^const\s+/, '').replace(/[&]\s*$/, '').trim();
