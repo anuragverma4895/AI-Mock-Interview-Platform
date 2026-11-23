@@ -570,23 +570,7 @@ export const evaluateCode = async (
   testCases: Array<{ input: string; expectedOutput: string }>,
   functionName: string
 ): Promise<{ results: CodeTestResult[]; passedCount: number; totalCount: number }> => {
-  if (!USE_AI) {
-    // Fallback: if no AI, try JS-only evaluation (legacy behavior)
-    if (language === 'javascript') {
-      return evaluateJavaScriptLocally(code, testCases, functionName);
-    }
-    // For non-JS languages without AI, return error
-    return {
-      results: testCases.map((tc) => ({
-        passed: false,
-        input: tc.input,
-        expected: tc.expectedOutput,
-        actual: 'AI service unavailable — cannot evaluate ' + language + ' code',
-      })),
-      passedCount: 0,
-      totalCount: testCases.length,
-    };
-  }
+  if (!USE_AI) throw new Error('AI code review is unavailable; configure an AI provider.');
 
   try {
     const testCaseStr = testCases
@@ -631,11 +615,14 @@ Respond in this EXACT JSON format (no markdown, no explanation):
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const data = JSON.parse(jsonMatch[0]);
-      const results: CodeTestResult[] = (data.results || []).map((r: any, i: number) => ({
-        passed: !!r.passed,
-        input: r.input || testCases[i]?.input || '',
-        expected: r.expected || testCases[i]?.expectedOutput || '',
-        actual: r.actual || 'Unknown',
+      if (!Array.isArray(data.results) || data.results.length !== testCases.length) {
+        throw new Error('AI returned an incomplete code review');
+      }
+      const results: CodeTestResult[] = testCases.map((tc, i) => ({
+        passed: data.results[i]?.passed === true,
+        input: tc.input,
+        expected: tc.expectedOutput,
+        actual: typeof data.results[i]?.actual === 'string' ? data.results[i].actual : 'Unknown',
       }));
 
       return {
@@ -648,70 +635,12 @@ Respond in this EXACT JSON format (no markdown, no explanation):
     throw new Error('Failed to parse AI evaluation response');
   } catch (error) {
     console.error('AI code evaluation failed:', error);
-    // Fallback for JavaScript
-    if (language === 'javascript') {
-      return evaluateJavaScriptLocally(code, testCases, functionName);
-    }
-    return {
-      results: testCases.map((tc) => ({
-        passed: false,
-        input: tc.input,
-        expected: tc.expectedOutput,
-        actual: 'Evaluation error — please try again',
-      })),
-      passedCount: 0,
-      totalCount: testCases.length,
-    };
+    throw new Error('Code review is temporarily unavailable. Please try again later.');
   }
 };
 
-/** Local JavaScript evaluation (no AI needed) */
-function evaluateJavaScriptLocally(
-  code: string,
-  testCases: Array<{ input: string; expectedOutput: string }>,
-  functionName: string
-): { results: CodeTestResult[]; passedCount: number; totalCount: number } {
-  const results: CodeTestResult[] = [];
-
-  for (const testCase of testCases) {
-    let passed = false;
-    let actual = '';
-
-    try {
-      const args = new Function(`return [${testCase.input}];`)();
-      const fnName = functionName.replace(/\s+/g, '');
-      const solution = new Function(
-        `${code}; return typeof ${fnName} === "function" ? ${fnName} : null;`
-      )();
-
-      if (typeof solution !== 'function') {
-        actual = 'Error: define a function named ' + fnName;
-      } else {
-        const actualValue = solution(...args);
-        const actualStr = JSON.stringify(actualValue);
-        const expectedStr = JSON.stringify(JSON.parse(testCase.expectedOutput));
-        passed = actualStr === expectedStr;
-        actual = actualStr;
-      }
-    } catch (error: any) {
-      actual = error instanceof Error ? error.message : 'Execution error';
-      passed = false;
-    }
-
-    results.push({
-      passed,
-      input: testCase.input,
-      expected: testCase.expectedOutput,
-      actual,
-    });
-  }
-
-  return {
-    results,
-    passedCount: results.filter((r) => r.passed).length,
-    totalCount: results.length,
-  };
-}
+// Executing arbitrary user-supplied JavaScript in the API process is forbidden.
+// A future real test runner must be isolated with resource and network restrictions.
 
 // ═══════════════════════════════════════════════════════════════════
 // AI-GENERATED CODING QUESTIONS — for mid-interview coding challenges

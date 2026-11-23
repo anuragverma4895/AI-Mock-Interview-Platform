@@ -3,6 +3,7 @@ import { auth, AuthRequest } from '../middleware/auth';
 import {
   startCoding,
   submitCoding,
+  runCoding,
   getUserCodingSessions,
   listCodingChallenges,
   getCodingSession,
@@ -16,6 +17,7 @@ router.get('/challenges', listCodingChallenges);
 
 // Authenticated coding endpoints
 router.post('/start', auth, startCoding);
+router.post('/run/:interviewId', auth, runCoding);
 router.post('/submit/:interviewId', auth, submitCoding);
 router.post('/generate', auth, generateChallenge);
 router.get('/sessions', auth, getUserCodingSessions);

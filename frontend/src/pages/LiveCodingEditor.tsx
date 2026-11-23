@@ -141,7 +141,7 @@ export default function LiveCodingEditor() {
     setError(null)
 
     try {
-      const res = await codingAPI.submit(session.id, code, language)
+      const res = await codingAPI.run(session.id, code, language)
       const results: CodingTestResult[] = res.data.results
       const passedCount = res.data.passedCount
       const totalCount = res.data.totalCount
@@ -150,7 +150,7 @@ export default function LiveCodingEditor() {
       results.forEach((r, index) => {
         out += `Test ${index + 1}: ${r.passed ? 'PASS' : 'FAIL'}\n`
       })
-      out += `\n${passedCount}/${totalCount} tests passed. Final score: ${res.data.finalScore.toFixed(1)}/5\n`
+      out += `\nAI-estimated review: ${passedCount}/${totalCount} cases. Not executed in a sandbox; results may be inaccurate.\n`
       setOutput(out)
       setTestResults(results)
     } catch (err: any) {
@@ -158,14 +158,21 @@ export default function LiveCodingEditor() {
       setTestResults([])
     } finally {
       setIsRunning(false)
-      setIsSubmitting(false)
     }
   }
 
   const handleSubmit = async () => {
-    if (isSubmitting) return
+    if (isSubmitting || !session) return
     setIsSubmitting(true)
-    await runCode()
+    setError(null)
+    try {
+      await codingAPI.submit(session.id, code, language)
+      navigate(`/interview-result/${session.id}`)
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Unable to submit coding challenge')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const resetCode = () => {
@@ -400,7 +407,7 @@ export default function LiveCodingEditor() {
                       ) : (
                         <Play className="h-4 w-4" />
                       )}
-                      {isRunning ? 'Running...' : 'Run Tests'}
+                      {isRunning ? 'Reviewing...' : 'AI Review (Preview)'}
                     </Button>
                   </div>
                 </div>

@@ -169,6 +169,8 @@ export const codingAPI = {
       '/coding/start',
       { challengeId, language, customChallenge }
     ),
+  run: (interviewId: string, code: string, language?: string) =>
+    api.post(`/coding/run/${interviewId}`, { code, language }),
   submit: (interviewId: string, code: string, language?: string) =>
     api.post(`/coding/submit/${interviewId}`, { code, language }),
   getSessions: () => api.get<CodingSession[]>('/coding/sessions'),

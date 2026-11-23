@@ -65,69 +65,61 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
   }
 };
 
-export const submitCoding = async (req: AuthRequest, res: Response): Promise<void> => {
+/** Run an advisory AI code review without submitting or closing the session. */
+const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize: boolean): Promise<void> => {
   try {
     const { interviewId } = req.params;
     const { code } = req.body;
-
-    if (!code || typeof code !== 'string') {
-      res.status(400).json({ message: 'Code is required' });
-      return;
+    if (typeof code !== 'string' || !code.trim() || code.length > 50000) {
+      res.status(400).json({ message: 'Code is required (maximum 50,000 characters)' }); return;
     }
 
     const interview = await Interview.findById(interviewId);
-    if (!interview) {
-      res.status(404).json({ message: 'Coding session not found' });
-      return;
+    if (!interview || interview.userId.toString() !== req.user?.id) {
+      res.status(404).json({ message: 'Coding session not found' }); return;
     }
-    if (interview.userId.toString() !== req.user?.id) {
-      res.status(403).json({ message: 'Unauthorized' });
-      return;
+    if (interview.interviewType !== 'coding' || interview.status !== 'in_progress') {
+      res.status(409).json({ message: 'Coding session is no longer active' }); return;
     }
-    if (interview.interviewType !== 'coding') {
-      res.status(400).json({ message: 'Not a coding session' });
-      return;
-    }
-
     const challenge = interview.codingChallenge;
     if (!challenge) {
-      res.status(400).json({ message: 'No challenge associated with this session' });
-      return;
+      res.status(400).json({ message: 'No challenge associated with this session' }); return;
+    }
+    const language = String(req.body.language || challenge.language).toLowerCase();
+    if (!['javascript', 'python', 'java', 'cpp', 'c'].includes(language)) {
+      res.status(400).json({ message: 'Unsupported programming language' }); return;
     }
 
-    // Default to the language the session was started with, but allow override on submission
-    const evalLanguage = req.body.language || challenge.language;
     const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
+    const { results, passedCount, totalCount } = await evaluateCode(code, language, challenge.testCases, fnName);
 
-    const { results, passedCount, totalCount } = await evaluateCode(
-      code,
-      evalLanguage,
-      challenge.testCases,
-      fnName
-    );
-
-
-    interview.codingResults = results as any;
-    interview.codingPassedCount = passedCount;
-    interview.codingTotalCount = totalCount;
-    interview.status = 'completed';
-    interview.completedAt = new Date();
-    interview.finalScore = totalCount > 0 ? (passedCount / totalCount) * 5 : 0;
-
-    await interview.save();
-
+    if (finalize) {
+      interview.codingResults = results;
+      interview.codingPassedCount = passedCount;
+      interview.codingTotalCount = totalCount;
+      interview.status = 'completed';
+      interview.completedAt = new Date();
+      interview.finalScore = totalCount > 0 ? (passedCount / totalCount) * 5 : 0;
+      await interview.save();
+    }
     res.json({
-      message: 'Coding session completed',
-      results,
-      passedCount,
-      totalCount,
-      finalScore: interview.finalScore,
+      message: finalize ? 'Coding session submitted' : 'AI code review complete; your session is still active',
+      results, passedCount, totalCount,
+      finalScore: finalize ? interview.finalScore : undefined,
+      evaluationMethod: 'ai_estimate',
+      finalized: finalize,
     });
   } catch (error) {
-    console.error('Error submitting coding session:', error);
-    res.status(500).json({ message: 'Error submitting coding session', error: String(error) });
+    console.error('Error reviewing code:', error);
+    res.status(503).json({ message: 'AI code review unavailable. Please retry when the service is available.' });
   }
 };
+
+export const runCoding = async (req: AuthRequest, res: Response): Promise<void> =>
+  reviewCodingSubmission(req, res, false);
+
+export const submitCoding = async (req: AuthRequest, res: Response): Promise<void> =>
+  reviewCodingSubmission(req, res, true);
 
 export const getUserCodingSessions = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
