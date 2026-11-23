@@ -1,506 +1,274 @@
-# AI Mock Interview Platform
+# PrepVerse — AI Mock Interview Platform
 
-## Running coding challenges on Render
+PrepVerse is a full-stack interview preparation application built with **React, TypeScript, Express, and MongoDB**. It combines resume-based interview practice, question generation, recorded sessions, coding challenges, and post-interview feedback.
 
-Coding test cases no longer require Gemini or OpenAI. JavaScript runs in a disposable browser Web Worker. Python, C++, C, and Java are sent by the backend to an isolated **Judge0-compatible execution service**, which compiles/runs the solution against the stored inputs. The backend itself must never run arbitrary uploaded code. The example Judge0 community endpoint is a **best-effort demo, not a guaranteed production service**; use your own or an authorized managed Judge0 endpoint.
-
-In the **backend Render service → Environment**, configure `JUDGE0_API_URL` to your Judge0 service's HTTPS base URL (for example, `https://ce.judge0.com` only if that demo grants you access). If your provider requires authentication, configure `JUDGE0_AUTH_TOKEN`, or `JUDGE0_RAPIDAPI_KEY` for a Judge0 RapidAPI service. No AI key is used for test-case execution. Actual availability depends on that compiler service, network access, limits, and supported challenge signatures. Some advanced tree/graph/linked-list signatures may need additional harness adapters.
-
-**Render website:** The Blueprint defines an Express backend web service and a separate Vite **Static Site** frontend. Opening the backend URL with `/` redirects to `FRONTEND_URL` if that variable is set, otherwise it shows an API status JSON. In the frontend service, set `VITE_BACKEND_URL` to your backend's HTTPS URL (with or without `/api`). In the backend, set `FRONTEND_URL` to the frontend static site's HTTPS URL. If you created the services manually before the Blueprint changed, update or recreate the frontend as a Static Site; merely pushing `render.yaml` doesn't change an existing service's type. For React Router, the static site requires the rewrite `/*` → `/index.html`.
-
-> **Implementation notes (November 2026):** The first question is generated locally so interview startup does not wait for Gemini. Answers are saved immediately; detailed scoring runs after interview completion. JavaScript submitted by users is **not executed** in the server process. JavaScript test cases run locally inside a disposable, time-limited browser Web Worker without any AI key. The backend does not execute the submitted JavaScript. Other languages use optional AI-estimated review until a secure compiler service is configured; browser-supplied practice outputs are not tamper-proof competitive judging. The frontend and backend can deploy separately; configure `FRONTEND_URL` and `VITE_BACKEND_URL` accordingly. Use `npm run dev` from the project root to start both local development servers. Earlier diagrams below are illustrative; this note describes the current implemented flow.\n\n
-A full-stack AI-powered interview preparation platform with real-time video recording, live coding environment, intelligent question generation, and detailed performance analytics.
+> **Project status:** Development project. Automated builds and selected integration tests run in GitHub Actions; browser hardware, AI providers, Cloudinary, and external compiler availability still need verification in the deployment environment.
 
 ## Features
 
-- **AI-Powered Interviews** — Resume-aware dynamic question generation using Gemini when `GEMINI_API_KEY` is configured, with OpenAI and local fallbacks
-- **Video Recording** — Browser camera/microphone capture with `getUserMedia()` and `MediaRecorder`, with the completed WebM recording stored on Cloudinary
-- **Live Coding Environment** — Monaco Editor with multi-language support (JavaScript, Python, C++)
-- **Body Language Analysis** — MediaPipe-based face detection tracking eye contact, head pose, and engagement metrics
-- **Resume Parsing** — PDF and DOCX parsing to extract skills, projects, and work experience
-- **Analytics Dashboard** — Score trends, weak area identification, radar charts, and performance tracking
-- **Transcript & Replay** — Full interview transcript with Q&A review and synchronized video playback
+| Feature | What it does |
+|---|---|
+| Resume analysis | Upload a PDF or DOCX, extract information, and analyze its relevance to a selected job role |
+| Mock interviews | Configure the interview type, role, and difficulty; answer up to ten questions |
+| Personalized questions | Start immediately with a locally prepared opening question; subsequent questions use Gemini/OpenAI when configured, with local fallbacks |
+| Post-interview feedback | Save answers as the interview progresses; generate scores out of five and detailed feedback after finishing |
+| Conversation & results | Review questions, answers, scores, and feedback together on the results page |
+| Camera & recording | Optional camera/microphone capture, browser-based visual metrics, and Cloudinary upload when configured |
+| Coding challenges | Edit and test JavaScript, Python, C++, Java, and C solutions without an AI grading requirement |
+| Dashboard | View interview history, scores, and analytics |
 
-## System Architecture & Data Flow
+AI grading is used for **interview answers**, not for coding test-case execution.
 
-The platform is designed with a highly integrated, multi-modal system architecture. The flowchart below shows how all client sub-systems, Express controllers, database models, and cloud APIs interact in real-time across five distinct phases.
+## How the application works
 
 ```mermaid
 flowchart TD
-    %% Custom Styling
-    classDef client fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc
-    classDef server fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#f8fafc
-    classDef db fill:#020617,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
-    classDef ext fill:#0f172a,stroke:#a855f7,stroke-width:2px,color:#f8fafc
+    A[Sign in or register] --> B[Upload resume or configure interview]
+    B --> C[Start interview: local opening question]
+    C --> D[Answer and save to MongoDB]
+    D --> E{More questions?}
+    E -->|Yes| F[Generate next question]
+    F --> D
+    E -->|No| G[Complete session]
+    G --> H[Evaluate saved answers]
+    H --> I[Results: Q&A, scores, feedback]
+    G -.-> J[Upload recording to Cloudinary if enabled]
 
-    subgraph PHASE1 ["PHASE 1: Resume Upload & Virtual Recruiter Suitability Analysis"]
-        direction LR
-        P1_FE["ResumeUpload.tsx<br>React File Dropzone"]:::client
-        P1_Ctrl["resumeController.ts<br>Express Upload Endpoint"]:::server
-        P1_Parser["resumeParser.ts<br>pdf-parse and mammoth"]:::server
-        P1_AI["Gemini API<br>Suitability Check"]:::ext
-        P1_DB["MongoDB Resume Collection<br>Parsed Resume Data"]:::db
-
-        P1_FE -->|"1. Upload File"| P1_Ctrl
-        P1_Ctrl -->|"2. Extract Text"| P1_Parser
-        P1_Parser -->|"3. Suitability Call"| P1_AI
-        P1_AI -->|"4. Score and Gaps JSON"| P1_Parser
-        P1_Parser -->|"5. Save parsed resume"| P1_DB
-    end
-
-    subgraph PHASE2 ["PHASE 2: Lobby Configuration & Personalized Setup"]
-        direction LR
-        P2_FE["Dashboard and Lobby UI<br>Role, Difficulty, Toggle Video"]:::client
-        P2_Ctrl["interviewController.ts<br>Express Session Start"]:::server
-        P2_AI_Svc["aiService.ts<br>Interview AI Engine"]:::server
-        P2_AI["Gemini / OpenAI / Local<br>Resume-Aware Q1 Generation"]:::ext
-        P2_DB["MongoDB Interview Collection<br>Create Stateful Pending Session"]:::db
-
-        P2_FE -->|"6. Config and Start Session"| P2_Ctrl
-        P2_Ctrl -->|"7. Fetch Resume Profile"| P2_AI_Svc
-        P2_AI_Svc -->|"8. Generate personalized Q1"| P2_AI
-        P2_AI -->|"9. Return Q1 or fallback bank"| P2_AI_Svc
-        P2_AI_Svc -->|"10. Persist pending session"| P2_DB
-    end
-
-    subgraph PHASE3 ["PHASE 3: Active Multi-Modal Q&A Loop"]
-        direction LR
-        P3_FE["Interview.tsx<br>React AV Canvas Room"]:::client
-        P3_TTS["Web Speech TTS<br>Narrate Question"]:::client
-        P3_STT["Web Speech STT<br>Continuous Speech-to-Text"]:::client
-        P3_MP["MediaPipe Vision<br>Eye Contact and Posture"]:::client
-        P3_Ctrl["interviewController.ts<br>Answer Submission"]:::server
-        P3_AI_Svc["aiService.ts<br>Evaluation and Response Router"]:::server
-        P3_AI["Gemini / OpenAI / Local<br>Answer Evaluation"]:::ext
-        P3_DB["MongoDB Interview Collection<br>Append QA Transcript"]:::db
-
-        P3_FE -->|"12. Speak Question"| P3_TTS
-        P3_FE -->|"13. Transcribe Answer"| P3_STT
-        P3_FE -->|"14. Capture Behavioral CV"| P3_MP
-        P3_STT -->|"15a. Submit Text response"| P3_Ctrl
-        P3_MP -->|"15b. Submit CV metrics"| P3_Ctrl
-        P3_Ctrl -->|"16. Process Evaluation"| P3_AI_Svc
-        P3_AI_Svc -->|"17. Grade response"| P3_AI
-        P3_AI -->|"18. Strengths and follow-up Q"| P3_AI_Svc
-        P3_AI_Svc -->|"19. Commit QA Details"| P3_DB
-        P3_DB -->|"20. Return feedback and next question"| P3_FE
-        P3_FE -.->|"21. Loop questions 2 to 10"| P3_FE
-    end
-
-    subgraph PHASE4 ["PHASE 4: Session Finalization & Video Archiving"]
-        direction LR
-        P4_FE["WebRTC Compilation<br>Stop MediaRecorder, Build WebM"]:::client
-        P4_Ctrl["demoAPI.uploadRecording()<br>Final WebM Upload"]:::client
-        P4_Cloudinary["cloudinaryService.ts<br>Cloud Storage Driver"]:::server
-        P4_CloudAPI["Cloudinary CDN<br>Secure Cloud Storage"]:::ext
-        P4_IntCtrl["interviewController.ts<br>Express Session End"]:::server
-        P4_DB["MongoDB Interview Collection<br>Update Status to Completed"]:::db
-
-        P4_FE -->|"23. Send final WebM Blob"| P4_Ctrl
-        P4_Ctrl -->|"24. Upload final recording"| P4_Cloudinary
-        P4_Cloudinary -->|"25. Secure Archiving"| P4_CloudAPI
-        P4_CloudAPI -->|"26. Return HTTPS URL"| P4_Cloudinary
-        P4_Cloudinary -->|"27. Register Video URL"| P4_IntCtrl
-        P4_IntCtrl -->|"28. Mark completed session"| P4_DB
-    end
-
-    subgraph PHASE5 ["PHASE 5: Performance Review Dashboard & Replay Review"]
-        direction LR
-        P5_FE["InterviewResult.tsx<br>React Dashboard Room"]:::client
-        P5_Charts["Recharts Visuals<br>Radar, Trajectory Plots"]:::client
-        P5_Player["Cloudinary Player<br>Synchronized Replay"]:::client
-        P5_Ctrl["interviewController.ts<br>Fetch Session Metrics"]:::server
-        P5_DB["MongoDB Collections<br>Retrieve Historical Data"]:::db
-        P5_CloudAPI2["Cloudinary CDN<br>Stream Recorded Session"]:::ext
-
-        P5_FE -->|"30. Render Dashboard UI"| P5_Charts
-        P5_FE -->|"31. Fetch Performance Data"| P5_Ctrl
-        P5_Ctrl -->|"32. Query Records"| P5_DB
-        P5_DB -->|"33. Return Analytics JSON"| P5_Ctrl
-        P5_Ctrl -->|"34. Load Visuals"| P5_FE
-        P5_FE -->|"35. Play Video Replay"| P5_Player
-        P5_CloudAPI2 -->|"36. Stream Playback"| P5_Player
-    end
-
-    %% Phase-to-Phase Chronological Flows
-    P1_DB -->|"11. Load Stats to Dashboard"| P2_FE
-    P2_DB -->|"22. Redirect to Interview Room"| P3_FE
-    P3_FE -->|"29. Session Complete - WebM compiled"| P4_FE
-    P4_DB -->|"37. Redirect to Results"| P5_FE
+    K[Open coding challenge] --> L[Monaco code editor]
+    L --> M{Language}
+    M -->|JavaScript| N[Browser Web Worker]
+    M -->|Python / C++ / Java / C| O[Judge0-compatible compiler]
+    N --> P[Compare test-case outputs]
+    O --> P
+    P --> Q[Preview results or submit solution]
 ```
 
----
+**Interview data flow:** The interview session and its questions are stored in MongoDB. New questions are checked against stored questions to reduce repetition, but semantically identical questions are not guaranteed to be eliminated. Answers are saved first; final evaluation may take additional time. If AI evaluation is unavailable, the application can use clearly labeled heuristic fallback feedback.
 
-## Step-by-Step Execution Flow
+**Coding data flow:** JavaScript runs in a disposable browser Web Worker with a timeout. For Python, C++, Java, and C, the Express backend submits code to a **separate Judge0-compatible service**. The Node/Express application does not compile or execute those submitted programs. Preview does not finalize a coding session; **Submit Solution** does.
 
-### Phase 1: Authentication & Onboarding
+## Tech stack
 
-1. **User Sign-up / Login:** The candidate visits the registration page. Passwords are hashed using `bcrypt` inside `authController.ts` and user profiles are created in the `User` MongoDB model. All subsequent backend communication is protected via **JSON Web Tokens (JWT)**.
-
-2. **Resume Upload:** The candidate uploads their resume (PDF or DOCX) via `ResumeUpload.tsx`.
-
-3. **Parsing & Text Extraction:** The Express API endpoint `POST /api/resume/upload` receives the file. Inside `resumeParser.ts`, the file extension is detected automatically — `pdf-parse` handles PDFs and `mammoth` handles DOCX files.
-
-4. **AI Suitability Check:** The extracted resume data is analyzed with **Gemini when `GEMINI_API_KEY` is configured**. If Gemini is unavailable or not configured, the backend uses local keyword matching. The response contains a suitability score, matched skills, missing skills, and recommendations.
-
-5. **Database Storage:** The parsed skills, projects, and experience are stored in MongoDB under the `Resume` model, linked to the user. The resume suitability-analysis response is returned by the endpoint and is not stored as a separate analysis field.
-
-### Phase 2: Interview Configuration & Session Start
-
-6. **Lobby Customization:** The user selects their target role, interview duration, difficulty level (Easy, Medium, or Hard), and optionally enables Video Recording. They then click **Start Interview**.
-
-7. **Session Initialization:** The frontend sends `POST /api/interview/start`. `interviewController.ts` creates a stateful `Interview` document in MongoDB with an `in_progress` status.
-
-8. **Fast Opening Question:** `openingQuestion.ts` generates the first question locally based on the chosen interview category and available resume data. This removes Gemini startup latency. Subsequent questions use bounded Gemini context (or safe local bank fallback) and are checked against the stored question history.
-
-9. **Session Delivery:** The generated question is returned to the browser, redirecting the user to the Interview room (`Interview.tsx`).
-
-### Phase 3: Active Multi-Modal Q&A Loop
-
-10. **AV Streams & Body Language Tracking:** The browser activates the camera and microphone with `navigator.mediaDevices.getUserMedia()` and records the stream with `MediaRecorder`. The `useBodyLanguageAnalysis` hook runs **MediaPipe Face Landmarker** in the browser and aggregates metrics such as eye contact, face orientation/centering, head stability, and face visibility.
-
-11. **Question Narration (TTS):** The browser's **Web Speech Synthesis API** reads the generated question aloud, acting as the voice of the AI interviewer.
-
-12. **Speech-to-Text Transcription:** The candidate responds by typing, or by toggling **Voice Input** which activates the browser's built-in **Web Speech Recognition API** (`webkitSpeechRecognition`) to transcribe spoken words into the answer text field in real-time.
-
-13. **Answer Submission:** The user sends an answer to `POST /api/interview/submit-answer/:interviewId`. The API validates ownership, saves the answer to MongoDB, and returns immediately without scoring it.
-
-14. **Question Loop:** The user continues with `GET /api/interview/next-question/:interviewId`. The backend only advances after the previous question has been answered. The session supports up to ten questions, and per-question scores are hidden until completion.
-
-### Phase 4: Session End & Video Archiving
-
-15. **Stop Capture:** The interview ends when 10 questions are complete, when the user manually ends the session, or when the timer expires.
-    - The `MediaRecorder` is stopped, compiling all buffered chunks into a single WebM video blob.
-    - The MediaPipe vision loop halts, consolidating all tracking metrics into averaged behavioral scores.
-
-16. **Session Finalization:** `POST /api/interview/end/:interviewId` marks the session completed and records body-language metrics. The results page invokes `POST /api/interview/evaluate/:interviewId` to evaluate saved answers in bounded batches. Each result (score out of five, strengths, improvements, and provenance) is persisted. If the AI provider fails, clearly labeled heuristic fallback feedback can be used.
-
-17. **Cloud Video Upload:** Video upload is started independently of navigation to results. `POST /api/demo/upload-recording/:interviewId` sends the WebM recording to Cloudinary; the interview records `pending`, `ready`, or `failed` status. Video uploads are size-limited; a recording is not guaranteed to be available if the upload fails or the page closes.
-
-### Phase 5: Analytics Dashboard & Replay
-
-18. **Results Page:** The candidate is redirected to `InterviewResult.tsx`.
-
-19. **Performance Visualization:** The page fetches the complete interview record and renders interactive Recharts visualizations — radar charts for category scores, score trajectory plots, and body language compliance metrics.
-
-20. **Video Replay:** The candidate can review their complete Q&A transcript alongside graded feedback, and play back their recorded session directly via the integrated Cloudinary video player.
-
----
-
-## Tech Stack
-
-### Frontend
-| Technology | Purpose |
+| Layer | Technologies |
 |---|---|
-| React 18 + TypeScript | Core UI framework |
-| Vite | Build tool and dev server |
-| Tailwind CSS | Utility-first styling |
-| Zustand | Global state management |
-| React Router DOM v6 | Client-side routing |
-| Framer Motion | Animations and transitions |
-| Radix UI | Accessible headless components |
-| Monaco Editor | In-browser code editor |
-| Recharts | Performance analytics charts |
-| Axios | HTTP client |
-| MediaPipe Tasks Vision | Real-time face and body tracking |
-| MediaRecorder + getUserMedia (browser APIs) | Camera/microphone capture and WebM recording |
-| Web Speech API (browser) | Text-to-speech (TTS) and speech-to-text (STT) |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Zustand, React Router, Framer Motion |
+| Editor & analytics | Monaco Editor, Recharts |
+| Browser features | Web Speech API, MediaRecorder, MediaPipe Tasks Vision |
+| Backend | Node.js, Express, TypeScript, JWT, bcryptjs, multer |
+| Database | MongoDB, Mongoose |
+| Interview AI | Gemini API; OpenAI and local fallback paths |
+| Recording storage | Cloudinary |
+| Code execution | Browser Web Worker (JavaScript); Judge0-compatible compiler API (Python, C++, Java, C) |
+| Deployment | Render (split frontend/backend or optional combined Web Service) |
 
-### Backend
-| Technology | Purpose |
-|---|---|
-| Node.js + Express | REST API server |
-| TypeScript | Type-safe backend code |
-| MongoDB + Mongoose | Database and ODM |
-| JSON Web Tokens (JWT) | Authentication |
-| bcryptjs | Password hashing |
-| Gemini API + OpenAI API | AI question generation, resume suitability analysis, and answer evaluation |
-| Cloudinary | Cloud video storage and streaming |
-| multer | File upload handling |
-| pdf-parse + mammoth | Resume parsing (PDF and DOCX) |
-| socket.io | Real-time communication |
-| helmet | HTTP security headers |
-| express-validator | Input validation |
+## Repository layout
 
-## Project Structure
-
-This folder tree represents the actual set of files tracked in Git and pushed to GitHub:
-
-```
+```text
 AI-Mock-Interview-Platform/
-├── backend/                             # Express Backend Service
+├── backend/
 │   ├── src/
-│   │   ├── config/                      # Database & config entrypoint
-│   │   │   ├── db.ts
-│   │   │   └── index.ts
-│   │   ├── controllers/                 # Express controllers for routes
-│   │   │   ├── authController.ts
-│   │   │   ├── interviewController.ts
-│   │   │   ├── resumeController.ts
-│   │   │   └── videoController.ts
-│   │   ├── middleware/                  # Endpoint routers validation & upload rules
-│   │   │   ├── auth.ts
-│   │   │   ├── errorHandler.ts
-│   │   │   ├── fileValidation.ts
-│   │   │   ├── upload.ts
-│   │   │   └── validation.ts
-│   │   ├── models/                      # Mongoose models schema
-│   │   │   ├── Interview.ts
-│   │   │   ├── Resume.ts
-│   │   │   └── User.ts
-│   │   ├── routes/                      # API routing endpoints
-│   │   │   ├── analytics.ts
-│   │   │   ├── auth.ts
-│   │   │   ├── demo.ts
-│   │   │   ├── interview.ts
-│   │   │   ├── resume.ts
-│   │   │   └── video.ts
-│   │   ├── services/                    # Business core logic
-│   │   │   ├── aiService.ts
-│   │   │   ├── cloudinaryService.ts
-│   │   │   ├── resumeParser.ts
-│   │   │   └── videoService.ts
-│   │   ├── types/                       # Custom TypeScript types
-│   │   │   ├── declarations.d.ts
-│   │   │   └── file-type.d.ts
-│   │   ├── utils/                       # DB helpers
-│   │   │   └── dropDuplicateIndex.ts
-│   │   └── index.ts                     # Express app main listener
-│   ├── uploads/                         # PDF resume uploads directory (tracked samples)
-│   ├── .env.example
-│   ├── package.json
-│   ├── package-lock.json
-│   └── tsconfig.json
-├── frontend/                            # React Client (Vite + TypeScript)
+│   │   ├── config/           # Database and environment config
+│   │   ├── controllers/      # Authentication, resume, interview, video
+│   │   ├── middleware/       # Auth, validation, uploads, rate limiting
+│   │   ├── models/           # User, Resume, Interview
+│   │   ├── routes/           # Express API routes
+│   │   ├── services/         # Interview AI, resume parsing, coding execution
+│   │   ├── utils/            # Coding challenge data and result comparison
+│   │   └── index.ts          # Express entry point
+│   ├── tests/
+│   └── .env.example
+├── frontend/
 │   ├── src/
-│   │   ├── components/                  # Premium visual elements and canvas elements
-│   │   │   ├── 3d/                      # Three.js / Canvas setups
-│   │   │   │   ├── AnimatedCanvas.tsx
-│   │   │   │   └── BackgroundScene.tsx
-│   │   │   ├── ui/                      # Base visual elements (buttons, inputs)
-│   │   │   │   ├── badge.tsx, button.tsx, card.tsx, input.tsx, label.tsx,
-│   │   │   │   └── progress.tsx, scroll-area.tsx, sidebar.tsx, switch.tsx, textarea.tsx
-│   │   │   ├── AnimatedCard3D.tsx
-│   │   │   ├── AnimationHelpers.tsx
-│   │   │   ├── ErrorBoundary.tsx
-│   │   │   ├── Logo.tsx
-│   │   │   ├── ParticleEffect.tsx
-│   │   │   ├── ScrollAnimations.tsx
-│   │   │   ├── SmoothScrollProvider.tsx
-│   │   │   ├── ThemeToggle.tsx
-│   │   │   ├── VideoPlayer.tsx
-│   │   │   └── theme-provider.tsx
-│   │   ├── hooks/                       # Custom hooks (facial expression tracker)
-│   │   │   └── useBodyLanguageAnalysis.ts
-│   │   ├── lib/                         # Monaco & scroll helper functions
-│   │   │   ├── smoothScroll.ts
-│   │   │   └── utils.ts
-│   │   ├── pages/                       # Screen views and dashboard boards
-│   │   │   ├── Analytics.tsx
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── DemoPage.tsx
-│   │   │   ├── Interview.tsx
-│   │   │   ├── InterviewResult.tsx
-│   │   │   ├── InterviewSetup.tsx
-│   │   │   ├── LandingPage.tsx
-│   │   │   ├── LiveCodingEditor.tsx
-│   │   │   ├── Login.tsx
-│   │   │   ├── Profile.tsx
-│   │   │   ├── Register.tsx
-│   │   │   ├── ResumeUpload.tsx
-│   │   │   ├── Settings.tsx
-│   │   │   └── VideoLibrary.tsx
-│   │   ├── services/                    # Axios clients and core endpoints API
-│   │   │   └── api.ts
-│   │   ├── store/                       # Zustand auth persistence state
-│   │   │   └── authStore.ts
-│   │   ├── types/                       # Client TS types
-│   │   │   └── index.ts
-│   │   ├── App.tsx                      # Frontend router & page wrapper
-│   │   ├── index.css                    # Entry tailwind styling rules
-│   │   ├── main.tsx                     # React client bootstrap entry
-│   │   └── vite-env.d.ts
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── postcss.config.js
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   ├── tsconfig.node.json
+│   │   ├── components/       # Shared UI and conversation components
+│   │   ├── hooks/
+│   │   ├── lib/              # Browser JavaScript test runner
+│   │   ├── pages/            # Interview, resume, coding, results, dashboard
+│   │   ├── services/         # Axios API client
+│   │   ├── store/
+│   │   ├── types/
+│   │   └── workers/          # Disposable JavaScript worker
 │   └── vite.config.ts
-├── .gitignore
-├── package.json                         # Workspace monorepo root package file
-├── render.yaml                          # Render hosting configurations
-├── SPEC.md                              # Backend specification reference
-└── README.md                            # Comprehensive README & Flow diagram (This file)
+├── .github/workflows/verify.yml
+├── render.yaml               # Separate backend Web Service + frontend Static Site
+├── render-single-service.yaml
+├── package.json
+└── README.md
 ```
 
-## Setup & Installation
+## Local development
 
-### Prerequisites
+### Requirements
 
-- **Node.js** v18 or higher
-- **MongoDB** (local instance or MongoDB Atlas)
-- **Gemini and/or OpenAI API Key**
-- **Cloudinary Account** — [cloudinary.com](https://cloudinary.com) (free tier is sufficient)
+- **Node.js 20 or 22** recommended, with npm
+- **MongoDB** running locally or available through MongoDB Atlas
+- Optional Gemini/OpenAI credentials for personalized interview questions and evaluation
+- Optional Cloudinary credentials for recording uploads
+- A Judge0-compatible compiler endpoint for **Python, C++, Java, and C** coding tests
 
-### 1. Clone the Repository
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/anuragverma4895/AI-Mock-Interview-Platform.git
 cd AI-Mock-Interview-Platform
+npm run install:all
 ```
 
-### 2. Backend Setup
+### 2. Set up backend environment
 
-```bash
-cd backend
-npm install
-```
+Copy `backend/.env.example` to `backend/.env` and replace the placeholders. The following is an example, **not** a valid set of production secrets:
 
-Create a `.env` file in the `backend/` directory (use `.env.example` as a template):
-
-```env
+```dotenv
 PORT=5005
-MONGODB_URI=mongodb://localhost:27017/ai-interview
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
 NODE_ENV=development
-GEMINI_API_KEY=your-gemini-api-key
-OPENAI_API_KEY=your-openai-api-key
-CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
-CLOUDINARY_API_KEY=your-cloudinary-api-key
-CLOUDINARY_API_SECRET=your-cloudinary-api-secret
+MONGODB_URI=mongodb://localhost:27017/ai-interview
+JWT_SECRET=replace-with-a-long-random-secret
+
+# Optional: personalized interview generation / answer evaluation
+GEMINI_API_KEY=
+OPENAI_API_KEY=
+
+# Optional: recording storage
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# External coding compiler (Python, C++, Java, C)
+JUDGE0_API_URL=
+JUDGE0_AUTH_TOKEN=
+JUDGE0_RAPIDAPI_KEY=
 ```
 
-Start the backend development server:
+Use a Judge0 endpoint that your deployment is authorized to access. If you leave `JUDGE0_API_URL` unset, the current backend attempts the public Judge0 demonstration endpoint; it **may reject requests or be unavailable**. A dedicated service is recommended for reliable use.
+
+### 3. Start both development servers
 
 ```bash
 npm run dev
 ```
 
-The backend API will be available at `http://localhost:5005` by default.
+| Service | Local URL |
+|---|---|
+| React frontend | `http://localhost:3000` |
+| Express API | `http://localhost:5005` |
+| API health check | `http://localhost:5005/api/health` |
 
-### 3. Frontend Setup
+Vite proxies local `/api` requests to port `5005`. On deployment, the frontend uses `VITE_BACKEND_URL` if it is set.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend development server will be available at `http://localhost:5173`.
-
-### 4. Run Both Concurrently (from the root)
+To check builds and tests individually:
 
 ```bash
-npm run dev
+npm run build
+cd backend && npm test
+cd ../frontend && npm run test:runner
 ```
 
-## API Endpoints
+## Coding challenges
 
-### Authentication
-| Method | Endpoint | Description |
+| Language | How test cases are executed | AI key needed? |
 |---|---|---|
-| `POST` | `/api/auth/register` | Register a new user |
-| `POST` | `/api/auth/login` | Login and receive a JWT |
-| `GET` | `/api/auth/me` | Get the currently authenticated user |
+| JavaScript | Browser Web Worker (local practice runner) | No |
+| Python | Judge0-compatible external execution | No |
+| C++ | Judge0-compatible external execution | No |
+| Java | Judge0-compatible external execution | No |
+| C | Judge0-compatible external execution | No |
 
-### Resume
-| Method | Endpoint | Description |
+**Limitations:** An isolated compiler endpoint is required for the four non-JavaScript languages. The current harness supports common function signatures and JSON-style test inputs, but some advanced tree, graph, linked-list, or custom I/O questions require more adapters. JavaScript results originate in the browser and are **not tamper-proof competitive-programming grades**. The test runner checks available stored cases, not an exhaustive hidden test suite.
+
+`Run Tests` previews results without ending the session. `Submit Solution` runs/submits the solution and completes the coding session. Compiler service authentication errors, quotas, or outages should be addressed through the compiler configuration rather than Gemini/OpenAI settings.
+
+## Deploy to Render
+
+There are **two different deployment layouts**. Choose one; do not mix the settings.
+
+### Option A — Separate services (default `render.yaml`)
+
+The default Blueprint describes:
+
+1. **Backend:** Render Web Service, root directory `backend`, build `npm run build`, start `npm start`.
+2. **Frontend:** Render Static Site, root directory `frontend`, build `npm ci && npm run build`, publish `dist`. Configure the rewrite `/*` to `/index.html` so React Router deep links work.
+
+For the frontend Static Site, set:
+
+```dotenv
+VITE_BACKEND_URL=https://YOUR-BACKEND.onrender.com
+```
+
+For the backend Web Service, set:
+
+```dotenv
+NODE_ENV=production
+SERVE_FRONTEND=false
+FRONTEND_URL=https://YOUR-FRONTEND.onrender.com
+MONGODB_URI=YOUR-MONGODB-URI
+JWT_SECRET=YOUR-SECURE-SECRET
+JUDGE0_API_URL=YOUR-AUTHORIZED-COMPILER-ENDPOINT
+```
+
+Add optional AI, Cloudinary, and compiler authentication credentials if those features are enabled.
+
+**If the backend URL displays `Cannot GET /`:** the backend is an API service, not the website. The updated backend redirects `/` to `FRONTEND_URL` when configured, or returns API information if it is not. Open the **frontend Static Site URL** for the application.
+
+### Option B — One combined Web Service (`render-single-service.yaml`)
+
+A combined deployment uses **one URL** for React and Express:
+
+| Setting | Value |
+|---|---|
+| Root directory | Repository root (leave empty) |
+| Build command | `npm run build` |
+| Start command | `npm start` |
+| `NODE_ENV` | `production` |
+| `SERVE_FRONTEND` | `true` |
+
+The root build creates `frontend/dist` and `backend/dist`. Express serves React at `/`, React deep links through its SPA fallback, and API endpoints under `/api`.
+
+Configure `MONGODB_URI`, `JWT_SECRET`, and optional compiler/AI/Cloudinary credentials in the Render dashboard. **Do not set `VITE_BACKEND_URL` to another origin for this combined setup**; the frontend uses same-origin `/api` by default.
+
+> Pushing a new `render.yaml` does not automatically change the type or settings of a Render service that was created manually. Verify its Root Directory, build/start commands, environment, and latest deployed commit in the Render dashboard.
+
+## Important API routes
+
+All paths below use the `/api` prefix.
+
+| Method | Route | Purpose |
 |---|---|---|
-| `POST` | `/api/resume/upload` | Upload a resume (multipart/form-data) |
-| `GET` | `/api/resume/:id` | Get a resume by ID |
-| `GET` | `/api/resume/user/:userId` | Get all resumes for a user |
-| `DELETE` | `/api/resume/:id` | Delete a resume |
+| POST | `/auth/register` | Create an account |
+| POST | `/auth/login` | Sign in |
+| GET | `/auth/me` | Read authenticated profile |
+| POST | `/resume/upload` | Upload a resume |
+| POST | `/resume/analyze/:id` | Analyze resume for a role |
+| POST | `/interview/start` | Create interview and opening question |
+| POST | `/interview/submit-answer/:interviewId` | Save answer (no immediate grading) |
+| GET | `/interview/next-question/:interviewId` | Advance after answering |
+| POST | `/interview/end/:interviewId` | Complete interview |
+| POST | `/interview/evaluate/:interviewId` | Evaluate saved answers for results |
+| GET | `/interview/:id` | Fetch interview state and results |
+| GET | `/coding/challenges` | List available challenges |
+| POST | `/coding/start` | Start coding session |
+| POST | `/coding/run/:interviewId` | Preview server-executed tests (non-JavaScript) |
+| POST | `/coding/submit/:interviewId` | Finalize coding session |
+| POST | `/demo/upload-recording/:interviewId` | Upload recording to Cloudinary |
+| GET | `/health` | Health and database connection state |
 
-### Interview
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/interview/start` | Start a new interview session |
-| `GET` | `/api/interview/next-question/:interviewId` | Get the next question |
-| `POST` | `/api/interview/submit-answer/:interviewId` | Persist an answer without blocking on AI |
-| `POST` | `/api/interview/end/:interviewId` | End the interview session |
-| `POST` | `/api/interview/evaluate/:interviewId` | Prepare deferred score and feedback |
-| `GET` | `/api/interview/:id` | Get interview details |
-| `GET` | `/api/interview/user/:userId` | Get all interviews for a user |
-| `GET` | `/api/interview/transcript/:id` | Get the full interview transcript |
+Most account, resume, interview, and coding session endpoints require a valid JWT bearer token. JavaScript `Run Tests` runs on the frontend rather than calling the server preview endpoint.
 
-### Coding
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/coding/run/:interviewId` | Optional server AI review (other languages); browser JS uses its own local runner |
-| `POST` | `/api/coding/submit/:interviewId` | Finalize a coding session; stores JS browser-practice results or AI estimates |
+## Verification and known limitations
 
-### Video
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/video/upload-chunk` | Upload a video chunk |
-| `POST` | `/api/video/finalize` | Finalize and commit the video |
-| `GET` | `/api/video/:id` | Get video metadata |
-| `GET` | `/api/video/:id/download` | Download the recorded video |
-| `POST` | `/api/video/analyze-body-language` | Currently returns HTTP 501; active body-language metrics are sent through `/api/interview/end/:interviewId` |
+```bash
+# Backend: compile + unit tests
+cd backend
+npm test
 
-### Analytics
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/analytics/:userId` | Get analytics summary for a user |
-| `GET` | `/api/analytics/interview/:id` | Get analytics for a specific interview |
+# Frontend: JavaScript worker tests + production build
+cd ../frontend
+npm run test:runner
+npm run build
+```
 
-## Environment Variables Reference
+The GitHub Actions workflow also checks selected MongoDB-backed API flows, coding harness compilation, and the combined React/Express root route.
 
-### Backend (`backend/.env`)
-
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | No | Port for the Express server (default: `5005`) |
-| `MONGODB_URI` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | Secret key for signing JWTs |
-| `NODE_ENV` | No | `development` or `production` |
-| `FRONTEND_URL` | Required for split frontend deployment | Exact allowed frontend origin for CORS |
-| `SERVE_FRONTEND` | No | Set `true` only when backend serves a locally built SPA |
-| `GEMINI_API_KEY` | Conditional | Gemini API key; enables the primary Gemini AI path |
-| `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
-
-## Deployment
-
-### Frontend — Vercel
-
-1. Push code to GitHub.
-2. Import the project on [vercel.com](https://vercel.com).
-3. Set the **root directory** to `frontend`.
-4. Build command: `npm run build`
-5. Output directory: `dist`
-6. Deploy. Set `VITE_BACKEND_URL` to your backend URL ending in `/api` (or the backend root URL; `/api` will be appended).
-
-### Backend — Render
-
-1. Connect your GitHub repository on [render.com](https://render.com).
-2. Select **Web Service** and set the **root directory** to `backend`.
-3. Build command: `npm run build`
-4. Start command: `npm start`
-5. Add all environment variables in the Render dashboard.
-
-A `render.yaml` configuration file is included in the repository root for one-click deployment.
-
-### Database — MongoDB Atlas
-
-1. Create a free-tier cluster on [mongodb.com/atlas](https://www.mongodb.com/atlas).
-2. Add your server's IP to the Atlas IP Access List.
-3. Copy the connection string and set it as `MONGODB_URI` in your backend environment.
-
-## Security
-
-- **JWT Authentication** — All protected routes require a valid Bearer token
-- **Password Hashing** — All passwords are hashed with `bcryptjs` before storage
-- **CORS Configuration** — Restricted to allowed origins
-- **Helmet** — Sets secure HTTP response headers
-- **File Type Validation** — Resume uploads are validated for allowed MIME types
-- **Input Validation** — All API inputs are validated with `express-validator`
-
----
-
-## License
-
-MIT
+- AI questions, feedback, and recording uploads depend on the configured external services.
+- Some specialized coding signatures are not yet supported by the automatic harness.
+- The app is for **interview practice**, not certified proctoring or tamper-resistant competitive grading.
+- Protect real keys in environment variables. Do not commit `.env` files or secret values.
+- Automated CI passing does **not** replace browser-level and production integration testing.
