@@ -202,14 +202,16 @@ export default function InterviewResult() {
               </div>
               <div className="text-emerald-700 font-semibold text-lg">
                 {interview?.interviewType === 'coding'
-                  ? (interview.codingEvaluationMethod === 'browser_js' ? 'Browser Tests Passed' : 'AI-Estimated Passes')
+                  ? (interview.codingEvaluationMethod === 'browser_js' ? 'Browser Tests Passed' : interview.codingEvaluationMethod === 'judge0' ? 'Compiler Tests Passed' : 'AI-Estimated Passes')
                   : 'Questions Answered'}
               </div>
               <div className="text-emerald-500 text-sm mt-1">
                 {interview?.interviewType === 'coding'
                   ? (interview.codingEvaluationMethod === 'browser_js'
                     ? 'Executed in your browser for practice; not a verified judge'
-                    : 'AI code review, not an isolated runtime')
+                    : interview.codingEvaluationMethod === 'judge0'
+                      ? 'Executed in an isolated compiler; results based on visible test cases'
+                      : 'Legacy AI-estimated review')
                   : 'Total Questions'}
               </div>
             </div>

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import Interview from '../models/Interview';
 import { getChallenge, listChallenges, CodingChallenge } from '../utils/codingChallenges';
-import { evaluateCode } from './aiService';
+import { executeCodingChallenge, CompilerUnavailableError } from './judge0Runner';
 import { normalizeBrowserResults } from '../utils/browserCodingResults';
 
 export const startCoding = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -92,7 +92,7 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
     }
 
     let results: Array<{ passed: boolean; input: string; expected: string; actual: string }>;
-    let evaluationMethod: 'browser_js' | 'ai_estimate';
+    let evaluationMethod: 'browser_js' | 'judge0';
     if (language === 'javascript') {
       // Browser executes JavaScript locally in an isolated, disposable Web Worker.
       // Never evaluate untrusted JS inside Node. Submitted outputs are practice-only.
@@ -104,10 +104,13 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
       }
       evaluationMethod = 'browser_js';
     } else {
-      const fnName = challenge.title.toLowerCase().replace(/\s+/g, '');
-      const estimate = await evaluateCode(code, language, challenge.testCases, fnName);
-      results = estimate.results;
-      evaluationMethod = 'ai_estimate';
+      results = await executeCodingChallenge(language, code, {
+        title: challenge.title,
+        starterCode: challenge.starterCode,
+        starterCodes: challenge.starterCodes as Record<string,string> | undefined,
+        testCases: challenge.testCases,
+      });
+      evaluationMethod = 'judge0';
     }
     const totalCount = results.length;
     const passedCount = results.filter(result => result.passed).length;
@@ -123,15 +126,19 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
       await interview.save();
     }
     res.json({
-      message: finalize ? 'Coding session submitted' : 'AI code review complete; your session is still active',
+      message: finalize ? 'Coding session submitted' : 'Code execution complete; session remains active',
       results, passedCount, totalCount,
       finalScore: finalize ? interview.finalScore : undefined,
       evaluationMethod,
       finalized: finalize,
     });
   } catch (error) {
-    console.error('Error reviewing code:', error);
-    res.status(503).json({ message: 'AI code review unavailable. Please retry when the service is available.' });
+    console.error('Error evaluating coding challenge:', error);
+    if (error instanceof CompilerUnavailableError) {
+      res.status(503).json({ message: error.message });
+    } else {
+      res.status(422).json({ message: error instanceof Error ? error.message : 'Cannot execute this challenge' });
+    }
   }
 };
 

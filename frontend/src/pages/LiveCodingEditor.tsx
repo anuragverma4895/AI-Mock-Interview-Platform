@@ -159,7 +159,7 @@ export default function LiveCodingEditor() {
       } else {
         const res = await codingAPI.run(session.id, code, language)
         results = res.data.results
-        method = 'AI-estimated review (requires an AI provider)'
+        method = 'Isolated compiler runner (no AI key required)'
       }
       const passedCount = results.filter(result => result.passed).length
       const totalCount = results.length
@@ -366,7 +366,7 @@ export default function LiveCodingEditor() {
                   value={output}
                   readOnly
                   className="h-32 font-mono text-sm bg-slate-900 text-green-400 border-slate-700"
-                  placeholder="JavaScript runs test cases in your browser; other languages require a configured evaluator."
+                  placeholder="JavaScript runs locally; Python, Java, C++ and C use a configured isolated compiler."
                 />
               </CardContent>
             </Card>
@@ -377,7 +377,7 @@ export default function LiveCodingEditor() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Terminal className="h-5 w-5" />
-                    {language === 'javascript' ? 'Browser Test Results' : 'AI-Estimated Results'}
+                    {language === 'javascript' ? 'Browser Test Results' : 'Compiler Test Results'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -459,7 +459,7 @@ export default function LiveCodingEditor() {
                       ) : (
                         <Play className="h-4 w-4" />
                       )}
-                      {isRunning ? 'Running...' : language === 'javascript' ? 'Run Tests' : 'AI Review'}
+                      {isRunning ? 'Running...' : 'Run Tests'}
                     </Button>
                   </div>
                 </div>
@@ -467,7 +467,7 @@ export default function LiveCodingEditor() {
               <div className="px-4 pb-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
                 {language === 'javascript'
                   ? 'JavaScript tests run locally in your browser. No Gemini or OpenAI key needed.'
-                  : 'This language currently needs a configured AI review service. Real compiler-based execution is not configured.'}
+                  : 'Runs through an isolated compiler service, not Gemini. Backend requires a working Judge0 endpoint.'}
               </div>
               <CardContent className="p-0">
                 <div className="h-[min(64vh,720px)] min-h-[420px] overflow-hidden">

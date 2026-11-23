@@ -59,7 +59,7 @@ export interface Interview {
   }>;
   codingPassedCount?: number;
   codingTotalCount?: number;
-  codingEvaluationMethod?: 'browser_js' | 'ai_estimate';
+  codingEvaluationMethod?: 'browser_js' | 'ai_estimate' | 'judge0';
   transcript: Array<{ question: string; answer: string; timestamp: string }>;
   videoPath?: string;
   recordingUrl?: string;
