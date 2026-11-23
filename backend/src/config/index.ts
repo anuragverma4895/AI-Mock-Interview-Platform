@@ -22,7 +22,9 @@ const validateEnv = (key: string, defaultValue?: string): string => {
 };
 
 const config: Config = {
-  jwtSecret: validateEnv('JWT_SECRET', 'development-jwt-secret-key-change-in-production'),
+  jwtSecret: process.env.NODE_ENV === 'production'
+    ? validateEnv('JWT_SECRET')
+    : validateEnv('JWT_SECRET', 'development-jwt-secret-key-change-in-production'),
   mongoUri: process.env.MONGODB_URI || process.env.DB_URL || 'mongodb://localhost:27017/ai-interview',
   port: parseInt(process.env.PORT || '5005', 10), // Changed default to 5005
   nodeEnv: process.env.NODE_ENV || 'development',

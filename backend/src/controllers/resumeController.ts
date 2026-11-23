@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import fs from 'fs/promises';
 import Resume from '../models/Resume';
 import { parseResume, analyzeResumeSuitability } from '../services/resumeParser';
 import path from 'path';
@@ -37,9 +38,9 @@ export const uploadResume = async (req: AuthRequest, res: Response): Promise<voi
   }
 };
 
-export const getResume = async (req: Request, res: Response): Promise<void> => {
+export const getResume = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const resume = await Resume.findById(req.params.id);
+    const resume = await Resume.findOne({ _id: req.params.id, userId: req.user?.id });
     if (!resume) {
       res.status(404).json({ message: 'Resume not found' });
       return;
@@ -94,7 +95,9 @@ export const deleteResume = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    await Resume.findByIdAndDelete(req.params.id);
+    await Resume.findOneAndDelete({ _id: req.params.id, userId: req.user?.id });
+    try { await fs.unlink(resume.filePath); }
+    catch (fileError: any) { if (fileError?.code !== 'ENOENT') console.error('Failed to remove resume file:', fileError); }
     res.json({ message: 'Resume deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting resume', error: String(error) });

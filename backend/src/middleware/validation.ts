@@ -19,7 +19,7 @@ export const validateRegister = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('role').optional().isIn(['candidate', 'interviewer', 'admin']).withMessage('Role must be candidate, interviewer, or admin'),
+  body('role').not().exists().withMessage('Account role cannot be set during registration'),
   handleValidationErrors,
 ];
 
@@ -31,12 +31,12 @@ export const validateLogin = [
 
 export const validateProfileUpdate = [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('role').optional().isIn(['candidate', 'interviewer', 'admin']).withMessage('Role must be candidate, interviewer, or admin'),
+  body('role').not().exists().withMessage('Use settings to change your preference'),
   handleValidationErrors,
 ];
 
 export const validateSettingsUpdate = [
-  body('role').isIn(['candidate', 'interviewer', 'admin']).withMessage('Role must be candidate, interviewer, or admin'),
+  body('role').isIn(['candidate', 'interviewer']).withMessage('Role must be candidate or interviewer'),
   handleValidationErrors,
 ];
 

@@ -39,23 +39,24 @@ app.use(helmet({
   contentSecurityPolicy: config.nodeEnv === 'production' ? false : undefined,
 }));
 
-// CORS: allow local dev origins + any Render/custom domain
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5005',
-];
+// Allow browser cross-origin calls only from configured frontend domains.
+const allowedOrigins = config.nodeEnv === 'production'
+  ? [process.env.FRONTEND_URL, ...(process.env.CORS_ORIGINS || '').split(',')]
+      .filter((value): value is string => !!value && !!value.trim())
+      .map(value => value.trim())
+  : ['http://localhost:3000', 'http://localhost:5005'];
 app.use(cors({
-  origin: config.nodeEnv === 'production'
-    ? true  // allow same-origin requests in production (frontend served from same server)
-    : allowedOrigins,
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  },
+  credentials: true,
 }));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-app.use('/uploads', express.static(uploadsDir));
+// Private uploads must not be available through unauthenticated static routes.
 
 connectDB();
 
@@ -83,7 +84,7 @@ app.get('/api/health', (req, res) => {
 // The backend serves it as static files so both run on a single Render service.
 const frontendDistPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 
-if (config.nodeEnv === 'production') {
+if (config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true') {
   // Serve static assets (JS, CSS, images, etc.)
   app.use(express.static(frontendDistPath));
 
@@ -98,7 +99,7 @@ app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Server is running on port ${config.port}`);
-  if (config.nodeEnv === 'production') {
+  if (config.nodeEnv === 'production' && process.env.SERVE_FRONTEND === 'true') {
     console.log(`Serving frontend from: ${frontendDistPath}`);
   }
 }).on('error', (err: any) => {

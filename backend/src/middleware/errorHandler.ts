@@ -46,10 +46,11 @@ export const errorHandler = (
     error = createError(message, 401);
   }
 
-  res.status(error.statusCode || 500).json({
+  const statusCode = error.statusCode || 500;
+  res.status(statusCode).json({
     success: false,
-    message: error.message || 'Server Error',
-    stack: err.stack, // Show stack trace to help debug the "Server Error"
+    message: statusCode >= 500 && process.env.NODE_ENV === 'production' ? 'Internal server error' : (error.message || 'Server error'),
+    ...(process.env.NODE_ENV !== 'production' ? { stack: err.stack } : {}),
   });
 };
 

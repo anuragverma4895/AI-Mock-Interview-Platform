@@ -16,7 +16,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     // Sanitize inputs
     const sanitizedEmail = email.toLowerCase().trim();
     const sanitizedName = name.trim();
-    const sanitizedRole = role ? role.trim() : 'candidate';
+    const sanitizedRole = 'candidate'; // Public registration cannot assign privileged roles.
 
     const existingUser = await User.findOne({ email: sanitizedEmail });
     if (existingUser) {
@@ -95,9 +95,8 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
       return;
     }
 
-    const updates: { name?: string; role?: string } = {};
+    const updates: { name?: string } = {};
     if (typeof req.body.name === 'string') updates.name = req.body.name.trim();
-    if (typeof req.body.role === 'string') updates.role = req.body.role.trim();
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, {
       new: true,
@@ -124,8 +123,8 @@ export const updateSettings = async (req: AuthRequest, res: Response, next: Next
     }
 
     const role = typeof req.body.role === 'string' ? req.body.role.trim() : undefined;
-    if (!role) {
-      res.status(400).json({ message: 'Role is required' });
+    if (role !== 'candidate' && role !== 'interviewer') {
+      res.status(400).json({ message: 'Only candidate or interviewer preferences are supported' });
       return;
     }
 
