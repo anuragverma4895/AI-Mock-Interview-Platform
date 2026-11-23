@@ -101,6 +101,27 @@ export default function InterviewConversation({ questions, variant = 'dark', rev
                   <p className="text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
                     {question.feedback || 'No evaluation available for this question.'}
                   </p>
+                  {question.evaluationSource === 'heuristic' && (
+                    <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      Approximate keyword-based fallback score — not an AI assessment.
+                    </p>
+                  )}
+                  {(question.strengths?.length || question.improvements?.length) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-emerald-700 mb-1">Strengths</h4>
+                        <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                          {(question.strengths || []).map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-700 mb-1">Areas to improve</h4>
+                        <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                          {(question.improvements || []).map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </article>

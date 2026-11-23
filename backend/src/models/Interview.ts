@@ -8,6 +8,10 @@ export interface IInterviewQuestion {
   answer?: string;
   score?: number;
   feedback?: string;
+  strengths?: string[];
+  improvements?: string[];
+  followUpQuestion?: string;
+  evaluationSource?: 'ai' | 'heuristic';
   idealAnswer?: string;
 }
 
@@ -112,6 +116,10 @@ const interviewSchema = new Schema<IInterview>(
         answer: String,
         score: Number,
         feedback: String,
+        strengths: [String],
+        improvements: [String],
+        followUpQuestion: String,
+        evaluationSource: { type: String, enum: ['ai', 'heuristic'] },
         idealAnswer: String,
       },
     ],

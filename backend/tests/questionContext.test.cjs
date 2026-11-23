@@ -37,3 +37,7 @@ test('fallback tries an unused question of another difficulty', () => {
   ];
   assert.equal(selectUnusedQuestion(bank, 'medium', ['What is a hash map?'])?.question, 'Explain recursion with examples.');
 });
+
+test('detects common database terminology paraphrases', () => {
+  assert.equal(areQuestionsSimilar('What is the difference between SQL and NoSQL databases?', 'Compare relational and non-relational databases.'), true);
+});

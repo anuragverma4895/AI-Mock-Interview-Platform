@@ -153,6 +153,7 @@ const evaluateAnswerLocally = (
     improvements,
     idealAnswer: idealAnswer || 'A strong answer should explain the core concept, discuss trade-offs, and include a practical example.',
     followUpQuestion: `Can you elaborate further on the key concepts in your ${category} answer?`,
+    source: 'heuristic',
   };
 };
 
@@ -170,6 +171,7 @@ export interface AnswerEvaluation {
   improvements: string[];
   idealAnswer: string;
   followUpQuestion?: string;
+  source: 'ai' | 'heuristic';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -441,7 +443,8 @@ Provide your evaluation as ONLY this JSON (no markdown, no extra text):
       strengths: Array.isArray(data.strengths) ? data.strengths.slice(0, 3) : ['Answer was submitted.'],
       improvements: Array.isArray(data.improvements) ? data.improvements.slice(0, 3) : ['Add more detail.'],
       idealAnswer: data.idealAnswer || idealAnswer || "A comprehensive technical answer with examples.",
-      followUpQuestion: data.followUpQuestion || "Can you elaborate on that?"
+      followUpQuestion: data.followUpQuestion || "Can you elaborate on that?",
+      source: 'ai'
     };
   } catch (error) {
     console.error('AI Evaluation Error, using local fallback:', error);

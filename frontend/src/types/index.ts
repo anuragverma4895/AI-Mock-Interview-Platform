@@ -25,6 +25,10 @@ export interface InterviewQuestion {
   answer?: string;
   score?: number;
   feedback?: string;
+  strengths?: string[];
+  improvements?: string[];
+  followUpQuestion?: string;
+  evaluationSource?: 'ai' | 'heuristic';
   idealAnswer?: string;
 }
 

@@ -12,11 +12,17 @@ const STOP_WORDS = new Set([
   'difference', 'discuss', 'does', 'explain', 'for', 'from', 'give', 'how', 'into',
   'interview', 'is', 'its', 'me', 'of', 'or', 'please', 'tell', 'that', 'the',
   'their', 'them', 'there', 'these', 'this', 'using', 'versus', 'what', 'when',
-  'where', 'which', 'why', 'with', 'would', 'you', 'your',
+  'where', 'which', 'why', 'with', 'would', 'you', 'your', 'compare', 'databases', 'database',
 ]);
 
 export const normalizeQuestion = (question: string): string =>
-  question.toLowerCase().replace(/[^a-z0-9+#]+/g, ' ').replace(/\s+/g, ' ').trim();
+  question.toLowerCase()
+    .replace(/\bnon[\s-]?relational\b/g, 'nosql')
+    .replace(/\brelational\b/g, 'sql')
+    .replace(/\bhash[\s-]?table\b/g, 'hash map')
+    .replace(/\bstructured query language\b/g, 'sql')
+    .replace(/[^a-z0-9+#]+/g, ' ')
+    .replace(/\s+/g, ' ').trim();
 
 /** Prefer the actual question field; never treat a user's answer as a prior question. */
 export const extractPreviousQuestions = (history: readonly InterviewHistoryItem[] = []): string[] =>
