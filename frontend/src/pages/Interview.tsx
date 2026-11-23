@@ -19,6 +19,7 @@ import {
   VideoOff,
   Send,
   Clock,
+  MessageCircle,
   CheckCircle,
   Volume2
 } from "lucide-react"
