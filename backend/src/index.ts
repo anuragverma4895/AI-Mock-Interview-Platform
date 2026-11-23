@@ -80,6 +80,26 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/coding', codingRoutes);
 
+// The API-only Render URL is not a frontend. Redirect to the deployed SPA when configured.
+app.get('/', (_req, res) => {
+  const frontend = process.env.FRONTEND_URL?.trim();
+  if (frontend) {
+    try {
+      const url = new URL(frontend);
+      if (url.protocol === 'https:' || (config.nodeEnv !== 'production' && url.protocol === 'http:')) {
+        res.redirect(302, url.origin + url.pathname);
+        return;
+      }
+    } catch { /* invalid configured frontend URL; return API information below */ }
+  }
+  res.json({
+    service: 'PrepVerse API',
+    status: 'ok',
+    message: 'This is the backend API, not the React website. Deploy the frontend static site and set FRONTEND_URL.',
+    health: '/api/health',
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 

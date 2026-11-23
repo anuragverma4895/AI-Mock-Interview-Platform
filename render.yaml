@@ -28,12 +28,14 @@ services:
         sync: false
   - type: web
     name: ai-mock-interview-frontend
-    runtime: node
+    runtime: static
     rootDir: frontend
-    buildCommand: npm run build
-    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: VITE_BACKEND_URL
         sync: false
