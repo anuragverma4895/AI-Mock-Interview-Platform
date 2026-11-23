@@ -12,6 +12,7 @@ import demoRoutes from './routes/demo';
 import codingRoutes from './routes/coding';
 import { errorHandler } from './middleware/errorHandler';
 import path from 'path';
+import { rateLimit } from './middleware/rateLimit';
 
 // Handle unhandled Promise rejections
 process.on('unhandledRejection', (err: any) => {
@@ -59,6 +60,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Private uploads must not be available through unauthenticated static routes.
 
 connectDB();
+
+// Basic process-local safeguards; use a shared store when scaling beyond one replica.
+app.use('/api/auth', rateLimit(50, 15 * 60 * 1000));
+app.use('/api/resume/analyze', rateLimit(20, 60 * 60 * 1000));
+app.use('/api/interview/next-question', rateLimit(60, 60 * 60 * 1000));
+app.use('/api/interview/submit-answer', rateLimit(70, 60 * 60 * 1000));
+app.use('/api/coding/generate', rateLimit(15, 60 * 60 * 1000));
+app.use('/api/demo/upload-recording', rateLimit(12, 60 * 60 * 1000));
 
 // ---- API Routes ----
 app.use('/api/auth', authRoutes);

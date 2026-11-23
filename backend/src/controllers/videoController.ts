@@ -14,7 +14,18 @@ export const uploadVideoChunk = async (req: AuthRequest, res: Response): Promise
       return;
     }
 
-    await saveVideoChunk(interviewId, req.file.buffer, parseInt(chunkIndex));
+    const parsedIndex = Number(chunkIndex);
+    if (!/^[a-f0-9]{24}$/i.test(String(interviewId)) || !Number.isSafeInteger(parsedIndex) || parsedIndex < 0 || parsedIndex > 10000) {
+      res.status(400).json({ message: 'Invalid interview ID or chunk index' }); return;
+    }
+    const interview = await Interview.findById(interviewId);
+    if (!interview || interview.userId.toString() !== req.user?.id) {
+      res.status(404).json({ message: 'Interview not found' }); return;
+    }
+    if (interview.status === 'completed') {
+      res.status(409).json({ message: 'Interview is already completed' }); return;
+    }
+    await saveVideoChunk(interviewId, req.file.buffer, parsedIndex);
 
     res.json({ message: 'Video chunk uploaded', chunkIndex });
   } catch (error) {
@@ -27,13 +38,17 @@ export const finalizeVideo = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const { interviewId, totalChunks } = req.body;
 
-    const videoPath = await combineVideoChunks(interviewId, parseInt(totalChunks));
-
-    const interview = await Interview.findById(interviewId);
-    if (interview) {
-      interview.videoPath = videoPath;
-      await interview.save();
+    const chunkCount = Number(totalChunks);
+    if (!/^[a-f0-9]{24}$/i.test(String(interviewId)) || !Number.isSafeInteger(chunkCount) || chunkCount < 1 || chunkCount > 10000) {
+      res.status(400).json({ message: 'Invalid interview ID or chunk count' }); return;
     }
+    const interview = await Interview.findById(interviewId);
+    if (!interview || interview.userId.toString() !== req.user?.id) {
+      res.status(404).json({ message: 'Interview not found' }); return;
+    }
+    const videoPath = await combineVideoChunks(interviewId, chunkCount);
+    interview.videoPath = videoPath;
+    await interview.save();
 
     res.json({ message: 'Video finalized', videoPath });
   } catch (error) {
@@ -47,17 +62,14 @@ export const getVideoInfo = async (req: AuthRequest, res: Response): Promise<voi
     const { id } = req.params;
 
     const interview = await Interview.findById(id);
-    if (!interview || !interview.videoPath) {
+    if (!interview || interview.userId.toString() !== req.user?.id || !interview.videoPath) {
       res.status(404).json({ message: 'Video not found' });
       return;
     }
 
     const exists = await videoExists(id);
 
-    res.json({
-      exists,
-      path: interview.videoPath,
-    });
+    res.json({ exists });
   } catch (error) {
     res.status(500).json({ message: 'Error getting video info', error: String(error) });
   }
@@ -68,7 +80,7 @@ export const downloadVideo = async (req: AuthRequest, res: Response): Promise<vo
     const { id } = req.params;
 
     const interview = await Interview.findById(id);
-    if (!interview || !interview.videoPath) {
+    if (!interview || interview.userId.toString() !== req.user?.id || !interview.videoPath) {
       res.status(404).json({ message: 'Video not found' });
       return;
     }

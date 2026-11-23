@@ -61,6 +61,6 @@ export const videoUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter: videoFileFilter,
   limits: {
-    fileSize: 500 * 1024 * 1024,
+    fileSize: 128 * 1024 * 1024, // Memory-backed uploads must have a safe size limit.
   },
 });

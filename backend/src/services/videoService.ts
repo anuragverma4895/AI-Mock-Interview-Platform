@@ -5,6 +5,7 @@ import path from 'path';
 const videoUploadsRoot = path.join(__dirname, '..', '..', 'uploads', 'videos');
 
 const getInterviewVideoDir = (interviewId: string): string => {
+  if (!/^[a-f0-9]{24}$/i.test(interviewId)) throw new Error('Invalid interview ID');
   return path.join(videoUploadsRoot, interviewId);
 };
 
