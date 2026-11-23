@@ -4,10 +4,13 @@ const TIMEOUT_MS = 5000;
 const MAX_CODE_LENGTH = 50000;
 
 function entryName(challenge: CodingChallenge): string {
-  const starter = challenge.starterCodes?.javascript || challenge.starterCode || '';
-  const named = starter.match(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/);
+  const raw = challenge.starterCodes?.javascript || challenge.starterCode || '';
+  // Remove JSDoc and comments before looking for the actual challenge function.
+  // Otherwise a commented "function ListNode(...)" wins over mergeTwoLists().
+  const starter = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   const assigned = starter.match(/\b(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:function\b|\()/);
-  const name = named?.[1] || assigned?.[1];
+  const named = starter.match(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/);
+  const name = assigned?.[1] || named?.[1];
   if (!name) throw new Error('This challenge does not have a supported JavaScript function signature.');
   return name;
 }
