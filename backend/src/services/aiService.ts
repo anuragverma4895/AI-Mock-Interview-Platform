@@ -189,6 +189,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(12000),
             body: JSON.stringify({
               contents: [{ parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }],
               generationConfig: {
@@ -239,7 +240,7 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
             { role: 'user', content: prompt }
           ],
           temperature: 0.7,
-        });
+        }, { timeout: 12000, maxRetries: 0 });
         const result = completion.choices[0]?.message?.content;
         if (!result) throw new Error('Empty response from OpenAI');
         return result;
@@ -258,9 +259,9 @@ async function getAICompletion(prompt: string, systemPrompt: string = "You are A
 
   try {
     return await retry(callAI, {
-      retries: 3,
-      minTimeout: 1000,
-      maxTimeout: 5000,
+      retries: 1,
+      minTimeout: 500,
+      maxTimeout: 1000,
       onRetry: (error: any, attempt: number) => {
         console.log(`Retrying AI call, attempt ${attempt}:`, error.message);
       }

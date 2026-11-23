@@ -10,6 +10,7 @@ import {
   generateFollowUpQuestion
 } from '../services/aiService';
 import { AuthRequest } from '../middleware/auth';
+import { createOpeningQuestion } from '../services/openingQuestion';
 
 const CATEGORIES_BY_TYPE: Record<string, string[]> = {
   technical: ['DSA', 'SystemDesign', 'DB', 'Project', 'DSA'],
@@ -41,16 +42,14 @@ export const startInterview = async (req: AuthRequest, res: Response): Promise<v
     const selectedJobRole = typeof jobRole === 'string' && jobRole.trim() ? jobRole.trim() : undefined;
     const firstCategory = getCategoriesForType(selectedInterviewType)[0];
     const firstDifficulty = selectedDifficulty;
-    const firstQuestion = await generateInterviewQuestion(
+    // Never block interview startup on an external AI request.
+    // Subsequent questions still use Gemini, and answers are evaluated as before.
+    const firstQuestion = createOpeningQuestion(
       firstCategory,
       firstDifficulty,
-      [],
       resumeData?.skills,
-      resumeData?.projects?.map(p => p.name),
-      selectedJobRole,
-      selectedInterviewType,
-      resumeData?.experience,
-      resumeData?.projects
+      resumeData?.projects,
+      selectedJobRole
     );
 
     const interview = new Interview({
