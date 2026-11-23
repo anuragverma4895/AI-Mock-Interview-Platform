@@ -141,9 +141,9 @@ flowchart TD
 
 6. **Lobby Customization:** The user selects their target role, interview duration, difficulty level (Easy, Medium, or Hard), and optionally enables Video Recording. They then click **Start Interview**.
 
-7. **Session Initialization:** The frontend sends `POST /api/interview/start`. `interviewController.ts` creates a stateful `Interview` document in MongoDB with a `pending` status.
+7. **Session Initialization:** The frontend sends `POST /api/interview/start`. `interviewController.ts` creates a stateful `Interview` document in MongoDB with an `in_progress` status.
 
-8. **AI-Powered Question 1 Generation:** In the backend, `aiService.ts` uses the interview role, type, difficulty, resume skills/projects/experience, and previous questions to generate a personalized question. **Gemini** is used when `GEMINI_API_KEY` is configured, with **OpenAI** and then a local question bank as fallbacks. The local bank covers DSA, System Design, Databases, HR, and Project-based categories.
+8. **Fast Opening Question:** `openingQuestion.ts` generates the first question locally based on the chosen interview category and available resume data. This removes Gemini startup latency. Subsequent questions use bounded Gemini context (or safe local bank fallback) and are checked against the stored question history.
 
 9. **Session Delivery:** The generated question is returned to the browser, redirecting the user to the Interview room (`Interview.tsx`).
 
@@ -155,17 +155,9 @@ flowchart TD
 
 12. **Speech-to-Text Transcription:** The candidate responds by typing, or by toggling **Voice Input** which activates the browser's built-in **Web Speech Recognition API** (`webkitSpeechRecognition`) to transcribe spoken words into the answer text field in real-time.
 
-13. **Answer Submission & Evaluation:** The user clicks **Submit Answer**, sending the response to `POST /api/interview/submit-answer/:interviewId`.
-    - `aiService.ts` evaluates the answer using **Gemini when configured**, with OpenAI and local evaluation fallbacks. Evaluation considers technical accuracy, depth, practical examples, communication clarity, relevance, and difficulty.
-    - The API returns a structured JSON response containing:
-      - **Score:** A 1–5 scale rating.
-      - **Overall Feedback:** A detailed assessment of the answer.
-      - **Strengths:** 2–3 specific elements the candidate explained well.
-      - **Areas for Improvement:** Actionable notes on missing or weak points.
-      - **Follow-up Question:** A deeper, context-aware question based on what the candidate just answered.
-    - **Fallback Mode:** If the OpenAI API is unavailable, a local tokenization service analyzes word overlap against ideal answer templates, scoring based on structural completeness, use of examples, and minimum response length.
+13. **Answer Submission:** The user sends an answer to `POST /api/interview/submit-answer/:interviewId`. The API validates ownership, saves the answer to MongoDB, and returns immediately without scoring it.
 
-14. **Question Loop:** The candidate receives immediate color-coded feedback on screen, then clicks **Next Question** to proceed to the follow-up or the next core question. This loop continues for up to 10 questions.
+14. **Question Loop:** The user continues with `GET /api/interview/next-question/:interviewId`. The backend only advances after the previous question has been answered. The session supports up to ten questions, and per-question scores are hidden until completion.
 
 ### Phase 4: Session End & Video Archiving
 
@@ -173,9 +165,9 @@ flowchart TD
     - The `MediaRecorder` is stopped, compiling all buffered chunks into a single WebM video blob.
     - The MediaPipe vision loop halts, consolidating all tracking metrics into averaged behavioral scores.
 
-16. **Session Finalization:** The frontend triggers `POST /api/interview/end/:interviewId`, sending the aggregated body-language metrics to the server. The server marks the interview completed, calculates the final score, identifies strong/improvement areas, generates a closing message, and updates the `Interview` document in MongoDB.
+16. **Session Finalization:** `POST /api/interview/end/:interviewId` marks the session completed and records body-language metrics. The results page invokes `POST /api/interview/evaluate/:interviewId` to evaluate saved answers in bounded batches. Each result (score out of five, strengths, improvements, and provenance) is persisted. If the AI provider fails, clearly labeled heuristic fallback feedback can be used.
 
-17. **Cloud Video Upload:** After the interview-end request, the final WebM blob is uploaded via `POST /api/demo/upload-recording/:interviewId`. The backend uploads it to **Cloudinary** and saves the recording URL, public ID, and duration in the interview record.
+17. **Cloud Video Upload:** Video upload is started independently of navigation to results. `POST /api/demo/upload-recording/:interviewId` sends the WebM recording to Cloudinary; the interview records `pending`, `ready`, or `failed` status. Video uploads are size-limited; a recording is not guaranteed to be available if the upload fails or the page closes.
 
 ### Phase 5: Analytics Dashboard & Replay
 
@@ -418,11 +410,18 @@ npm run dev
 |---|---|---|
 | `POST` | `/api/interview/start` | Start a new interview session |
 | `GET` | `/api/interview/next-question/:interviewId` | Get the next question |
-| `POST` | `/api/interview/submit-answer/:interviewId` | Submit an answer for evaluation |
+| `POST` | `/api/interview/submit-answer/:interviewId` | Persist an answer without blocking on AI |
 | `POST` | `/api/interview/end/:interviewId` | End the interview session |
+| `POST` | `/api/interview/evaluate/:interviewId` | Prepare deferred score and feedback |
 | `GET` | `/api/interview/:id` | Get interview details |
 | `GET` | `/api/interview/user/:userId` | Get all interviews for a user |
 | `GET` | `/api/interview/transcript/:id` | Get the full interview transcript |
+
+### Coding
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/coding/run/:interviewId` | Advisory AI preview without submitting |
+| `POST` | `/api/coding/submit/:interviewId` | Finalize a coding session with AI-estimated results |
 
 ### Video
 | Method | Endpoint | Description |
@@ -449,6 +448,8 @@ npm run dev
 | `MONGODB_URI` | Yes | MongoDB connection string |
 | `JWT_SECRET` | Yes | Secret key for signing JWTs |
 | `NODE_ENV` | No | `development` or `production` |
+| `FRONTEND_URL` | Required for split frontend deployment | Exact allowed frontend origin for CORS |
+| `SERVE_FRONTEND` | No | Set `true` only when backend serves a locally built SPA |
 | `GEMINI_API_KEY` | Conditional | Gemini API key; enables the primary Gemini AI path |
 | `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
@@ -463,7 +464,7 @@ npm run dev
 3. Set the **root directory** to `frontend`.
 4. Build command: `npm run build`
 5. Output directory: `dist`
-6. Deploy.
+6. Deploy. Set `VITE_BACKEND_URL` to your backend URL ending in `/api` (or the backend root URL; `/api` will be appended).
 
 ### Backend — Render
 

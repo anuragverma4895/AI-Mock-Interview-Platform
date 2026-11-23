@@ -278,20 +278,18 @@ User clicks "Start Interview"
 ### 2. Answering Questions
 ```
 User submits answer (typing or voice)
-    → Backend evaluates answer
-    → Generates score (1-5)
-    → Provides feedback
-    → Suggests follow-up question
+    → Backend saves the response to MongoDB immediately
     → User proceeds to next question
+    → Evaluation is deferred until the interview ends
 ```
 
 ### 3. Interview Completion
 ```
 After 10 questions or user ends
-    → Backend calculates final score
-    → Generates closing message
-    → Saves video (if recorded)
-    → Stores all data in MongoDB
+    → Backend marks interview completed
+    → Results screen triggers final AI or labeled heuristic evaluation
+    → Question scores and feedback are persisted in MongoDB
+    → Recording uploads independently when available
 ```
 
 ### 4. Viewing Results
@@ -382,7 +380,7 @@ User clicks on completed interview
 **No!** The platform works without OpenAI. It uses a built-in question bank with 31+ questions. Add your key later for smarter AI.
 
 ### Q2: Why is the AI not responding like ChatGPT?
-The app is in "local mode" using the question bank. Add `OPENAI_API_KEY` in .env to enable AI mode.
+The app uses local questions when no AI provider is configured. Set `GEMINI_API_KEY` or `OPENAI_API_KEY` for personalized AI generation and evaluation.
 
 ### Q3: How many questions are there?
 10 questions per interview from 5 categories (DSA, SystemDesign, DB, HR, Project).
