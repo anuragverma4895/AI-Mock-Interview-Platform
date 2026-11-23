@@ -1,6 +1,6 @@
 # AI Mock Interview Platform
 
-> **Implementation notes (November 2026):** The first question is generated locally so interview startup does not wait for Gemini. Answers are saved immediately; detailed scoring runs after interview completion. JavaScript submitted by users is **not executed** in the server process. Coding review is AI-estimated, not sandbox-executed test results. The frontend and backend can deploy separately; configure `FRONTEND_URL` and `VITE_BACKEND_URL` accordingly. Use `npm run dev` from the project root to start both local development servers. Earlier diagrams below are illustrative; this note describes the current implemented flow.\n\n
+> **Implementation notes (November 2026):** The first question is generated locally so interview startup does not wait for Gemini. Answers are saved immediately; detailed scoring runs after interview completion. JavaScript submitted by users is **not executed** in the server process. JavaScript test cases run locally inside a disposable, time-limited browser Web Worker without any AI key. The backend does not execute the submitted JavaScript. Other languages use optional AI-estimated review until a secure compiler service is configured; browser-supplied practice outputs are not tamper-proof competitive judging. The frontend and backend can deploy separately; configure `FRONTEND_URL` and `VITE_BACKEND_URL` accordingly. Use `npm run dev` from the project root to start both local development servers. Earlier diagrams below are illustrative; this note describes the current implemented flow.\n\n
 A full-stack AI-powered interview preparation platform with real-time video recording, live coding environment, intelligent question generation, and detailed performance analytics.
 
 ## Features
@@ -420,8 +420,8 @@ npm run dev
 ### Coding
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/coding/run/:interviewId` | Advisory AI preview without submitting |
-| `POST` | `/api/coding/submit/:interviewId` | Finalize a coding session with AI-estimated results |
+| `POST` | `/api/coding/run/:interviewId` | Optional server AI review (other languages); browser JS uses its own local runner |
+| `POST` | `/api/coding/submit/:interviewId` | Finalize a coding session; stores JS browser-practice results or AI estimates |
 
 ### Video
 | Method | Endpoint | Description |

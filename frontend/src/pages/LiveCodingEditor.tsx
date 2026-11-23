@@ -464,6 +464,11 @@ export default function LiveCodingEditor() {
                   </div>
                 </div>
               </CardHeader>
+              <div className="px-4 pb-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                {language === 'javascript'
+                  ? 'JavaScript tests run locally in your browser. No Gemini or OpenAI key needed.'
+                  : 'This language currently needs a configured AI review service. Real compiler-based execution is not configured.'}
+              </div>
               <CardContent className="p-0">
                 <div className="h-[min(64vh,720px)] min-h-[420px] overflow-hidden">
                   <Editor
