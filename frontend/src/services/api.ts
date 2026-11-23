@@ -2,7 +2,10 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { User } from '../types';
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || '/api';
+const configuredBackend = String(import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/$/, '');
+const API_URL = configuredBackend
+  ? (configuredBackend.endsWith('/api') ? configuredBackend : configuredBackend + '/api')
+  : '/api';
 
 const api = axios.create({
   baseURL: API_URL,

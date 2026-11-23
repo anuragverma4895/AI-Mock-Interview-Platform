@@ -18,7 +18,6 @@ import {
   Users,
   TrendingUp,
   Shield,
-  Star,
   Upload
 } from "lucide-react"
 
@@ -61,28 +60,7 @@ export default function LandingPage() {
     {
       icon: <Shield className="h-8 w-8" />,
       title: "Privacy First",
-      description: "Your data is secure. We use enterprise-grade encryption and never share your personal information."
-    }
-  ]
-
-  const testimonials = [
-    {
-      name: "Sarah Chen",
-      role: "Software Engineer at Google",
-      content: "This platform helped me land my dream job. The AI interviewer was incredibly realistic and the feedback was spot-on.",
-      rating: 5
-    },
-    {
-      name: "Marcus Johnson",
-      role: "Frontend Developer",
-      content: "The live coding environment is amazing. It feels just like the real thing. Highly recommended!",
-      rating: 5
-    },
-    {
-      name: "Emily Rodriguez",
-      role: "Product Manager",
-      content: "Perfect for practicing behavioral interviews. The AI understands context and gives meaningful feedback.",
-      rating: 5
+      description: "Your resume and interview history are linked to your account. Recordings can be published only when you choose."
     }
   ]
 
@@ -125,9 +103,6 @@ export default function LandingPage() {
               <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
                 Features
               </a>
-              <a href="#testimonials" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
-                Testimonials
-              </a>
               <a href="#workflow" className="text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors">
                 How It Works
               </a>
@@ -156,7 +131,7 @@ export default function LandingPage() {
             className="text-center"
           >
             <Badge variant="indigo" className="mb-6">
-              Now in Beta - Join 10,000+ users
+              PrepVerse Beta — Practice smarter
             </Badge>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6">
@@ -170,8 +145,8 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Practice with AI-powered interviewers, get real-time feedback, and boost your confidence.
-              Join thousands of developers who landed their dream jobs with PrepVerse.
+              Practice with AI-generated questions and review detailed feedback after finishing an interview.
+              Practice interview skills with realistic questions and structured feedback.
             </p>
 
             <motion.div
@@ -367,54 +342,6 @@ function example() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-              Loved by Developers Worldwide
-            </h2>
-            <p className="text-xl text-slate-600 dark:text-slate-300">
-              Join thousands of developers who transformed their careers with PrepVerse.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <Card className="h-full">
-                  <CardContent className="p-6">
-                    <div className="flex mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <p className="text-slate-700 dark:text-slate-300 mb-6 italic">
-                      "{testimonial.content}"
-                    </p>
-                    <div>
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-slate-500">{testimonial.role}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="max-w-4xl mx-auto text-center">
@@ -427,7 +354,7 @@ function example() {
               Ready to Ace Your Next Interview?
             </h2>
             <p className="text-xl text-indigo-100 mb-8">
-              Join over 10,000 developers who are already practicing smarter, not harder.
+              Start practicing and build a more consistent interview preparation routine.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

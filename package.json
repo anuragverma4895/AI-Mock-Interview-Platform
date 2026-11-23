@@ -10,7 +10,7 @@
     "install:all": "npm run install:backend && npm run install:frontend",
     "build": "npm run install:all && npm run build:backend && npm run build:frontend",
     "start": "node backend/dist/index.js",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+    "dev": "node scripts/dev.cjs"
   },
   "engines": {
     "node": ">=18.0.0"

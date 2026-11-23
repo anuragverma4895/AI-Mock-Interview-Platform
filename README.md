@@ -1,5 +1,6 @@
 # AI Mock Interview Platform
 
+> **Implementation notes (November 2026):** The first question is generated locally so interview startup does not wait for Gemini. Answers are saved immediately; detailed scoring runs after interview completion. JavaScript submitted by users is **not executed** in the server process. Coding review is AI-estimated, not sandbox-executed test results. The frontend and backend can deploy separately; configure `FRONTEND_URL` and `VITE_BACKEND_URL` accordingly. Use `npm run dev` from the project root to start both local development servers. Earlier diagrams below are illustrative; this note describes the current implemented flow.\n\n
 A full-stack AI-powered interview preparation platform with real-time video recording, live coding environment, intelligent question generation, and detailed performance analytics.
 
 ## Features

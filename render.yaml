@@ -14,21 +14,24 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SERVE_FRONTEND
+        value: 'false'
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: PORT
-        value: 5000
-
   - type: web
     name: ai-mock-interview-frontend
     runtime: node
     rootDir: frontend
     buildCommand: npm run build
-    startCommand: npm run preview
+    startCommand: npm run preview -- --host 0.0.0.0 --port $PORT
     envVars:
       - key: NODE_ENV
         value: production

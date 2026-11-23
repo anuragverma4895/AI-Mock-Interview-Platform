@@ -1,5 +1,6 @@
 # AI Mock Interview Platform - Complete Documentation
 
+> **Current code behavior (November 2026):** Interview start uses a local opening question. The remaining questions use bounded Gemini context with local duplicate checks. Answers are persisted before asynchronous final evaluation, which is initiated from the results screen. Coding previews use AI estimates and never execute submitted JavaScript directly on the API server. See README.md for current deployment, privacy and API details. Older sections below describe earlier versions where differences remain.\n\n
 ## Table of Contents
 1. [Project Overview](#project-overview)
 2. [Features](#features)
@@ -195,7 +196,7 @@ Start backend:
 ```bash
 npm run dev
 ```
-Server runs on `http://localhost:5000`
+Server runs on `http://localhost:5005`
 
 ### Step 3: Frontend Setup
 
