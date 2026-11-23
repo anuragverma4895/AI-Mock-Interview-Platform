@@ -455,6 +455,7 @@ export default function Interview() {
       // Recording continues uploading while the results page is displayed.
       // Users can see its pending/ready/failed status in the results page.
       if (recordingBlob && recordingBlob.size > 0) {
+        setUploadingRecording(true);
         void demoAPI.uploadRecording(id!, recordingBlob, finalRecordingTime).catch(err => {
           console.error('Recording upload failed:', err);
         });
