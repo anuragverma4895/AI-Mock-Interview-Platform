@@ -58,7 +58,7 @@ flowchart TD
 | Interview AI | Gemini API; OpenAI and local fallback paths |
 | Recording storage | Cloudinary |
 | Code execution | Browser Web Worker (JavaScript); Judge0-compatible compiler API (Python, C++, Java, C) |
-| Deployment | Render (split frontend/backend or optional combined Web Service) |
+| Deployment | Render (`render.yaml`: backend Web Service and frontend Static Site) |
 
 ## Repository layout
 
@@ -89,7 +89,6 @@ AI-Mock-Interview-Platform/
 │   └── vite.config.ts
 ├── .github/workflows/verify.yml
 ├── render.yaml               # Separate backend Web Service + frontend Static Site
-├── render-single-service.yaml
 ├── package.json
 └── README.md
 ```
@@ -179,53 +178,24 @@ Coding practice uses curated questions with no countdown, time limit, automatic 
 
 ## Deploy to Render
 
-There are **two different deployment layouts**. Choose one; do not mix the settings.
+Use the repository's `render.yaml` as the only Render Blueprint. It keeps the existing backend and frontend service names and layout.
 
-### Option A — Separate services (default `render.yaml`)
+| Setting | Backend Web Service | Frontend Static Site |
+|---|---|---|
+| Service name | `ai-mock-interview-backend` | `ai-mock-interview-frontend` |
+| Root directory | `backend` | `frontend` |
+| Node version | `22.x` | `22.x` |
+| Build command | `npm ci --include=dev && npm run build` | `npm ci --include=dev && npm run build` |
+| Start command | `npm start` | Not applicable |
+| Health check / publish directory | `/api/health` | `dist` |
 
-The default Blueprint describes:
+The frontend rewrite `/*` → `/index.html` is already configured in the Blueprint for React Router deep links.
 
-1. **Backend:** Render Web Service, root directory `backend`, build `npm run build`, start `npm start`.
-2. **Frontend:** Render Static Site, root directory `frontend`, build `npm ci && npm run build`, publish `dist`. Configure the rewrite `/*` to `/index.html` so React Router deep links work.
+Set `VITE_BACKEND_URL` in the frontend service to the actual public HTTPS backend URL. Set `FRONTEND_URL` in the backend service to the actual public HTTPS frontend origin (without a trailing slash). Configure `MONGODB_URI`, `JWT_SECRET`, and applicable AI, compiler, and Cloudinary credentials in the backend environment. Do not commit secrets.
 
-For the frontend Static Site, set:
+Open the frontend Static Site URL to use the website. The backend URL provides API endpoints and can redirect its root to the configured frontend. Verify `/api/health` on the backend after deployment.
 
-```dotenv
-VITE_BACKEND_URL=https://YOUR-BACKEND.onrender.com
-```
-
-For the backend Web Service, set:
-
-```dotenv
-NODE_ENV=production
-SERVE_FRONTEND=false
-FRONTEND_URL=https://YOUR-FRONTEND.onrender.com
-MONGODB_URI=YOUR-MONGODB-URI
-JWT_SECRET=YOUR-SECURE-SECRET
-JUDGE0_API_URL=YOUR-AUTHORIZED-COMPILER-ENDPOINT
-```
-
-Add optional AI, Cloudinary, and compiler authentication credentials if those features are enabled.
-
-**If the backend URL displays `Cannot GET /`:** the backend is an API service, not the website. The updated backend redirects `/` to `FRONTEND_URL` when configured, or returns API information if it is not. Open the **frontend Static Site URL** for the application.
-
-### Option B — One combined Web Service (`render-single-service.yaml`)
-
-A combined deployment uses **one URL** for React and Express:
-
-| Setting | Value |
-|---|---|
-| Root directory | Repository root (leave empty) |
-| Build command | `npm run build` |
-| Start command | `npm start` |
-| `NODE_ENV` | `production` |
-| `SERVE_FRONTEND` | `true` |
-
-The root build creates `frontend/dist` and `backend/dist`. Express serves React at `/`, React deep links through its SPA fallback, and API endpoints under `/api`.
-
-Configure `MONGODB_URI`, `JWT_SECRET`, and optional compiler/AI/Cloudinary credentials in the Render dashboard. **Do not set `VITE_BACKEND_URL` to another origin for this combined setup**; the frontend uses same-origin `/api` by default.
-
-> Pushing a new `render.yaml` does not automatically change the type or settings of a Render service that was created manually. Verify its Root Directory, build/start commands, environment, and latest deployed commit in the Render dashboard.
+For existing Blueprint-managed services, sync the updated `render.yaml` in Render. Manually created services do not automatically adopt Blueprint settings. If an existing manually configured service already builds both applications from the repository root and serves React through Express, that deployment remains supported by the application; deleting the unused Blueprint does not change it. Do not recreate a working service just to apply this cleanup.
 
 ## Important API routes
 

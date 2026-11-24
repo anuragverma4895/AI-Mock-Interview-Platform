@@ -3,9 +3,12 @@ services:
     name: ai-mock-interview-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: '22.x'
       - key: NODE_ENV
         value: production
       - key: MONGODB_URI
@@ -36,12 +39,14 @@ services:
     name: ai-mock-interview-frontend
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
+      - key: NODE_VERSION
+        value: '22.x'
       - key: VITE_BACKEND_URL
         sync: false
