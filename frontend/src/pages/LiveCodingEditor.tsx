@@ -12,11 +12,9 @@ import {
   Terminal,
   CheckCircle,
   XCircle,
-  Clock,
   Zap,
   ArrowLeft,
   Loader2,
-  Wand2,
   Shuffle,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
@@ -33,17 +31,14 @@ export default function LiveCodingEditor() {
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [isChangingChallenge, setIsChangingChallenge] = useState(false)
   const [language, setLanguage] = useState(languagePref || 'javascript')
   const [testResults, setTestResults] = useState<Array<{ passed: boolean; input: string; expected: string; actual: string }>>([])
-  const [timeLeft, setTimeLeft] = useState(30 * 60)
 
-  const [session, setSession] = useState<{ id: string; challenge: CodingChallenge; timeLimit: number; language: string } | null>(null)
+  const [session, setSession] = useState<{ id: string; challenge: CodingChallenge; language: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const editorRef = useRef<any>(null)
-  const autoSubmitRef = useRef<() => Promise<void>>(async () => {})
-  const autoSubmittedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -52,11 +47,10 @@ export default function LiveCodingEditor() {
         const res = await codingAPI.start(challengeId || undefined, languagePref || undefined)
         if (cancelled) return
         const data = res.data.codingSession
-        autoSubmittedRef.current = false
-      setSession(data)
+        setSession(data)
+        setLanguage(data.language || languagePref || 'javascript')
         const codes = data.challenge.starterCodes || {};
         setCode(codes[languagePref || 'javascript'] || data.challenge.starterCode || '// Start coding here')
-        setTimeLeft(data.timeLimit)
       } catch (err: any) {
         if (cancelled) return
         setError(err?.response?.data?.message || 'Failed to start coding session')
@@ -70,30 +64,14 @@ export default function LiveCodingEditor() {
     }
   }, [challengeId, languagePref])
 
-  // Countdown timer for the coding session
-  useEffect(() => {
-    if (!session) return
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (!autoSubmittedRef.current) {
-            autoSubmittedRef.current = true
-            void autoSubmitRef.current()
-          }
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session])
-
   const challenge = session?.challenge
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value
     setLanguage(newLang)
+    setOutput('')
+    setTestResults([])
+    setError(null)
     const codes = challenge?.starterCodes || {}
     if (codes[newLang]) {
       setCode(codes[newLang])
@@ -102,49 +80,27 @@ export default function LiveCodingEditor() {
     }
   }
 
-  const generateAIChallenge = async () => {
-    setIsGenerating(true)
-    try {
-      const diff = challenge?.difficulty || 'medium'
-      const res = await codingAPI.generateChallenge(diff, language)
-      const customChallenge = res.data
-      const startRes = await codingAPI.start(undefined, language, customChallenge)
-      const data = startRes.data.codingSession
-      autoSubmittedRef.current = false
-      setSession(data)
-      const codes = data.challenge.starterCodes || {};
-      setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
-      setTimeLeft(data.timeLimit)
-      setOutput('✨ AI Challenge Generated!\n')
-      setTestResults([])
-    } catch (err: any) {
-      setOutput(`Error: ${err?.response?.data?.message || 'Failed to generate challenge'}\n`)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   const nextRandomChallenge = async () => {
-    setIsGenerating(true)
+    if (isChangingChallenge || isRunning || isSubmitting || loading) return
+    setIsChangingChallenge(true)
+    setError(null)
     try {
       const res = await codingAPI.start(undefined, language)
       const data = res.data.codingSession
-      autoSubmittedRef.current = false
       setSession(data)
       const codes = data.challenge.starterCodes || {};
       setCode(codes[language] || data.challenge.starterCode || '// Start coding here')
-      setTimeLeft(data.timeLimit)
       setOutput('✨ New Random Challenge Loaded!\n')
       setTestResults([])
     } catch (err: any) {
       setOutput(`Error: ${err?.response?.data?.message || 'Failed to load challenge'}\n`)
     } finally {
-      setIsGenerating(false)
+      setIsChangingChallenge(false)
     }
   }
 
   const runCode = async () => {
-    if (!session) return
+    if (!session || isRunning || isSubmitting || isChangingChallenge) return
     setIsRunning(true)
     setOutput('Running tests...\n')
     setError(null)
@@ -180,7 +136,7 @@ export default function LiveCodingEditor() {
   }
 
   const handleSubmit = async () => {
-    if (isSubmitting || !session) return
+    if (isSubmitting || isRunning || isChangingChallenge || !session) return
     setIsSubmitting(true)
     setError(null)
     try {
@@ -199,19 +155,11 @@ export default function LiveCodingEditor() {
     }
   }
 
-  autoSubmitRef.current = handleSubmit
-
   const resetCode = () => {
     const codes = challenge?.starterCodes || {}
     setCode(codes[language] || challenge?.starterCode || '// Start coding here')
     setOutput('')
     setTestResults([])
-  }
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -227,7 +175,7 @@ export default function LiveCodingEditor() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/coding')}
               className="flex items-center gap-1"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -238,7 +186,7 @@ export default function LiveCodingEditor() {
             </div>
             <div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                Live Coding Challenge
+                Coding Practice
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {challenge?.title || 'Loading...'}
@@ -250,7 +198,7 @@ export default function LiveCodingEditor() {
             <Button
               size="sm"
               onClick={handleSubmit}
-              disabled={!session || isSubmitting || isRunning}
+              disabled={!session || loading || isSubmitting || isRunning || isChangingChallenge}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Solution'}
@@ -259,30 +207,12 @@ export default function LiveCodingEditor() {
               size="sm"
               variant="outline"
               onClick={nextRandomChallenge}
-              disabled={isGenerating}
+              disabled={loading || isChangingChallenge || isSubmitting || isRunning}
               className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-none"
             >
-              <Shuffle className="h-4 w-4" />
-              <span className="hidden sm:inline">Next Random</span>
+              {isChangingChallenge ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shuffle className="h-4 w-4" />}
+              <span>{isChangingChallenge ? 'Loading...' : 'Next Random'}</span>
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={generateAIChallenge}
-              disabled={isGenerating}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white border-none"
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Generate AI Challenge</span>
-            </Button>
-            <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700">
-              <Clock className="h-4 w-4 text-indigo-500" />
-              <span className="font-mono font-medium">{formatTime(timeLeft)}</span>
-            </div>
             <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 shadow-sm">
               {challenge?.difficulty || '...'}
             </Badge>
@@ -336,14 +266,10 @@ export default function LiveCodingEditor() {
                   </div>
                 )}
 
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 capitalize">{challenge?.difficulty}</div>
                     <div className="text-sm text-blue-700 dark:text-blue-300">Difficulty</div>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">{Math.ceil((challenge?.timeLimit || 0) / 60)}min</div>
-                    <div className="text-sm text-green-700 dark:text-green-300">Time Limit</div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
                     <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{challenge?.testCases?.length || 0}</div>
@@ -431,6 +357,7 @@ export default function LiveCodingEditor() {
                     <select
                       value={language}
                       onChange={handleLanguageChange}
+                      disabled={isRunning || isSubmitting || isChangingChallenge}
                       className="text-sm rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                     >
                       <option value="javascript">JavaScript</option>
@@ -443,6 +370,7 @@ export default function LiveCodingEditor() {
                       size="sm"
                       variant="outline"
                       onClick={resetCode}
+                      disabled={isRunning || isSubmitting || isChangingChallenge}
                       className="flex items-center gap-2"
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -451,7 +379,7 @@ export default function LiveCodingEditor() {
                     <Button
                       size="sm"
                       onClick={runCode}
-                      disabled={isRunning}
+                      disabled={!session || isRunning || isSubmitting || isChangingChallenge}
                       className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                     >
                       {isRunning ? (
@@ -481,6 +409,7 @@ export default function LiveCodingEditor() {
                     }}
                     theme="vs-dark"
                     options={{
+                      readOnly: isRunning || isSubmitting || isChangingChallenge,
                       minimap: { enabled: false },
                       fontSize: 14,
                       lineNumbers: 'on',

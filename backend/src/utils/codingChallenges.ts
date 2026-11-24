@@ -27,7 +27,6 @@ export interface CodingChallenge {
   description: string;
   difficulty: Difficulty;
   category: string;
-  timeLimit: number; // seconds
   language: string; // default language
   starterCode: string; // default (JS) starter code
   starterCodes: Record<Language, string>;
@@ -42,7 +41,6 @@ function challenge(
   description: string,
   difficulty: Difficulty,
   category: string,
-  timeLimitMinutes: number,
   starters: Record<Language, string>,
   testCases: TestCase[]
 ): CodingChallenge {
@@ -52,7 +50,6 @@ function challenge(
     description,
     difficulty,
     category,
-    timeLimit: timeLimitMinutes * 60,
     language: 'javascript',
     starterCode: starters.javascript,
     starterCodes: starters,
@@ -67,7 +64,7 @@ function challenge(
 export const CODING_CHALLENGES: CodingChallenge[] = [
   // ─── EASY (1–17) ──────────────────────────────────────────────────────────
 
-  challenge('two-sum', 'Two Sum', 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.', 'easy', 'Arrays', 30,
+  challenge('two-sum', 'Two Sum', 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice.', 'easy', 'Arrays',
     {
       javascript: `function twoSum(nums, target) {\n  // Return an array of two indices\n  return [];\n}`,
       python: `def twoSum(nums, target):\n    # Return a list of two indices\n    return []`,
@@ -82,7 +79,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('valid-parentheses', 'Valid Parentheses', 'Given a string s containing just the characters (, ), {, }, [ and ], determine if the input string is valid. An input string is valid if: open brackets must be closed by the same type, and open brackets must be closed in the correct order.', 'easy', 'Stack', 25,
+  challenge('valid-parentheses', 'Valid Parentheses', 'Given a string s containing just the characters (, ), {, }, [ and ], determine if the input string is valid. An input string is valid if: open brackets must be closed by the same type, and open brackets must be closed in the correct order.', 'easy', 'Stack',
     {
       javascript: `function isValid(s) {\n  // Return true if the string of brackets is valid\n  return false;\n}`,
       python: `def isValid(s):\n    # Return True if the string of brackets is valid\n    return False`,
@@ -99,7 +96,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('reverse-string', 'Reverse String', 'Write a function that reverses a string. The input string is given as an array of characters. Do not allocate extra space for another array; you must do this by modifying the input array in-place.', 'easy', 'Strings', 20,
+  challenge('reverse-string', 'Reverse String', 'Write a function that reverses a string. The input string is given as an array of characters. Do not allocate extra space for another array; you must do this by modifying the input array in-place.', 'easy', 'Strings',
     {
       javascript: `function reverseString(s) {\n  // Reverse the array in-place and return it\n  return s;\n}`,
       python: `def reverseString(s):\n    # Reverse the list in-place and return it\n    return s`,
@@ -113,7 +110,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('palindrome-number', 'Palindrome Number', 'Given an integer x, return true if x is a palindrome, and false otherwise. An integer is a palindrome when it reads the same forward and backward.', 'easy', 'Math', 20,
+  challenge('palindrome-number', 'Palindrome Number', 'Given an integer x, return true if x is a palindrome, and false otherwise. An integer is a palindrome when it reads the same forward and backward.', 'easy', 'Math',
     {
       javascript: `function isPalindrome(x) {\n  // Return true if x is a palindrome\n  return false;\n}`,
       python: `def isPalindrome(x):\n    # Return True if x is a palindrome\n    return False`,
@@ -128,7 +125,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('merge-two-sorted-lists', 'Merge Two Sorted Lists', 'You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list by splicing together the nodes. Return the head of the merged linked list.', 'easy', 'Linked List', 30,
+  challenge('merge-two-sorted-lists', 'Merge Two Sorted Lists', 'You are given the heads of two sorted linked lists list1 and list2. Merge the two lists into one sorted list by splicing together the nodes. Return the head of the merged linked list.', 'easy', 'Linked List',
     {
       javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val, next) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.next = (next===undefined ? null : next)\n * }\n */\n/**\n * @param {ListNode} list1\n * @param {ListNode} list2\n * @return {ListNode}\n */\nvar mergeTwoLists = function(list1, list2) {\n    \n};`,
       python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:\n        pass`,
@@ -143,7 +140,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('best-time-to-buy-sell-stock', 'Best Time to Buy and Sell Stock', 'You are given an array prices where prices[i] is the price of a given stock on the ith day. You want to maximize your profit by choosing a single day to buy and a single day to sell. Return the maximum profit you can achieve. If no profit is possible, return 0.', 'easy', 'Arrays', 25,
+  challenge('best-time-to-buy-sell-stock', 'Best Time to Buy and Sell Stock', 'You are given an array prices where prices[i] is the price of a given stock on the ith day. You want to maximize your profit by choosing a single day to buy and a single day to sell. Return the maximum profit you can achieve. If no profit is possible, return 0.', 'easy', 'Arrays',
     {
       javascript: `function maxProfit(prices) {\n  // Return maximum profit\n  return 0;\n}`,
       python: `def maxProfit(prices):\n    # Return maximum profit\n    return 0`,
@@ -157,7 +154,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('valid-anagram', 'Valid Anagram', 'Given two strings s and t, return true if t is an anagram of s, and false otherwise. An anagram uses all original letters exactly once.', 'easy', 'Hash Map', 20,
+  challenge('valid-anagram', 'Valid Anagram', 'Given two strings s and t, return true if t is an anagram of s, and false otherwise. An anagram uses all original letters exactly once.', 'easy', 'Hash Map',
     {
       javascript: `function isAnagram(s, t) {\n  // Return true if t is an anagram of s\n  return false;\n}`,
       python: `def isAnagram(s, t):\n    # Return True if t is an anagram of s\n    return False`,
@@ -171,7 +168,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('contains-duplicate', 'Contains Duplicate', 'Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.', 'easy', 'Arrays', 20,
+  challenge('contains-duplicate', 'Contains Duplicate', 'Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.', 'easy', 'Arrays',
     {
       javascript: `function containsDuplicate(nums) {\n  // Return true if any duplicates exist\n  return false;\n}`,
       python: `def containsDuplicate(nums):\n    # Return True if any duplicates exist\n    return False`,
@@ -186,7 +183,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('max-depth-binary-tree', 'Maximum Depth of Binary Tree', 'Given the root of a binary tree, return its maximum depth. A binary tree\'s maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.', 'easy', 'Trees', 25,
+  challenge('max-depth-binary-tree', 'Maximum Depth of Binary Tree', 'Given the root of a binary tree, return its maximum depth. A binary tree\'s maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.', 'easy', 'Trees',
     {
       javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {number}\n */\nvar maxDepth = function(root) {\n    \n};`,
       python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def maxDepth(self, root: Optional[TreeNode]) -> int:\n        pass`,
@@ -200,7 +197,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('climbing-stairs', 'Climbing Stairs', 'You are climbing a staircase. It takes n steps to reach the top. Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?', 'easy', 'Dynamic Programming', 25,
+  challenge('climbing-stairs', 'Climbing Stairs', 'You are climbing a staircase. It takes n steps to reach the top. Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?', 'easy', 'Dynamic Programming',
     {
       javascript: `function climbStairs(n) {\n  // Return the number of distinct ways to climb n stairs\n  return 0;\n}`,
       python: `def climbStairs(n):\n    # Return the number of distinct ways to climb n stairs\n    return 0`,
@@ -215,7 +212,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('roman-to-integer', 'Roman to Integer', 'Given a roman numeral string, convert it to an integer. Roman numerals: I=1, V=5, X=10, L=50, C=100, D=500, M=1000. Subtraction: IV=4, IX=9, XL=40, XC=90, CD=400, CM=900.', 'easy', 'Strings', 25,
+  challenge('roman-to-integer', 'Roman to Integer', 'Given a roman numeral string, convert it to an integer. Roman numerals: I=1, V=5, X=10, L=50, C=100, D=500, M=1000. Subtraction: IV=4, IX=9, XL=40, XC=90, CD=400, CM=900.', 'easy', 'Strings',
     {
       javascript: `function romanToInt(s) {\n  // Convert roman numeral string to integer\n  return 0;\n}`,
       python: `def romanToInt(s):\n    # Convert roman numeral string to integer\n    return 0`,
@@ -230,7 +227,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('linked-list-cycle', 'Linked List Cycle', 'Given head, the head of a linked list, determine if the linked list has a cycle in it. There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the next pointer. Return true if there is a cycle in the linked list. Otherwise, return false.', 'easy', 'Linked List', 25,
+  challenge('linked-list-cycle', 'Linked List Cycle', 'Given head, the head of a linked list, determine if the linked list has a cycle in it. There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the next pointer. Return true if there is a cycle in the linked list. Otherwise, return false.', 'easy', 'Linked List',
     {
       javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val) {\n *     this.val = val;\n *     this.next = null;\n * }\n */\n/**\n * @param {ListNode} head\n * @return {boolean}\n */\nvar hasCycle = function(head) {\n    \n};`,
       python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, x):\n#         self.val = x\n#         self.next = None\n\nclass Solution:\n    def hasCycle(self, head: Optional[ListNode]) -> bool:\n        pass`,
@@ -245,7 +242,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('single-number', 'Single Number', 'Given a non-empty array of integers nums, every element appears twice except for one. Find that single one. You must implement a solution with linear runtime complexity and use only constant extra space.', 'easy', 'Bit Manipulation', 20,
+  challenge('single-number', 'Single Number', 'Given a non-empty array of integers nums, every element appears twice except for one. Find that single one. You must implement a solution with linear runtime complexity and use only constant extra space.', 'easy', 'Bit Manipulation',
     {
       javascript: `function singleNumber(nums) {\n  // Return the number that appears only once\n  return 0;\n}`,
       python: `def singleNumber(nums):\n    # Return the number that appears only once\n    return 0`,
@@ -260,7 +257,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('move-zeroes', 'Move Zeroes', 'Given an integer array nums, move all 0s to the end of it while maintaining the relative order of the non-zero elements. You must do this in-place without making a copy of the array.', 'easy', 'Arrays', 20,
+  challenge('move-zeroes', 'Move Zeroes', 'Given an integer array nums, move all 0s to the end of it while maintaining the relative order of the non-zero elements. You must do this in-place without making a copy of the array.', 'easy', 'Arrays',
     {
       javascript: `function moveZeroes(nums) {\n  // Move all zeroes to end in-place, return the array\n  return nums;\n}`,
       python: `def moveZeroes(nums):\n    # Move all zeroes to end in-place, return the list\n    return nums`,
@@ -274,7 +271,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('intersection-two-arrays', 'Intersection of Two Arrays II', 'Given two integer arrays nums1 and nums2, return an array of their intersection. Each element in the result must appear as many times as it shows in both arrays. You may return the result in any order.', 'easy', 'Hash Map', 25,
+  challenge('intersection-two-arrays', 'Intersection of Two Arrays II', 'Given two integer arrays nums1 and nums2, return an array of their intersection. Each element in the result must appear as many times as it shows in both arrays. You may return the result in any order.', 'easy', 'Hash Map',
     {
       javascript: `function intersect(nums1, nums2) {\n  // Return the intersection array\n  return [];\n}`,
       python: `def intersect(nums1, nums2):\n    # Return the intersection list\n    return []`,
@@ -288,7 +285,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('plus-one', 'Plus One', 'You are given a large integer represented as an integer array digits, where each digits[i] is the ith digit of the integer. Increment the large integer by one and return the resulting array of digits.', 'easy', 'Arrays', 20,
+  challenge('plus-one', 'Plus One', 'You are given a large integer represented as an integer array digits, where each digits[i] is the ith digit of the integer. Increment the large integer by one and return the resulting array of digits.', 'easy', 'Arrays',
     {
       javascript: `function plusOne(digits) {\n  // Increment the number and return new array\n  return [];\n}`,
       python: `def plusOne(digits):\n    # Increment the number and return new list\n    return []`,
@@ -303,7 +300,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('sqrt-x', 'Sqrt(x)', 'Given a non-negative integer x, return the square root of x rounded down to the nearest integer. Do not use any built-in exponent function or operator.', 'easy', 'Binary Search', 25,
+  challenge('sqrt-x', 'Sqrt(x)', 'Given a non-negative integer x, return the square root of x rounded down to the nearest integer. Do not use any built-in exponent function or operator.', 'easy', 'Binary Search',
     {
       javascript: `function mySqrt(x) {\n  // Return floor(sqrt(x))\n  return 0;\n}`,
       python: `def mySqrt(x):\n    # Return floor(sqrt(x))\n    return 0`,
@@ -320,7 +317,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
 
   // ─── MEDIUM (18–35) ───────────────────────────────────────────────────────
 
-  challenge('max-subarray', 'Maximum Subarray', 'Given an integer array nums, find the subarray with the largest sum and return its sum.', 'medium', 'Dynamic Programming', 30,
+  challenge('max-subarray', 'Maximum Subarray', 'Given an integer array nums, find the subarray with the largest sum and return its sum.', 'medium', 'Dynamic Programming',
     {
       javascript: `function maxSubArray(nums) {\n  // Return the largest subarray sum\n  return 0;\n}`,
       python: `def maxSubArray(nums):\n    # Return the largest subarray sum\n    return 0`,
@@ -335,7 +332,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('merge-intervals', 'Merge Intervals', 'Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals and return an array of the non-overlapping intervals that cover all the intervals in the input.', 'medium', 'Sorting', 35,
+  challenge('merge-intervals', 'Merge Intervals', 'Given an array of intervals where intervals[i] = [starti, endi], merge all overlapping intervals and return an array of the non-overlapping intervals that cover all the intervals in the input.', 'medium', 'Sorting',
     {
       javascript: `function merge(intervals) {\n  // Merge overlapping intervals\n  return [];\n}`,
       python: `def merge(intervals):\n    # Merge overlapping intervals\n    return []`,
@@ -349,7 +346,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('group-anagrams', 'Group Anagrams', 'Given an array of strings strs, group the anagrams together. You can return the answer in any order. An Anagram is a word formed by rearranging the letters of another word.', 'medium', 'Hash Map', 30,
+  challenge('group-anagrams', 'Group Anagrams', 'Given an array of strings strs, group the anagrams together. You can return the answer in any order. An Anagram is a word formed by rearranging the letters of another word.', 'medium', 'Hash Map',
     {
       javascript: `function groupAnagrams(strs) {\n  // Return an array of grouped anagram arrays\n  return [];\n}`,
       python: `def groupAnagrams(strs):\n    # Return a list of grouped anagram lists\n    return []`,
@@ -364,7 +361,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('three-sum', '3Sum', 'Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0. The solution set must not contain duplicate triplets.', 'medium', 'Two Pointers', 40,
+  challenge('three-sum', '3Sum', 'Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0. The solution set must not contain duplicate triplets.', 'medium', 'Two Pointers',
     {
       javascript: `function threeSum(nums) {\n  // Return array of unique triplets that sum to zero\n  return [];\n}`,
       python: `def threeSum(nums):\n    # Return list of unique triplets that sum to zero\n    return []`,
@@ -379,7 +376,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('container-with-most-water', 'Container With Most Water', 'You are given an integer array height of length n. There are n vertical lines. Find two lines that together with the x-axis form a container that holds the most water. Return the maximum amount of water a container can store.', 'medium', 'Two Pointers', 30,
+  challenge('container-with-most-water', 'Container With Most Water', 'You are given an integer array height of length n. There are n vertical lines. Find two lines that together with the x-axis form a container that holds the most water. Return the maximum amount of water a container can store.', 'medium', 'Two Pointers',
     {
       javascript: `function maxArea(height) {\n  // Return the maximum water area\n  return 0;\n}`,
       python: `def maxArea(height):\n    # Return the maximum water area\n    return 0`,
@@ -393,7 +390,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('longest-substring-no-repeat', 'Longest Substring Without Repeating Characters', 'Given a string s, find the length of the longest substring without repeating characters.', 'medium', 'Sliding Window', 30,
+  challenge('longest-substring-no-repeat', 'Longest Substring Without Repeating Characters', 'Given a string s, find the length of the longest substring without repeating characters.', 'medium', 'Sliding Window',
     {
       javascript: `function lengthOfLongestSubstring(s) {\n  // Return the length of the longest substring without repeating chars\n  return 0;\n}`,
       python: `def lengthOfLongestSubstring(s):\n    # Return the length of the longest substring without repeating chars\n    return 0`,
@@ -408,7 +405,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('product-except-self', 'Product of Array Except Self', 'Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i]. You must solve it without using division and in O(n) time.', 'medium', 'Arrays', 30,
+  challenge('product-except-self', 'Product of Array Except Self', 'Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i]. You must solve it without using division and in O(n) time.', 'medium', 'Arrays',
     {
       javascript: `function productExceptSelf(nums) {\n  // Return the product array\n  return [];\n}`,
       python: `def productExceptSelf(nums):\n    # Return the product list\n    return []`,
@@ -422,7 +419,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('sort-colors', 'Sort Colors', 'Given an array nums with n objects colored red (0), white (1), or blue (2), sort them in-place so that objects of the same color are adjacent. You must solve this without using the library sort function.', 'medium', 'Sorting', 30,
+  challenge('sort-colors', 'Sort Colors', 'Given an array nums with n objects colored red (0), white (1), or blue (2), sort them in-place so that objects of the same color are adjacent. You must solve this without using the library sort function.', 'medium', 'Sorting',
     {
       javascript: `function sortColors(nums) {\n  // Sort in-place and return\n  return nums;\n}`,
       python: `def sortColors(nums):\n    # Sort in-place and return\n    return nums`,
@@ -436,7 +433,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('rotate-image', 'Rotate Image', 'You are given an n x n 2D matrix representing an image. Rotate the image by 90 degrees clockwise. You have to rotate the image in-place.', 'medium', 'Matrix', 35,
+  challenge('rotate-image', 'Rotate Image', 'You are given an n x n 2D matrix representing an image. Rotate the image by 90 degrees clockwise. You have to rotate the image in-place.', 'medium', 'Matrix',
     {
       javascript: `function rotate(matrix) {\n  // Rotate matrix 90 degrees clockwise in-place\n  return matrix;\n}`,
       python: `def rotate(matrix):\n    # Rotate matrix 90 degrees clockwise in-place\n    return matrix`,
@@ -450,7 +447,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('binary-tree-level-order', 'Binary Tree Level Order Traversal', 'Given the root of a binary tree, return the level order traversal of its nodes\' values. (i.e., from left to right, level by level).', 'medium', 'Trees', 35,
+  challenge('binary-tree-level-order', 'Binary Tree Level Order Traversal', 'Given the root of a binary tree, return the level order traversal of its nodes\' values. (i.e., from left to right, level by level).', 'medium', 'Trees',
     {
       javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {number[][]}\n */\nvar levelOrder = function(root) {\n    \n};`,
       python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:\n        pass`,
@@ -464,7 +461,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('validate-bst', 'Validate Binary Search Tree', 'Given the root of a binary tree, determine if it is a valid binary search tree (BST). A valid BST has all left subtree values less than the node, and all right subtree values greater.', 'medium', 'Trees', 35,
+  challenge('validate-bst', 'Validate Binary Search Tree', 'Given the root of a binary tree, determine if it is a valid binary search tree (BST). A valid BST has all left subtree values less than the node, and all right subtree values greater.', 'medium', 'Trees',
     {
       javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val, left, right) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.left = (left===undefined ? null : left)\n *     this.right = (right===undefined ? null : right)\n * }\n */\n/**\n * @param {TreeNode} root\n * @return {boolean}\n */\nvar isValidBST = function(root) {\n    \n};`,
       python: `# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def isValidBST(self, root: Optional[TreeNode]) -> bool:\n        pass`,
@@ -478,7 +475,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('coin-change', 'Coin Change', 'You are given an integer array coins representing coin denominations and an integer amount. Return the fewest number of coins needed to make up that amount. If that amount cannot be made up, return -1.', 'medium', 'Dynamic Programming', 35,
+  challenge('coin-change', 'Coin Change', 'You are given an integer array coins representing coin denominations and an integer amount. Return the fewest number of coins needed to make up that amount. If that amount cannot be made up, return -1.', 'medium', 'Dynamic Programming',
     {
       javascript: `function coinChange(coins, amount) {\n  // Return minimum number of coins, or -1\n  return -1;\n}`,
       python: `def coinChange(coins, amount):\n    # Return minimum number of coins, or -1\n    return -1`,
@@ -493,7 +490,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('number-of-islands', 'Number of Islands', 'Given an m x n 2D grid map of "1"s (land) and "0"s (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.', 'medium', 'Graph', 35,
+  challenge('number-of-islands', 'Number of Islands', 'Given an m x n 2D grid map of "1"s (land) and "0"s (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.', 'medium', 'Graph',
     {
       javascript: `function numIslands(grid) {\n  // Return the number of islands\n  return 0;\n}`,
       python: `def numIslands(grid):\n    # Return the number of islands\n    return 0`,
@@ -507,7 +504,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('letter-combinations', 'Letter Combinations of a Phone Number', 'Given a string containing digits from 2-9, return all possible letter combinations that the number could represent (like on a phone keypad). 2=abc, 3=def, 4=ghi, 5=jkl, 6=mno, 7=pqrs, 8=tuv, 9=wxyz.', 'medium', 'Backtracking', 30,
+  challenge('letter-combinations', 'Letter Combinations of a Phone Number', 'Given a string containing digits from 2-9, return all possible letter combinations that the number could represent (like on a phone keypad). 2=abc, 3=def, 4=ghi, 5=jkl, 6=mno, 7=pqrs, 8=tuv, 9=wxyz.', 'medium', 'Backtracking',
     {
       javascript: `function letterCombinations(digits) {\n  // Return all possible letter combinations\n  return [];\n}`,
       python: `def letterCombinations(digits):\n    # Return all possible letter combinations\n    return []`,
@@ -522,7 +519,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('search-rotated-sorted', 'Search in Rotated Sorted Array', 'Given a rotated sorted array nums and a target value, search target in nums. Return its index if found, otherwise return -1. You must write an algorithm with O(log n) runtime complexity.', 'medium', 'Binary Search', 35,
+  challenge('search-rotated-sorted', 'Search in Rotated Sorted Array', 'Given a rotated sorted array nums and a target value, search target in nums. Return its index if found, otherwise return -1. You must write an algorithm with O(log n) runtime complexity.', 'medium', 'Binary Search',
     {
       javascript: `function search(nums, target) {\n  // Return index of target, or -1\n  return -1;\n}`,
       python: `def search(nums, target):\n    # Return index of target, or -1\n    return -1`,
@@ -537,7 +534,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('find-first-last-position', 'Find First and Last Position', 'Given an array of integers nums sorted in non-decreasing order, find the starting and ending position of a given target value. If target is not found, return [-1, -1]. Must be O(log n).', 'medium', 'Binary Search', 30,
+  challenge('find-first-last-position', 'Find First and Last Position', 'Given an array of integers nums sorted in non-decreasing order, find the starting and ending position of a given target value. If target is not found, return [-1, -1]. Must be O(log n).', 'medium', 'Binary Search',
     {
       javascript: `function searchRange(nums, target) {\n  // Return [first, last] position\n  return [-1, -1];\n}`,
       python: `def searchRange(nums, target):\n    # Return [first, last] position\n    return [-1, -1]`,
@@ -552,7 +549,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('subsets', 'Subsets', 'Given an integer array nums of unique elements, return all possible subsets (the power set). The solution set must not contain duplicate subsets.', 'medium', 'Backtracking', 30,
+  challenge('subsets', 'Subsets', 'Given an integer array nums of unique elements, return all possible subsets (the power set). The solution set must not contain duplicate subsets.', 'medium', 'Backtracking',
     {
       javascript: `function subsets(nums) {\n  // Return all subsets\n  return [];\n}`,
       python: `def subsets(nums):\n    # Return all subsets\n    return []`,
@@ -566,7 +563,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('word-search', 'Word Search', 'Given an m x n grid of characters board and a string word, return true if word exists in the grid. The word can be constructed from letters of sequentially adjacent cells (horizontally or vertically).', 'medium', 'Backtracking', 35,
+  challenge('word-search', 'Word Search', 'Given an m x n grid of characters board and a string word, return true if word exists in the grid. The word can be constructed from letters of sequentially adjacent cells (horizontally or vertically).', 'medium', 'Backtracking',
     {
       javascript: `function exist(board, word) {\n  // Return true if word exists in grid\n  return false;\n}`,
       python: `def exist(board, word):\n    # Return True if word exists in grid\n    return False`,
@@ -581,7 +578,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('decode-ways', 'Decode Ways', 'A message containing letters A-Z can be encoded as numbers: A=1, B=2, ..., Z=26. Given a string s containing only digits, return the number of ways to decode it.', 'medium', 'Dynamic Programming', 30,
+  challenge('decode-ways', 'Decode Ways', 'A message containing letters A-Z can be encoded as numbers: A=1, B=2, ..., Z=26. Given a string s containing only digits, return the number of ways to decode it.', 'medium', 'Dynamic Programming',
     {
       javascript: `function numDecodings(s) {\n  // Return number of ways to decode\n  return 0;\n}`,
       python: `def numDecodings(s):\n    # Return number of ways to decode\n    return 0`,
@@ -596,7 +593,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('house-robber', 'House Robber', 'You are a robber planning to rob houses along a street. Each house has a certain amount of money. Adjacent houses have security systems connected — if two adjacent houses are broken into, the police will be alerted. Given an array of non-negative integers representing the amount at each house, determine the maximum amount you can rob without alerting the police.', 'medium', 'Dynamic Programming', 30,
+  challenge('house-robber', 'House Robber', 'You are a robber planning to rob houses along a street. Each house has a certain amount of money. Adjacent houses have security systems connected — if two adjacent houses are broken into, the police will be alerted. Given an array of non-negative integers representing the amount at each house, determine the maximum amount you can rob without alerting the police.', 'medium', 'Dynamic Programming',
     {
       javascript: `function rob(nums) {\n  // Return maximum amount you can rob\n  return 0;\n}`,
       python: `def rob(nums):\n    # Return maximum amount you can rob\n    return 0`,
@@ -612,7 +609,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
 
   // ─── HARD (36–50) ─────────────────────────────────────────────────────────
 
-  challenge('trapping-rain-water', 'Trapping Rain Water', 'Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.', 'hard', 'Two Pointers', 45,
+  challenge('trapping-rain-water', 'Trapping Rain Water', 'Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.', 'hard', 'Two Pointers',
     {
       javascript: `function trap(height) {\n  // Return amount of trapped water\n  return 0;\n}`,
       python: `def trap(height):\n    # Return amount of trapped water\n    return 0`,
@@ -626,7 +623,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('merge-k-sorted-lists', 'Merge K Sorted Lists', 'You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list and return it.', 'hard', 'Heap', 45,
+  challenge('merge-k-sorted-lists', 'Merge K Sorted Lists', 'You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list and return it.', 'hard', 'Heap',
     {
       javascript: `/**\n * Definition for singly-linked list.\n * function ListNode(val, next) {\n *     this.val = (val===undefined ? 0 : val)\n *     this.next = (next===undefined ? null : next)\n * }\n */\n/**\n * @param {ListNode[]} lists\n * @return {ListNode}\n */\nvar mergeKLists = function(lists) {\n    \n};`,
       python: `# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        pass`,
@@ -641,7 +638,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('lru-cache', 'LRU Cache', 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache. Implement get(key) which returns the value or -1, and put(key, value) which inserts or updates. When capacity is reached, evict the least recently used key.', 'hard', 'Design', 50,
+  challenge('lru-cache', 'LRU Cache', 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache. Implement get(key) which returns the value or -1, and put(key, value) which inserts or updates. When capacity is reached, evict the least recently used key.', 'hard', 'Design',
     {
       javascript: `class LRUCache {\n  constructor(capacity) {\n    // Initialize\n  }\n  get(key) {\n    // Return value or -1\n    return -1;\n  }\n  put(key, value) {\n    // Insert or update\n  }\n}`,
       python: `class LRUCache:\n    def __init__(self, capacity):\n        # Initialize\n        pass\n\n    def get(self, key):\n        # Return value or -1\n        return -1\n\n    def put(self, key, value):\n        # Insert or update\n        pass`,
@@ -654,7 +651,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('longest-increasing-subsequence', 'Longest Increasing Subsequence', 'Given an integer array nums, return the length of the longest strictly increasing subsequence.', 'hard', 'Dynamic Programming', 40,
+  challenge('longest-increasing-subsequence', 'Longest Increasing Subsequence', 'Given an integer array nums, return the length of the longest strictly increasing subsequence.', 'hard', 'Dynamic Programming',
     {
       javascript: `function lengthOfLIS(nums) {\n  // Return length of longest increasing subsequence\n  return 0;\n}`,
       python: `def lengthOfLIS(nums):\n    # Return length of longest increasing subsequence\n    return 0`,
@@ -669,7 +666,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('word-break', 'Word Break', 'Given a string s and a dictionary of strings wordDict, return true if s can be segmented into a space-separated sequence of one or more dictionary words.', 'hard', 'Dynamic Programming', 40,
+  challenge('word-break', 'Word Break', 'Given a string s and a dictionary of strings wordDict, return true if s can be segmented into a space-separated sequence of one or more dictionary words.', 'hard', 'Dynamic Programming',
     {
       javascript: `function wordBreak(s, wordDict) {\n  // Return true if s can be segmented\n  return false;\n}`,
       python: `def wordBreak(s, wordDict):\n    # Return True if s can be segmented\n    return False`,
@@ -684,7 +681,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('serialize-deserialize-bt', 'Serialize and Deserialize Binary Tree', 'Design an algorithm to serialize and deserialize a binary tree. There is no restriction on how your serialization/deserialization algorithm should work. You just need to ensure that a binary tree can be serialized to a string and this string can be deserialized to the original tree structure.', 'hard', 'Trees', 50,
+  challenge('serialize-deserialize-bt', 'Serialize and Deserialize Binary Tree', 'Design an algorithm to serialize and deserialize a binary tree. There is no restriction on how your serialization/deserialization algorithm should work. You just need to ensure that a binary tree can be serialized to a string and this string can be deserialized to the original tree structure.', 'hard', 'Trees',
     {
       javascript: `/**\n * Definition for a binary tree node.\n * function TreeNode(val) {\n *     this.val = val;\n *     this.left = this.right = null;\n * }\n */\n\n/**\n * Encodes a tree to a single string.\n *\n * @param {TreeNode} root\n * @return {string}\n */\nvar serialize = function(root) {\n    \n};\n\n/**\n * Decodes your encoded data to tree.\n *\n * @param {string} data\n * @return {TreeNode}\n */\nvar deserialize = function(data) {\n    \n};`,
       python: `# Definition for a binary tree node.\n# class TreeNode(object):\n#     def __init__(self, x):\n#         self.val = x\n#         self.left = None\n#         self.right = None\n\nclass Codec:\n\n    def serialize(self, root):\n        """Encodes a tree to a single string.\n        \n        :type root: TreeNode\n        :rtype: str\n        """\n        pass\n\n    def deserialize(self, data):\n        """Decodes your encoded data to tree.\n        \n        :type data: str\n        :rtype: TreeNode\n        """\n        pass`,
@@ -698,7 +695,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('course-schedule', 'Course Schedule', 'There are numCourses courses labeled from 0 to numCourses-1. You are given an array prerequisites where prerequisites[i] = [ai, bi] indicates that you must take course bi first before course ai. Return true if you can finish all courses.', 'hard', 'Graph', 40,
+  challenge('course-schedule', 'Course Schedule', 'There are numCourses courses labeled from 0 to numCourses-1. You are given an array prerequisites where prerequisites[i] = [ai, bi] indicates that you must take course bi first before course ai. Return true if you can finish all courses.', 'hard', 'Graph',
     {
       javascript: `function canFinish(numCourses, prerequisites) {\n  // Return true if all courses can be finished\n  return false;\n}`,
       python: `def canFinish(numCourses, prerequisites):\n    # Return True if all courses can be finished\n    return False`,
@@ -712,7 +709,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('minimum-window-substring', 'Minimum Window Substring', 'Given two strings s and t, return the minimum window substring of s such that every character in t (including duplicates) is included in the window. If there is no such substring, return the empty string "".', 'hard', 'Sliding Window', 45,
+  challenge('minimum-window-substring', 'Minimum Window Substring', 'Given two strings s and t, return the minimum window substring of s such that every character in t (including duplicates) is included in the window. If there is no such substring, return the empty string "".', 'hard', 'Sliding Window',
     {
       javascript: `function minWindow(s, t) {\n  // Return minimum window substring\n  return "";\n}`,
       python: `def minWindow(s, t):\n    # Return minimum window substring\n    return ""`,
@@ -727,7 +724,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('edit-distance', 'Edit Distance', 'Given two strings word1 and word2, return the minimum number of operations required to convert word1 to word2. You have three operations: insert a character, delete a character, replace a character.', 'hard', 'Dynamic Programming', 45,
+  challenge('edit-distance', 'Edit Distance', 'Given two strings word1 and word2, return the minimum number of operations required to convert word1 to word2. You have three operations: insert a character, delete a character, replace a character.', 'hard', 'Dynamic Programming',
     {
       javascript: `function minDistance(word1, word2) {\n  // Return minimum edit distance\n  return 0;\n}`,
       python: `def minDistance(word1, word2):\n    # Return minimum edit distance\n    return 0`,
@@ -741,7 +738,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('median-two-sorted-arrays', 'Median of Two Sorted Arrays', 'Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays. The overall run time complexity should be O(log (m+n)).', 'hard', 'Binary Search', 50,
+  challenge('median-two-sorted-arrays', 'Median of Two Sorted Arrays', 'Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays. The overall run time complexity should be O(log (m+n)).', 'hard', 'Binary Search',
     {
       javascript: `function findMedianSortedArrays(nums1, nums2) {\n  // Return the median\n  return 0;\n}`,
       python: `def findMedianSortedArrays(nums1, nums2):\n    # Return the median\n    return 0`,
@@ -755,7 +752,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('regex-matching', 'Regular Expression Matching', 'Given a string s and a pattern p, implement regular expression matching with support for "." and "*" where "." matches any single character and "*" matches zero or more of the preceding element.', 'hard', 'Dynamic Programming', 50,
+  challenge('regex-matching', 'Regular Expression Matching', 'Given a string s and a pattern p, implement regular expression matching with support for "." and "*" where "." matches any single character and "*" matches zero or more of the preceding element.', 'hard', 'Dynamic Programming',
     {
       javascript: `function isMatch(s, p) {\n  // Return true if pattern matches entire string\n  return false;\n}`,
       python: `def isMatch(s, p):\n    # Return True if pattern matches entire string\n    return False`,
@@ -770,7 +767,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('longest-valid-parentheses', 'Longest Valid Parentheses', 'Given a string containing just "(" and ")", return the length of the longest valid (well-formed) parentheses substring.', 'hard', 'Stack', 45,
+  challenge('longest-valid-parentheses', 'Longest Valid Parentheses', 'Given a string containing just "(" and ")", return the length of the longest valid (well-formed) parentheses substring.', 'hard', 'Stack',
     {
       javascript: `function longestValidParentheses(s) {\n  // Return the length of the longest valid parentheses substring\n  return 0;\n}`,
       python: `def longestValidParentheses(s):\n    # Return the length of the longest valid parentheses substring\n    return 0`,
@@ -785,7 +782,7 @@ export const CODING_CHALLENGES: CodingChallenge[] = [
     ]
   ),
 
-  challenge('maximal-rectangle', 'Maximal Rectangle', 'Given a rows x cols binary matrix filled with 0s and 1s, find the largest rectangle containing only 1s and return its area.', 'hard', 'Stack', 50,
+  challenge('maximal-rectangle', 'Maximal Rectangle', 'Given a rows x cols binary matrix filled with 0s and 1s, find the largest rectangle containing only 1s and return its area.', 'hard', 'Stack',
     {
       javascript: `function maximalRectangle(matrix) {\n  // Return area of largest rectangle of 1s\n  return 0;\n}`,
       python: `def maximalRectangle(matrix):\n    # Return area of largest rectangle of 1s\n    return 0`,

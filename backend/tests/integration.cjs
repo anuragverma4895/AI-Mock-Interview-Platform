@@ -107,6 +107,15 @@ async function waitForHealthy() {
       { challengeId: 'two-sum', language: 'javascript' }, token1);
     assert.equal(codingStart.status, 201, JSON.stringify(codingStart.body));
     const codingId = codingStart.body.codingSession.id;
+    assert.equal(codingStart.body.codingSession.timeLimit, undefined);
+    assert.equal(codingStart.body.codingSession.challenge.timeLimit, undefined);
+    const curated = await request('GET', '/api/coding/challenges');
+    assert.equal(curated.status, 200);
+    assert.ok(curated.body.length > 0 && curated.body.every(challenge => challenge.timeLimit === undefined));
+    const custom = await request('POST', '/api/coding/start', { customChallenge: {title:'Custom'}, language:'javascript' }, token1);
+    assert.equal(custom.status, 400, 'Custom/AI generated practice is disabled');
+    const removedGenerator = await request('POST', '/api/coding/generate', {difficulty:'easy',language:'javascript'}, token1);
+    assert.equal(removedGenerator.status, 404, 'AI challenge generation route is removed');
     const javascriptSolution = 'function twoSum(nums, target) { const seen = new Map(); for (let i = 0; i < nums.length; i++) { const other = target - nums[i]; if (seen.has(other)) return [seen.get(other),i]; seen.set(nums[i], i); } return []; }';
     const expectedOutputs = ['[0,1]', '[1,2]', '[0,1]'];
     const practiceResults = expectedOutputs.map(actual => ({actual, passed:true}));
@@ -128,6 +137,7 @@ async function waitForHealthy() {
     const stillActive = await request('GET', '/api/coding/sessions/' + codingId, undefined, token1);
     assert.equal(stillActive.status, 200);
     assert.equal(stillActive.body.status, 'in_progress');
+    assert.equal(stillActive.body.codingChallenge.timeLimit, undefined);
 
     const submitted = await request('POST', '/api/coding/submit/' + codingId,
       { code: javascriptSolution, language: 'javascript', browserResults: practiceResults }, token1);

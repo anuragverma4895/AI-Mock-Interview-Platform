@@ -46,7 +46,7 @@ export interface Interview {
     title: string;
     description: string;
     difficulty: 'easy' | 'medium' | 'hard';
-    timeLimit: number;
+    timeLimit?: number; // Legacy completed sessions only.
     language: string;
     starterCode: string;
     testCases: Array<{ input: string; expectedOutput: string }>;

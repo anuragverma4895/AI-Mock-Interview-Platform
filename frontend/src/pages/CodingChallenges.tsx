@@ -9,7 +9,6 @@ import {
   Search, 
   Filter, 
   ArrowRight,
-  Clock,
   LayoutGrid
 } from "lucide-react"
 import { codingAPI, CodingChallenge } from "../services/api"
@@ -60,7 +59,7 @@ export default function CodingChallenges() {
             </h1>
           </div>
           <p className="text-slate-600 dark:text-slate-400">
-            Practice your coding skills with these curated challenges across various difficulty levels and languages.
+            Practice at your own pace with curated challenges across difficulty levels and languages. No time limit.
           </p>
         </motion.div>
 
@@ -119,10 +118,6 @@ export default function CodingChallenges() {
                       >
                         {challenge.difficulty}
                       </Badge>
-                      <div className="flex items-center text-slate-500 text-sm">
-                        <Clock className="w-4 h-4 mr-1" />
-                        {Math.ceil(challenge.timeLimit / 60)}m
-                      </div>
                     </div>
                     <CardTitle className="text-xl">{challenge.title}</CardTitle>
                   </CardHeader>

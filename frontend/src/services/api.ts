@@ -141,7 +141,6 @@ export interface CodingChallenge {
   description: string;
   difficulty: 'easy' | 'medium' | 'hard';
   category?: string;
-  timeLimit: number;
   language: string;
   starterCode: string;
   starterCodes: Record<string, string>;
@@ -169,10 +168,10 @@ export interface CodingSession {
 export const codingAPI = {
   getChallenges: (params?: { difficulty?: string; category?: string }) => 
     api.get<CodingChallenge[]>('/coding/challenges', { params }),
-  start: (challengeId?: string, language?: string, customChallenge?: any) =>
-    api.post<{ codingSession: { id: string; challenge: CodingChallenge; timeLimit: number; language: string } }>(
+  start: (challengeId?: string, language?: string) =>
+    api.post<{ codingSession: { id: string; challenge: CodingChallenge; language: string } }>(
       '/coding/start',
-      { challengeId, language, customChallenge }
+      { challengeId, language }
     ),
   run: (interviewId: string, code: string, language?: string) =>
     api.post(`/coding/run/${interviewId}`, { code, language }),
@@ -180,8 +179,6 @@ export const codingAPI = {
     api.post(`/coding/submit/${interviewId}`, { code, language, browserResults }),
   getSessions: () => api.get<CodingSession[]>('/coding/sessions'),
   getSession: (interviewId: string) => api.get<CodingSession>(`/coding/sessions/${interviewId}`),
-  generateChallenge: (difficulty: string, language: string, context?: string) =>
-    api.post<CodingChallenge>('/coding/generate', { difficulty, language, context }),
 };
 
 export default api;

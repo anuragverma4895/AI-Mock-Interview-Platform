@@ -24,7 +24,7 @@ export interface ICodingChallenge {
   title: string;
   description: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  timeLimit: number;
+  timeLimit?: number; // Legacy records only; new coding practice is untimed.
   language: string;
   starterCode: string;
   starterCodes?: Record<string, string>;

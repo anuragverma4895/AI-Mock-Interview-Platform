@@ -7,17 +7,15 @@ import { normalizeBrowserResults } from '../utils/browserCodingResults';
 
 export const startCoding = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { challengeId, language, customChallenge } = req.body;
+    const { challengeId, language } = req.body;
+    if (req.body.customChallenge !== undefined) {
+      res.status(400).json({ message: 'Only curated practice challenges are supported' });
+      return;
+    }
 
     let challenge: CodingChallenge;
     
-    if (customChallenge) {
-      challenge = {
-        ...customChallenge,
-        id: 'custom-' + Date.now(),
-        timeLimit: customChallenge.timeLimit || 1800,
-      };
-    } else if (challengeId) {
+    if (challengeId) {
       const found = getChallenge(challengeId);
       if (!found) {
         res.status(404).json({ message: 'Coding challenge not found' });
@@ -39,13 +37,12 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
         title: challenge.title,
         description: challenge.description,
         difficulty: challenge.difficulty,
-        timeLimit: challenge.timeLimit,
         language: language || challenge.language,
         starterCode: challenge.starterCode,
         starterCodes: challenge.starterCodes || {},
         testCases: challenge.testCases,
       },
-      duration: Math.ceil(challenge.timeLimit / 60),
+      duration: 0, // Untimed practice; actual elapsed minutes are recorded on submission.
       startedAt: new Date(),
     });
 
@@ -56,7 +53,6 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
       codingSession: {
         id: interview._id,
         challenge: challenge,
-        timeLimit: challenge.timeLimit,
         language: language || challenge.language,
       },
     });
@@ -66,7 +62,7 @@ export const startCoding = async (req: AuthRequest, res: Response): Promise<void
   }
 };
 
-/** Run an advisory AI code review without submitting or closing the session. */
+/** Run test cases without submitting or closing the session. */
 const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize: boolean): Promise<void> => {
   try {
     const { interviewId } = req.params;
@@ -122,6 +118,9 @@ const reviewCodingSubmission = async (req: AuthRequest, res: Response, finalize:
       interview.codingTotalCount = totalCount;
       interview.status = 'completed';
       interview.completedAt = new Date();
+      if (interview.startedAt) {
+        interview.duration = Math.max(0, Math.round((interview.completedAt.getTime() - interview.startedAt.getTime()) / 60000));
+      }
       interview.finalScore = totalCount > 0 ? (passedCount / totalCount) * 5 : 0;
       await interview.save();
     }
@@ -197,18 +196,5 @@ export const getCodingSession = async (req: AuthRequest, res: Response): Promise
   } catch (error) {
     console.error('Error fetching coding session:', error);
     res.status(500).json({ message: 'Error fetching coding session' });
-  }
-};
-
-import { generateCodingChallenge } from './aiService';
-
-export const generateChallenge = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { difficulty, language, context } = req.body;
-    const challenge = await generateCodingChallenge(difficulty, language, context);
-    res.status(200).json(challenge);
-  } catch (error) {
-    console.error('Error generating AI coding challenge:', error);
-    res.status(500).json({ message: 'Error generating challenge' });
   }
 };

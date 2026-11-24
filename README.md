@@ -163,6 +163,8 @@ cd ../frontend && npm run test:runner
 
 ## Coding challenges
 
+Coding practice uses curated questions with no countdown, time limit, automatic submission, or AI challenge generation. Users can run tests as often as needed, switch problems, or submit manually. Execution timeouts still protect individual code runs.
+
 | Language | How test cases are executed | AI key needed? |
 |---|---|---|
 | JavaScript | Browser Web Worker (local practice runner) | No |
